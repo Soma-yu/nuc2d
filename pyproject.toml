@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nuc2d"
+version = "0.1.0"
+description = "Takilab research library"
+authors = [
+  { name = "Soma Ishii" }
+]
+dependencies = [
+  "numpy",
+  "matplotlib",
+  "svgwrite",
+]
+
+[tool.setuptools.packages.find]
+include = ["nuc2d*"]

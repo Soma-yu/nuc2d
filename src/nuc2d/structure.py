@@ -1,0 +1,119 @@
+"""Data structures for representing secondary structures.
+
+This module provides classes for representing secondary structures,
+including nucleotides and structural regions such as stems and loops.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Optional
+
+from .vec2 import Vec2
+
+@dataclass
+class Nucleotide:
+    """A class representing a nucleotide.
+    
+    Parameters
+    ----------
+    strand_index : int
+        Index of the strand this nucleotide belongs to among all strands (0-based).
+    index_in_strand : int
+        Index within the strand this nucleotide belongs to (0-based).
+
+    Attributes
+    ----------
+    base : str or None
+        The nucleotide base.
+    pair_probability : float or None
+        If the nucleotide is paired, this is the probability of pairing with its partner.
+        If unpaired, this is the probability of remaining unpaired.
+    """
+    strand_index: int
+    index_in_strand: int
+
+    base: Optional[str] = None
+    pair_probability: Optional[float] = None
+
+@dataclass
+class Region:
+    """Base class for regions in a secondary structure.
+    
+    Attributes
+    ----------
+    nucleotides : list[Nucleotide]
+        List of nucleotides that belong to this region.
+    """
+    nucleotides: list[Nucleotide] = field(default_factory=list)
+
+@dataclass
+class StemRegion(Region):
+    """Class representing a stem region in a secondary structure.
+    
+    Attributes
+    ----------
+    child_loop : LoopRegion | None
+        Child region in the secondary structure tree.
+        For a stem region, this is assumed to be a single LoopRegion instance
+        corresponding to the loop connected to this stem.
+        None if no such loop exists.
+    """
+    child_loop: Optional[LoopRegion] = None
+
+@dataclass
+class LoopRegion(Region):
+    """Class representing a loop region (non-stem region) in a secondary structure.
+    
+    Attributes
+    ----------
+    child_stems : list[StemRegion] | None
+        Child regions in the secondary structure tree.
+        For a loop region, this is assumed to be a list of one or more
+        StemRegion instances corresponding to stems connected to this loop.
+        None if no such stems exist.
+    is_loot : bool
+        Whether this loop region is the root of the secondary structure tree.
+    """
+    child_stems: list[StemRegion] = field(default_factory=list)
+    is_root: bool = False
+
+    @property
+    def is_hinge(self) -> bool:
+        """Return whether this loop region forms a hinge-like structure between stem regions."""
+        frag1 = len(self.nucleotides) == 4 and len(self.next_stems) == 2 and self.is_root
+        frag2 = len(self.nucleotides) == 4 and len(self.next_stems) == 1
+        return frag1 or frag2
+
+def region_to_string(region: Region, idx=1, floor=0):
+    for _ in range(floor):
+        print("\t", end="")
+    if isinstance(region, StemRegion):
+        flag = False
+        next_nt = region.child_loop.nucleotides[0]
+        for nt in region.nucleotides:
+            if not flag:
+                print(f"({idx:02d} ", end="")
+            else:
+                print(f"){idx:02d} ", end="")
+            if nt == next_nt:
+                print()
+                idx = region_to_string(region.child_loop, idx=idx, floor=floor+1)
+                for _ in range(floor):
+                    print("\t", end="")
+            else:
+                idx += 1
+    elif isinstance(region, LoopRegion):
+        stem_dict = {(stem.nucleotides[0].strand_index, stem.nucleotides[0].index_in_strand): stem for stem in region.child_stems}
+        for nt in region.nucleotides:
+            print(f".{idx:02d} ", end="")
+            if (nt.strand_index, nt.index_in_strand) in stem_dict:
+                print()
+                idx = region_to_string(stem_dict[(nt.strand_index, nt.index_in_strand)], idx=idx, floor=floor+1)
+                for _ in range(floor):
+                    print("\t", end="")
+            else:
+                idx += 1
+    print()
+    return idx - 1
+
