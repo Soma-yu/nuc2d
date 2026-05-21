@@ -8,7 +8,7 @@ from .structure import (
 )
 
 class ParseError(Exception):
-    """文字列パース時のエラー。"""
+    """Exception raised when an error occurs during parsing of a string."""
     pass
 
 class _Parser:
@@ -162,6 +162,8 @@ class _Parser:
         """
         while not self.is_eof():
             if self.peek() == "+":
+                # Mark as the 3' terminus
+                current_loop.nucleotides[-1].is_three_prime = True
                 # Move to the next strand
                 self.consume("+")
                 self.advance_strand()
@@ -182,6 +184,7 @@ class _Parser:
                 for _ in range(self.consume_plus(".")):
                     current_loop.nucleotides.append(self.create_nucleotide())
         if current_loop.is_root:
+            current_loop.nucleotides[-1].is_three_prime = True
             self.finish()
     
     def parse(self) -> LoopRegion:

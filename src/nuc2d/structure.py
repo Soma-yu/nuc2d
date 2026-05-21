@@ -9,9 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .vec2 import Vec2
 
-@dataclass
+@dataclass(eq=False)
 class Nucleotide:
     """A class representing a nucleotide.
     
@@ -26,15 +25,23 @@ class Nucleotide:
     ----------
     base : str or None
         The nucleotide base.
-    pair_probability : float or None
+    basepair_probability : float or None
         If the nucleotide is paired, this is the probability of pairing with its partner.
         If unpaired, this is the probability of remaining unpaired.
+    is_three_prime : bool, default=False
+        Whether this nucleotide corresponds to the 3' terminus.
     """
     strand_index: int
     index_in_strand: int
 
     base: Optional[str] = None
-    pair_probability: Optional[float] = None
+    basepair_probability: Optional[float] = None
+    is_three_prime: bool = False
+
+    @property
+    def is_five_prime(self) -> bool:
+        """Return whether this nucleotide corresponds to the 5' terminus."""
+        return self.index_in_strand == 0
 
 @dataclass
 class Region:
@@ -81,8 +88,8 @@ class LoopRegion(Region):
     @property
     def is_hinge(self) -> bool:
         """Return whether this loop region forms a hinge-like structure between stem regions."""
-        frag1 = len(self.nucleotides) == 4 and len(self.next_stems) == 2 and self.is_root
-        frag2 = len(self.nucleotides) == 4 and len(self.next_stems) == 1
+        frag1 = len(self.nucleotides) == 4 and len(self.child_stems) == 2 and self.is_root
+        frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1
         return frag1 or frag2
 
 def region_to_string(region: Region, idx=1, floor=0):
