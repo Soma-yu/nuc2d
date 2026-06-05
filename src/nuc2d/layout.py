@@ -12,8 +12,7 @@ shapes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 import math
@@ -192,27 +191,34 @@ class RadialLayoutEngine(LayoutEngine):
         current_stem : StemRegion
             Stem region to layout.
         """
-        self.current_vec = self.current_vec.rotated(-math.pi/2).normalized()
+        self.current_vec = self.current_vec.normalized()
         stem_length = len(current_stem.nucleotides)//2
         start_node = self.nodes[-1]
         for start_idx in [0, stem_length]:
-            for nt in current_stem.nucleotides[start_idx+1:start_idx+stem_length]:
+            nucleotides = current_stem.nucleotides[start_idx+1:start_idx+stem_length]
+            for nt in nucleotides:
                 # Generate nodes
                 self.current_pos += self.current_vec * self.backbone_length
                 self.nodes.append(Node(nt, self.current_pos))
                 # Generate backbones
                 self.add_last_stem_backbone()
             # Generate markers for 3' termini
-            if nt.is_three_prime:
+            if nucleotides and nucleotides[-1].is_three_prime:
                 self.markers.append(ArrowMarker(self.nodes[-1], self.current_vec))
             # Layout child loop region
             if start_idx == 0:
-                self.layout_loop(current_stem.child_loop)
-                self.current_vec = self.current_vec.rotated(-math.pi/2)
+                child_loop = current_stem.child_loop
+                if not child_loop.is_hinge:
+                    self.current_vec = self.current_vec.rotated(-math.pi/2)
+                self.layout_loop(child_loop)
+                if not child_loop.is_hinge:
+                    self.current_vec = self.current_vec.rotated(-math.pi/2)
         # Generate base pairs
         base_idx = self.nodes.index(start_node)
         for idx in range(stem_length):
             self.edges.append(LineEdge(self.nodes[base_idx+idx], self.nodes[-(idx+1)], EdgeType.BASE_PAIR))
+        self.current_vec = self.current_vec.normalized()
+        return None
 
     def layout_loop(
         self,
@@ -228,12 +234,14 @@ class RadialLayoutEngine(LayoutEngine):
         self.current_vec = self.current_vec.normalized()
         nucleotides = current_loop.nucleotides
         child_stems = current_loop.child_stems
+        if (current_loop.is_root
+                and child_stems
+                and child_stems[0].nucleotides[0] is nucleotides[0]):
+            self.current_vec = self.current_vec.rotated(-math.pi/2)
+            self.layout_stem(child_stems[0])
+            nucleotides = nucleotides[1:]
+            child_stems = child_stems[1:]
         if current_loop.is_hinge:
-            if current_loop.is_root:
-                # Layout first child stem region
-                self.layout_stem(child_stems[0])
-                nucleotides = nucleotides[1:] + nucleotides[:1]
-                child_stems = child_stems[1:]
             defl_angle = (
                 self.deflection_angle 
                 if nucleotides[0].is_three_prime
@@ -247,7 +255,6 @@ class RadialLayoutEngine(LayoutEngine):
             self.nodes.append(Node(nucleotides[1], self.current_pos))
             self.add_last_stem_backbone()
             # Layout child stem region
-            self.current_vec = self.current_vec.rotated(math.pi/2 + defl_angle/2)
             self.layout_stem(child_stems[0])
             # Layout the 4th nucleotide in this loop region
             if not current_loop.is_root:
@@ -258,9 +265,7 @@ class RadialLayoutEngine(LayoutEngine):
         else:
             delta_angle = 2*math.pi / len(nucleotides)
             radius = self.basepair_length/2 / math.sin(delta_angle/2)
-            self.current_vec = self.current_vec.rotated(
-                -math.pi/2 + delta_angle
-            )
+            self.current_vec = self.current_vec.rotated(delta_angle)
             stem_map = {stem.nucleotides[0]: stem for stem in child_stems}
             # Layout nucleotides except the first and stem merge nucleotides
             for nt in [curr for prev, curr in zip(nucleotides, nucleotides[1:]) if prev not in stem_map]:
@@ -272,9 +277,11 @@ class RadialLayoutEngine(LayoutEngine):
                     direction = self.current_vec.rotated(-delta_angle/2)
                     self.markers.append(ArrowMarker(self.nodes[-1], direction=direction))
                 if (stem := stem_map.pop(nt, None)) is not None:
+                    self.current_vec = self.current_vec.rotated(-math.pi/2)
                     self.layout_stem(stem)
                     self.current_vec = self.current_vec.rotated(-math.pi/2+delta_angle)
-                
+        self.current_vec = self.current_vec.normalized()
+        return None
 
     def layout(self, root_loop: LoopRegion) -> None:
         """Generate a complete layout starting from the root loop region.
@@ -294,7 +301,8 @@ class RadialLayoutEngine(LayoutEngine):
             for _ in range(offset):
                 self.current_vec = self.current_vec.rotated(-delta_angle)
                 self.current_pos -= self.backbone_length * self.current_vec
-            self.current_vec = self.current_vec.rotated(-delta_angle + math.pi/2)
+            if offset != 0:
+                self.current_vec = self.current_vec.rotated(-delta_angle)
             self.nodes.append(Node(nucleotides[0], self.current_pos))
             self.layout_loop(root_loop)
         else:

@@ -1,7 +1,4 @@
 """Utilities for 2D vector operations.
-
-This module provides:
-- Vec2: A class representing a 2D vector.
 """
 
 from __future__ import annotations

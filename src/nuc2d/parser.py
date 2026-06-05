@@ -16,6 +16,7 @@ class _Parser:
         self.dpp_string: str = dpp_string
         self.char_index: int = 0
         self.strand_index: int = 0
+        self.nt_index = 0
         self.index_in_strand: int = 0
 
     def is_eof(self) -> bool:
@@ -108,8 +109,9 @@ class _Parser:
     def create_nucleotide(self) -> Nucleotide:
         """Create a new Nucleotide at the current parser position."""
         nt = Nucleotide(
-            strand_index=self.strand_index, index_in_strand=self.index_in_strand
+            strand_index=self.strand_index, index=self.nt_index, index_in_strand=self.index_in_strand
         )
+        self.nt_index += 1
         self.index_in_strand += 1
         return nt
 

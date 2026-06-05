@@ -20,6 +20,8 @@ class Nucleotide:
         Index of the strand this nucleotide belongs to among all strands (0-based).
     index_in_strand : int
         Index within the strand this nucleotide belongs to (0-based).
+    index : int
+        Index of this nucleotide among all nucleotides in the secondary structure (0-based).
 
     Attributes
     ----------
@@ -33,6 +35,7 @@ class Nucleotide:
     """
     strand_index: int
     index_in_strand: int
+    index: int
 
     base: Optional[str] = None
     basepair_probability: Optional[float] = None
@@ -91,36 +94,3 @@ class LoopRegion(Region):
         frag1 = len(self.nucleotides) == 4 and len(self.child_stems) == 2 and self.is_root
         frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1
         return frag1 or frag2
-
-def region_to_string(region: Region, idx=1, floor=0):
-    for _ in range(floor):
-        print("\t", end="")
-    if isinstance(region, StemRegion):
-        flag = False
-        next_nt = region.child_loop.nucleotides[0]
-        for nt in region.nucleotides:
-            if not flag:
-                print(f"({idx:02d} ", end="")
-            else:
-                print(f"){idx:02d} ", end="")
-            if nt == next_nt:
-                print()
-                idx = region_to_string(region.child_loop, idx=idx, floor=floor+1)
-                for _ in range(floor):
-                    print("\t", end="")
-            else:
-                idx += 1
-    elif isinstance(region, LoopRegion):
-        stem_dict = {(stem.nucleotides[0].strand_index, stem.nucleotides[0].index_in_strand): stem for stem in region.child_stems}
-        for nt in region.nucleotides:
-            print(f".{idx:02d} ", end="")
-            if (nt.strand_index, nt.index_in_strand) in stem_dict:
-                print()
-                idx = region_to_string(stem_dict[(nt.strand_index, nt.index_in_strand)], idx=idx, floor=floor+1)
-                for _ in range(floor):
-                    print("\t", end="")
-            else:
-                idx += 1
-    print()
-    return idx - 1
-

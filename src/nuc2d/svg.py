@@ -1,4 +1,14 @@
-import math
+"""SVG rendering utilities for RNA secondary structure layouts.
+
+This module provides classes and functions for rendering layout results
+as SVG graphics using the svgwrite library. It converts geometric layout
+objects, such as nodes, edges, and markers, into SVG drawing elements
+while applying configurable drawing styles.
+
+The main renderer class, SVGRenderer, generates SVG representations
+from LayoutResult objects produced by layout engines.
+"""
+
 from typing import Optional
 
 import matplotlib as mpl
@@ -25,7 +35,7 @@ class SVGRenderer:
         self.style = style or DrawingStyle()
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
-    def render(
+    def _render(
         self,
         layout_result: LayoutResult,
     ) -> svgwrite.Drawing:
@@ -96,7 +106,7 @@ class SVGRenderer:
 
         group = drawing.g()
 
-        if nt.base is None:
+        if nt.basepair_probability is None:
             fill = self.style.node_fill
         else:
             fill = mpl.colors.to_hex(
@@ -106,7 +116,7 @@ class SVGRenderer:
                     )
                 )
             )
-
+        
         group.add(
             drawing.circle(
                 center=pos.to_tuple(),
@@ -115,21 +125,6 @@ class SVGRenderer:
             )
         )
 
-        group.add(
-            drawing.text(
-                nt.index_in_strand,
-                insert=pos.to_tuple(),
-                text_anchor="middle",
-                dominant_baseline="middle",
-                font_size=self.style.font_size,
-                fill="white",
-                stroke="black",
-                stroke_width=1,
-                style="paint-order: stroke fill;",
-            )
-        )
-
-        """
         if nt.base is not None:
             group.add(
                 drawing.text(
@@ -144,7 +139,6 @@ class SVGRenderer:
                     style="paint-order: stroke fill;",
                 )
             )
-        """
 
         return group
 
@@ -290,14 +284,27 @@ class SVGRenderer:
         drawing.defs.add(arrow)
 
 
-def render_svg(
+def render(
     layout_result: LayoutResult,
     style: Optional[DrawingStyle] = None,
 ) -> svgwrite.Drawing:
-    """Render a layout result as an SVG drawing."""
+    """Render a layout result as an SVG drawing.
+
+    Parameters
+    ----------
+    layout_result : LayoutResult
+        Layout result to render.
+    style : DrawingStyle, optional
+        Drawing style used for rendering.
+
+    Returns
+    -------
+    svgwrite.Drawing
+        SVG drawing representing the layout.
+    """
 
     renderer = SVGRenderer(style)
 
-    return renderer.render(
+    return renderer._render(
         layout_result,
     )

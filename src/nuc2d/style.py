@@ -1,5 +1,15 @@
+"""Drawing style definitions for RNA secondary structure rendering.
+
+This module provides classes for configuring the visual appearance of
+rendered RNA secondary structure diagrams. Style parameters control
+the appearance of graphical elements such as nucleotide nodes,
+backbone and base-pair edges, labels, margins, and color mappings.
+
+The main class, DrawingStyle, stores rendering parameters used by
+SVGRenderer and other rendering backends.
+"""
+
 from dataclasses import dataclass
-from typing import Optional
 
 import matplotlib as mpl
 
@@ -16,8 +26,10 @@ class DrawingStyle:
         Stroke width used for base-pair edges.
     node_radius : float
         Radius of nucleotide nodes.
-    margin : float
-        Margin added around the drawing area.
+    x_margin : float
+        Horizontal margin added around the drawing area.
+    y_margin : float
+        Vertical margin added around the drawing area.
     node_fill : str
         Default node fill color.
     edge_color : str
