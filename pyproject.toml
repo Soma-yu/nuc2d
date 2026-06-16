@@ -5,10 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nuc2d"
 version = "0.1.0"
-description = "Takilab research library"
+description = "A Python library for parsing, annotating, laying out, and rendering nucleic acid secondary structures."
 authors = [
   { name = "Soma Ishii" }
 ]
+requires-python = ">=3.10"
+
+license = "MIT"
+readme = "README.md"
+
+keywords = [
+  "nucleic acid",
+  "RNA",
+  "DNA",
+  "secondary structure",
+  "visualization",
+]
+
 dependencies = [
   "numpy",
   "matplotlib",
@@ -17,3 +30,7 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/Soma-yu/nuc2d"
+Repository = "https://github.com/Soma-yu/nuc2d"
