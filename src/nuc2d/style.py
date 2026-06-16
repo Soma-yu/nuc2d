@@ -16,7 +16,7 @@ import matplotlib as mpl
 
 @dataclass
 class DrawingStyle:
-    """Container for SVG drawing style parameters.
+    """Container for drawing style parameters.
 
     Attributes
     ----------
@@ -38,6 +38,17 @@ class DrawingStyle:
         Font size for nucleotide labels.
     cmap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
         Colormap used for probability visualization.
+
+    colorbar_width_ratio : float
+        Ratio of the colorbar width to its height.
+    colorbar_spacing : float
+        Horizontal spacing between the structure and the colorbar.
+    colorbar_tick_length : float
+        Length of colorbar tick marks.
+    colorbar_tick_font_size : float
+        Font size used for colorbar tick labels.
+    colorbar_label_font_size : float
+        Font size used for the colorbar label.
     """
     backbone_width: float = 2.0
     basepair_width: float = 1.0
@@ -53,3 +64,10 @@ class DrawingStyle:
     font_size: float = 6.5
 
     cmap: mpl.colors.Colormap = mpl.colormaps["turbo"]
+
+    colorbar_width_ratio: float = 1 / 30
+    colorbar_spacing: float = 20.0
+
+    colorbar_tick_length: float = 5.0
+    colorbar_tick_font_size: float = 12.0
+    colorbar_label_font_size: float = 15.0

@@ -16,6 +16,7 @@ from .annotation import attach_sequences, attach_basepair_probabilities
 from .layout import RadialLayoutEngine
 from .style import DrawingStyle
 from .svg import render as svg_render
+from .overlay import Colorbar
 
 
 def draw_svg(
@@ -50,6 +51,9 @@ def draw_svg(
         attach_sequences(root_loop, sequences)
     if probs is not None:
         attach_basepair_probabilities(root_loop, probs)
+        overlays = [Colorbar("Base-pairing probability")]
+    else:
+        overlays = None
 
     # Compute nucleotide positions and drawing geometry.
     layout_result = RadialLayoutEngine().layout(root_loop)
@@ -58,4 +62,5 @@ def draw_svg(
     return svg_render(
         layout_result,
         style=style,
+        overlays=overlays,
     )

@@ -11,6 +11,7 @@ from LayoutResult objects produced by layout engines.
 
 from typing import Optional
 
+import numpy as np
 import matplotlib as mpl
 import svgwrite
 
@@ -26,13 +27,19 @@ from .layout import (
 )
 from .style import DrawingStyle
 from .vec2 import Vec2
+from .overlay import Overlay, Colorbar, Title
 
 
 class SVGRenderer:
     """Renderer converting LayoutResult objects into SVG drawings."""
 
-    def __init__(self, style: Optional[DrawingStyle] = None) -> None:
+    def __init__(
+        self,
+        style: Optional[DrawingStyle] = None,
+        overlays: Optional[list[Overlay]] = None,
+    ) -> None:
         self.style = style or DrawingStyle()
+        self.overlays = overlays or []
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     def _render(
@@ -49,8 +56,6 @@ class SVGRenderer:
 
         width = x_max - x_min + 2 * self.style.x_margin
         height = y_max - y_min + 2 * self.style.y_margin
-
-        drawing.viewbox(0, 0, width, height)
 
         shift_vec = Vec2(
             -x_min + self.style.x_margin,
@@ -89,8 +94,35 @@ class SVGRenderer:
                 )
             )
 
-        drawing.add(group)
+        extra_width = 0
 
+        extra_width = 0
+
+        for overlay in self.overlays:
+            if isinstance(overlay, Colorbar):
+
+                g_colorbar, vb_width, vb_height = self._draw_colorbar(
+                    drawing,
+                    self.style.cmap,
+                    "Base-pair probability"
+                )
+
+                colorbar_scale = height / vb_height
+                vb_width *= colorbar_scale
+
+                g_colorbar['transform'] = f'translate({width}, 0), scale({colorbar_scale}, {colorbar_scale})'
+                width += vb_width
+
+                drawing.add(g_colorbar)
+
+        drawing.viewbox(
+            0,
+            0,
+            width,
+            height,
+        )
+
+        drawing.add(group)
         return drawing
 
     def _draw_node(
@@ -282,11 +314,63 @@ class SVGRenderer:
         )
 
         drawing.defs.add(arrow)
+    
+    def _draw_colorbar(self, svg_drawing, cmap, label):
+        # 仮想座標領域
+        svg_group = svg_drawing.g()
+        vb_width = 155
+        vb_height = 500
+
+        # カラーバー用グラデーション
+        norm = self._color_norm
+        grad = svg_drawing.linearGradient(start=(0, 1), end=(0, 0), id='colorbar_grad')
+        n_steps = 100
+        for i in range(n_steps + 1):
+            val = i / n_steps
+            color = mpl.colors.to_hex(cmap(norm(val)))
+            grad.add_stop_color(offset=val, color=color)
+        svg_drawing.defs.add(grad)
+
+        # カラーバー矩形
+        bar_width = 15
+        bar_height = 450
+        bar_x = 30
+        bar_y = (vb_height - bar_height) / 2
+        svg_group.add(svg_drawing.rect(
+            insert=(bar_x, bar_y),
+            size=(bar_width, bar_height),
+            fill='url(#colorbar_grad)'))
+
+        # 目盛り
+        for t in np.linspace(0, 1, 11):
+            y = bar_y + (1 - t) * bar_height
+            svg_group.add(svg_drawing.line(
+                start=(bar_x + bar_width, y),
+                end=(bar_x + bar_width + 5, y),
+                stroke='black'))
+            svg_group.add(svg_drawing.text(
+                f'{t:.1f}',
+                insert=(bar_x + bar_width + 10, y + 4),
+                font_size=12,
+                fill='black'))
+
+        # ラベル
+        svg_group.add(svg_drawing.text(
+            label,
+            insert=(120, vb_height / 2),
+            text_anchor='middle',
+            dominant_baseline='middle',
+            font_size=15,
+            fill='black',
+            transform=f'rotate(90, 120, {vb_height / 2})'))
+
+        return svg_group, vb_width, vb_height
 
 
 def render(
     layout_result: LayoutResult,
     style: Optional[DrawingStyle] = None,
+    overlays: Optional[list[Overlay]] = None,
 ) -> svgwrite.Drawing:
     """Render a layout result as an SVG drawing.
 
@@ -296,6 +380,11 @@ def render(
         Layout result to render.
     style : DrawingStyle, optional
         Drawing style used for rendering.
+    overlays : list[Overlay] or None
+        Optional list of overlay elements (e.g., colorbar, annotations)
+        to be rendered on top of the structure. Overlays may affect the
+        final canvas size (e.g., require additional width/height in the
+        viewbox).
 
     Returns
     -------
@@ -303,7 +392,7 @@ def render(
         SVG drawing representing the layout.
     """
 
-    renderer = SVGRenderer(style)
+    renderer = SVGRenderer(style, overlays)
 
     return renderer._render(
         layout_result,
