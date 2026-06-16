@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nuc2d"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Python library for parsing, annotating, laying out, and rendering nucleic acid secondary structures."
 authors = [
   { name = "Soma Ishii" }
