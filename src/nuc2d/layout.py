@@ -239,6 +239,8 @@ class RadialLayoutEngine(LayoutEngine):
                 and child_stems[0].nucleotides[0] is nucleotides[0]):
             self.current_vec = self.current_vec.rotated(-math.pi/2)
             self.layout_stem(child_stems[0])
+            if not current_loop.is_hinge:
+                self.current_vec = self.current_vec.rotated(-math.pi/2)
             nucleotides = nucleotides[1:]
             child_stems = child_stems[1:]
         if current_loop.is_hinge:
@@ -263,7 +265,7 @@ class RadialLayoutEngine(LayoutEngine):
                 self.nodes.append(Node(nucleotides[3], self.current_pos))
                 self.add_last_stem_backbone()
         else:
-            delta_angle = 2*math.pi / len(nucleotides)
+            delta_angle = 2*math.pi / len(current_loop.nucleotides)
             radius = self.basepair_length/2 / math.sin(delta_angle/2)
             self.current_vec = self.current_vec.rotated(delta_angle)
             stem_map = {stem.nucleotides[0]: stem for stem in child_stems}

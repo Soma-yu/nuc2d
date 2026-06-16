@@ -92,5 +92,5 @@ class LoopRegion(Region):
     def is_hinge(self) -> bool:
         """Return whether this loop region forms a hinge-like structure between stem regions."""
         frag1 = len(self.nucleotides) == 4 and len(self.child_stems) == 2 and self.is_root
-        frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1
+        frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1 and not self.is_root
         return frag1 or frag2
