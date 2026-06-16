@@ -559,8 +559,8 @@ class Composer:
             xmax - xmin,
             ymax - ymin,
         )
-        svg_drawing["width"] = xmax - xmin
-        svg_drawing["height"] = ymax - ymin
+        svg_drawing["width"] = f"{xmax - xmin}px"
+        svg_drawing["height"] = f"{ymax - ymin}px"
 
         for placed in groups:
             wrapper = svg_drawing.g(

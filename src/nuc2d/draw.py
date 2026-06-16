@@ -30,7 +30,7 @@ def draw_svg(
     sequences: Optional[list[str]] = None,
     probs: Optional[np.ndarray] = None,
     style: Optional[DrawingStyle] = None,
-    target_height: float = 500.0,
+    height_px: float = 500.0,
 ) -> svgwrite.Drawing:
     """Generate an SVG drawing from a secondary structure string.
 
@@ -44,9 +44,9 @@ def draw_svg(
         Base-pair probability matrix.
     style : DrawingStyle, optional
         Drawing style configuration.
-    target_height : float, default=500.0
-        Target height of the rendered secondary structure in the SVG
-        coordinate system.
+    height_px : float, default=500.0
+        Height of the final SVG output (in pixels).
+        This controls the rendered size in the output viewBox and display.
 
     Returns
     -------
@@ -79,7 +79,7 @@ def draw_svg(
             component=structure,
             x=0.0,
             y=0.0,
-            scale=target_height / structure.height,
+            scale=height_px / structure.height,
         )
     ]
 
@@ -94,7 +94,7 @@ def draw_svg(
                 component=colorbar,
                 x=placed_components[0].width,
                 y=0.0,
-                scale=target_height / colorbar.height,
+                scale=height_px / colorbar.height,
             )
         )
 
