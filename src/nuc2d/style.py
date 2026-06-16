@@ -9,7 +9,7 @@ The main class, DrawingStyle, stores rendering parameters used by
 SVGRenderer and other rendering backends.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import matplotlib as mpl
 
@@ -63,7 +63,9 @@ class DrawingStyle:
 
     font_size: float = 6.5
 
-    cmap: mpl.colors.Colormap = mpl.colormaps["turbo"]
+    cmap: mpl.colors.Colormap = field(
+        default_factory=lambda: mpl.colormaps["turbo"]
+    )
 
     colorbar_width_ratio: float = 1 / 30
     colorbar_spacing: float = 20.0
