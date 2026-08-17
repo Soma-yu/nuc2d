@@ -24,6 +24,12 @@ class DrawingStyle:
         Stroke width used for backbone edges.
     basepair_width : float
         Stroke width used for base-pair edges.
+    backbone_dasharray : str
+        Dash pattern used for backbone edges, specified as an SVG
+        ``stroke-dasharray`` value.
+    basepair_dasharray : str
+        Dash pattern used for base-pair edges, specified as an SVG
+        ``stroke-dasharray`` value.
     node_radius : float
         Radius of nucleotide nodes.
     x_margin : float
@@ -34,6 +40,9 @@ class DrawingStyle:
         Default node fill color.
     edge_color : str
         Default edge color.
+    font_family : str
+        Font family used for nucleotide labels.
+        Arial is recommended for consistent rendering in PowerPoint.
     font_size : float
         Font size for nucleotide labels.
     cmap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
@@ -51,9 +60,11 @@ class DrawingStyle:
         Font size used for the colorbar label.
     """
     backbone_width: float = 2.0
-    basepair_width: float = 1.0
+    basepair_width: float = 1.5
+    backbone_dasharray: str = "1,0"
+    basepair_dasharray: str = "1,1"
 
-    node_radius: float = 4.5
+    node_radius: float = 4.2
 
     x_margin: float = 20.0
     y_margin: float = 20.0
@@ -61,6 +72,7 @@ class DrawingStyle:
     node_fill: str = "black"
     edge_color: str = "black"
 
+    font_family: str = "Arial"
     font_size: float = 6.5
 
     cmap: mpl.colors.Colormap = field(

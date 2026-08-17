@@ -26,6 +26,7 @@ from .layout import (
 )
 from .style import DrawingStyle
 from .vec2 import Vec2
+from .font import find_font, get_vertical_center_offset
 
 
 @dataclass(frozen=True)
@@ -152,17 +153,32 @@ class SVGRenderer:
         )
 
         if nt.base is not None:
+            font_path = find_font(self.style.font_family)
+            vertical_center_offset = get_vertical_center_offset(
+                font_path,
+                self.style.font_size,
+            )
+            text_pos = pos + Vec2(0, vertical_center_offset)
             group.add(
                 drawing.text(
                     nt.base,
-                    insert=pos.to_tuple(),
+                    insert=text_pos.to_tuple(),
                     text_anchor="middle",
-                    dominant_baseline="middle",
+                    font_family=self.style.font_family,
                     font_size=self.style.font_size,
-                    fill="white",
+                    fill="black",
                     stroke="black",
                     stroke_width=1,
-                    style="paint-order: stroke fill;",
+                )
+            )
+            group.add(
+                drawing.text(
+                    nt.base,
+                    insert=text_pos.to_tuple(),
+                    text_anchor="middle",
+                    font_family=self.style.font_family,
+                    font_size=self.style.font_size,
+                    fill="white",
                 )
             )
 
@@ -205,14 +221,17 @@ class SVGRenderer:
 
         if edge.type == EdgeType.BACKBONE:
             width = self.style.backbone_width
+            dasharray = self.style.backbone_dasharray
         elif edge.type == EdgeType.BASE_PAIR:
             width = self.style.basepair_width
+            dasharray = self.style.basepair_dasharray
 
         return drawing.line(
             start=start.to_tuple(),
             end=end.to_tuple(),
             stroke=self.style.edge_color,
             stroke_width=width,
+            stroke_dasharray=dasharray,
         )
 
     def _draw_arc_edge(
@@ -382,7 +401,7 @@ class SVGRenderer:
 
         svg_group = svg_drawing.g()
 
-        vb_width = 155
+        vb_width = 150
         vb_height = 500
 
         bar_width = 15
@@ -434,6 +453,7 @@ class SVGRenderer:
                 svg_drawing.text(
                     f"{value:.1f}",
                     insert=(bar_x + bar_width + 10, y + 4),
+                    font_family = self.style.font_family,
                     font_size=12,
                     fill="black",
                 )
@@ -442,12 +462,12 @@ class SVGRenderer:
         svg_group.add(
             svg_drawing.text(
                 label,
-                insert=(120, vb_height / 2),
+                insert=(100, vb_height/2),
                 text_anchor="middle",
-                dominant_baseline="middle",
+                font_family = self.style.font_family,
                 font_size=15,
                 fill="black",
-                transform=f"rotate(90, 120, {vb_height / 2})",
+                transform=f"rotate(90, 100, {vb_height / 2})",
             )
         )
 
@@ -595,4 +615,3 @@ def compose(
     is adjusted to enclose all components.
     """
     return Composer()._compose(svg_drawing, groups)
-
