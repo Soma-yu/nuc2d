@@ -4,7 +4,7 @@
 rendering nucleic acid secondary structures.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="80%">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="50%">
 </p>
 
 ## Installation
