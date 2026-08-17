@@ -3,7 +3,9 @@
 `nuc2d` is a Python library for parsing, annotating, laying out, and
 rendering nucleic acid secondary structures.
 
-![nuc2d example](https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="80%">
+</p>
 
 ## Installation
 
