@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nuc2d"
-version = "0.2.0"
-description = "A Python library for parsing, annotating, laying out, and rendering nucleic acid secondary structures."
+version = "0.2.1"
+description = "Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG images."
 authors = [
   { name = "Soma Ishii" }
 ]
@@ -32,5 +32,4 @@ dependencies = [
 where = ["src"]
 
 [project.urls]
-Homepage = "https://github.com/Soma-yu/nuc2d"
 Repository = "https://github.com/Soma-yu/nuc2d"

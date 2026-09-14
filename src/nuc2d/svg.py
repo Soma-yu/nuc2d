@@ -7,7 +7,7 @@ drawing using the composition utilities defined in this module.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence, Union, overload
 from collections.abc import Sequence
 
 import numpy as np
@@ -330,12 +330,12 @@ class SVGRenderer:
     
     def _render_structure(
         self,
-        svg_drawing: svgwrite.Drawing,
+        drawing: svgwrite.Drawing,
         layout_result: LayoutResult,
     ) -> SVGComponent:
         """Render an RNA secondary structure as an SVG component."""
 
-        svg_group = svg_drawing.g()
+        group = drawing.g()
 
         xs = [node.pos.x for node in layout_result.nodes]
         ys = [node.pos.y for node in layout_result.nodes]
@@ -356,42 +356,42 @@ class SVGRenderer:
         )
 
         for edge in layout_result.edges:
-            svg_group.add(
+            group.add(
                 self._draw_edge(
-                    svg_drawing,
+                    drawing,
                     edge,
                     shift_vec,
                 )
             )
 
-        self._add_arrowhead_def(svg_drawing)
+        self._add_arrowhead_def(drawing)
         for marker in layout_result.markers:
             marker_element = self._draw_marker(
-                svg_drawing,
+                drawing,
                 marker,
                 shift_vec,
             )
             if marker_element is not None:
-                svg_group.add(marker_element)
+                group.add(marker_element)
 
         for node in layout_result.nodes:
-            svg_group.add(
+            group.add(
                 self._draw_node(
-                    svg_drawing,
+                    drawing,
                     node,
                     shift_vec,
                 )
             )
 
         return SVGComponent(
-            group=svg_group,
+            group=group,
             width=width,
             height=height,
         )
     
     def _render_colorbar(
         self,
-        svg_drawing: svgwrite.Drawing,
+        drawing: svgwrite.Drawing,
         label: str | None = None,
     ) -> SVGComponent:
         """Render a colorbar as an SVG component."""
@@ -399,7 +399,7 @@ class SVGRenderer:
         if label is None:
             label = "Base-pair probability"
 
-        svg_group = svg_drawing.g()
+        group = drawing.g()
 
         vb_width = 150
         vb_height = 500
@@ -410,7 +410,7 @@ class SVGRenderer:
         bar_y = (vb_height - bar_height) / 2
 
         # Define the vertical color gradient.
-        gradient = svg_drawing.linearGradient(
+        gradient = drawing.linearGradient(
             start=(0, 1),
             end=(0, 0),
             id="colorbar_grad",
@@ -427,10 +427,10 @@ class SVGRenderer:
                 color=color,
             )
 
-        svg_drawing.defs.add(gradient)
+        drawing.defs.add(gradient)
 
-        svg_group.add(
-            svg_drawing.rect(
+        group.add(
+            drawing.rect(
                 insert=(bar_x, bar_y),
                 size=(bar_width, bar_height),
                 fill="url(#colorbar_grad)",
@@ -441,45 +441,45 @@ class SVGRenderer:
         for value in np.linspace(0.0, 1.0, 11):
             y = bar_y + (1.0 - value) * bar_height
 
-            svg_group.add(
-                svg_drawing.line(
+            group.add(
+                drawing.line(
                     start=(bar_x + bar_width, y),
                     end=(bar_x + bar_width + 5, y),
                     stroke="black",
                 )
             )
 
-            svg_group.add(
-                svg_drawing.text(
+            group.add(
+                drawing.text(
                     f"{value:.1f}",
                     insert=(bar_x + bar_width + 10, y + 4),
                     font_family = self.style.font_family,
-                    font_size=12,
+                    font_size=self.style.colorbar_tick_font_size,
                     fill="black",
                 )
             )
 
-        svg_group.add(
-            svg_drawing.text(
+        group.add(
+            drawing.text(
                 label,
                 insert=(100, vb_height/2),
                 text_anchor="middle",
                 font_family = self.style.font_family,
-                font_size=15,
+                font_size=self.style.colorbar_label_font_size,
                 fill="black",
                 transform=f"rotate(90, 100, {vb_height / 2})",
             )
         )
 
         return SVGComponent(
-            group=svg_group,
+            group=group,
             width=vb_width,
             height=vb_height,
         )
 
 
 def render_structure(
-    svg_drawing: svgwrite.Drawing,
+    drawing: svgwrite.Drawing,
     layout_result: LayoutResult,
     style: Optional[DrawingStyle] = None,
 ) -> SVGComponent:
@@ -487,7 +487,7 @@ def render_structure(
 
     Parameters
     ----------
-    svg_drawing : svgwrite.Drawing
+    drawing : svgwrite.Drawing
         Drawing object used to create SVG elements and definitions.
     layout_result : LayoutResult
         Layout result describing the geometry of the RNA secondary
@@ -502,11 +502,12 @@ def render_structure(
     """
     renderer = SVGRenderer(style)
     return renderer._render_structure(
-        svg_drawing, layout_result,
+        drawing, layout_result,
     )
 
+
 def render_colorbar(
-    svg_drawing: svgwrite.Drawing,
+    drawing: svgwrite.Drawing,
     label: str | None = None,
     style: Optional[DrawingStyle] = None,
 ) -> SVGComponent:
@@ -514,7 +515,7 @@ def render_colorbar(
 
     Parameters
     ----------
-    svg_drawing : svgwrite.Drawing
+    drawing : svgwrite.Drawing
         Drawing object used to create SVG elements and definitions.
     label : str, optional
         Label displayed alongside the colorbar. If ``None``, a default
@@ -529,7 +530,7 @@ def render_colorbar(
     """
     renderer = SVGRenderer(style)
     return renderer._render_colorbar(
-        svg_drawing, label,
+        drawing, label,
     )
 
 
@@ -545,11 +546,25 @@ class Composer:
     adjustment is performed.
     """
 
+    @overload
     def _compose(
         self,
-        svg_drawing: svgwrite.Drawing,
+        container: svgwrite.Drawing,
         groups: Sequence[PlacedComponent],
-    ) -> None:
+    ) -> svgwrite.Drawing: ...
+
+    @overload
+    def _compose(
+        self,
+        container: svgwrite.container.Group,
+        groups: Sequence[PlacedComponent],
+    ) -> SVGComponent: ...
+
+    def _compose(
+        self,
+        container: Union[svgwrite.Drawing, svgwrite.container.Group],
+        groups: Sequence[PlacedComponent],
+    ) -> Union[svgwrite.Drawing, SVGComponent]:
         """Compose multiple positioned components into a single SVG.
 
         Parameters
@@ -563,46 +578,49 @@ class Composer:
             The composed SVG drawing.
         """
         if not groups:
-            svg_drawing.viewbox(0, 0, 0, 0)
-            return None
+            if isinstance(container, svgwrite.Drawing):
+                container.viewbox(0, 0, 0, 0)
+                return container
+            elif isinstance(container, svgwrite.container.Group):
+                return SVGComponent(container, 0.0, 0.0)
 
         groups = sorted(groups, key=lambda g: g.z_index)
 
-        xmin = min(g.x for g in groups)
-        ymin = min(g.y for g in groups)
-        xmax = max(g.x + g.width for g in groups)
-        ymax = max(g.y + g.height for g in groups)
-
-        svg_drawing.viewbox(
-            xmin,
-            ymin,
-            xmax - xmin,
-            ymax - ymin,
-        )
-        svg_drawing["width"] = f"{xmax - xmin}px"
-        svg_drawing["height"] = f"{ymax - ymin}px"
-
         for placed in groups:
-            wrapper = svg_drawing.g(
+            wrapper = container.g(
                 transform=(
                     f"translate({placed.x},{placed.y}) "
                     f"scale({placed.scale},{placed.scale})"
                 )
             )
             wrapper.add(placed.component.group)
-            svg_drawing.add(wrapper)
+            container.add(wrapper)
 
-        return None
+        xmin = min(g.x for g in groups)
+        ymin = min(g.y for g in groups)
+        xmax = max(g.x + g.width for g in groups)
+        ymax = max(g.y + g.height for g in groups)
+        total_width = xmax - xmin
+        total_height = ymax - ymin
+
+        if isinstance(container, svgwrite.Drawing):
+            container.viewbox(xmin, ymin, total_width, total_height)
+            container["width"] = f"{total_width}px"
+            container["height"] = f"{total_height}px"
+            return container
+        elif isinstance(container, svgwrite.container.Group):
+            return SVGComponent(container, total_width, total_height)
+
 
 def compose(
-    svg_drawing: svgwrite.Drawing,
+    drawing: svgwrite.Drawing,
     groups: Sequence[PlacedComponent],
 ) -> None:
     """Compose positioned SVG components into an SVG drawing.
 
     Parameters
     ----------
-    svg_drawing : svgwrite.Drawing
+    drawing : svgwrite.Drawing
         Drawing object that receives the composed SVG elements.
     groups : Sequence[PlacedComponent]
         Sequence of placed components to insert into the drawing.
@@ -614,4 +632,4 @@ def compose(
     ``translate`` and ``scale`` operations, and the drawing viewBox
     is adjusted to enclose all components.
     """
-    return Composer()._compose(svg_drawing, groups)
+    return Composer()._compose(drawing, groups)

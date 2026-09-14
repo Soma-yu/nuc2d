@@ -1,7 +1,6 @@
 # nuc2d
 
-`nuc2d` is a Python library for parsing, annotating, laying out, and
-rendering nucleic acid secondary structures.
+Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG images.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="80%">
