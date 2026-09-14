@@ -587,7 +587,7 @@ class Composer:
         groups = sorted(groups, key=lambda g: g.z_index)
 
         for placed in groups:
-            wrapper = container.g(
+            wrapper = svgwrite.container.Group(
                 transform=(
                     f"translate({placed.x},{placed.y}) "
                     f"scale({placed.scale},{placed.scale})"

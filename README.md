@@ -1,4 +1,4 @@
-# nuc2d
+# Nuc2D
 
 Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG images.
 
