@@ -25,7 +25,7 @@ from .layout import (
     LayoutResult,
 )
 from .style import DrawingStyle
-from .vec2 import Vec2
+from .geometry import Vec2
 from .font import find_font, get_vertical_center_offset
 
 

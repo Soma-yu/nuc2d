@@ -18,7 +18,8 @@ from abc import ABC, abstractmethod
 import math
 
 from .structure import Nucleotide, LoopRegion, StemRegion
-from .vec2 import Vec2
+from .geometry import Vec2
+
 
 class EdgeType(Enum):
     """Enumeration of edge types used in the drawing graph."""
