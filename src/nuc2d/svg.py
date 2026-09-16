@@ -27,7 +27,7 @@ from .layout import (
 )
 from .style import DrawingStyle
 from .geometry import BBox, Vec2
-from .font import find_font, get_vertical_center_offset
+from .font import find_font_path, vertical_center_offset
 
 
 def _def_id(prefix: str, *parts: object) -> str:
@@ -228,12 +228,12 @@ class SVGRenderer:
         )
 
         if nt.base is not None:
-            font_path = find_font(self.style.font_family)
-            vertical_center_offset = get_vertical_center_offset(
+            font_path = find_font_path(self.style.font_family)
+            baseline_offset = vertical_center_offset(
                 font_path,
                 self.style.font_size,
             )
-            text_pos = pos + Vec2(0, vertical_center_offset)
+            text_pos = pos + Vec2(0, baseline_offset)
             group.add(
                 drawing.text(
                     nt.base,

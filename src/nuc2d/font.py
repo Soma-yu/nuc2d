@@ -17,7 +17,7 @@ from fontTools.ttLib import TTFont
 
 
 @cache
-def find_font(font_family: str) -> str:
+def find_font_path(font_family: str) -> str:
     """Find the font file corresponding to a font family.
 
     Parameters
@@ -71,7 +71,7 @@ def _vertical_center_ratio(font_path: str) -> float:
     return center / units_per_em
 
 
-def get_vertical_center_offset(
+def vertical_center_offset(
     font_path: str,
     font_size: float,
 ) -> float:
