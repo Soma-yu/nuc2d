@@ -7,7 +7,6 @@ including nucleotides and structural regions such as stems and loops.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(eq=False)
@@ -37,8 +36,8 @@ class Nucleotide:
     index_in_strand: int
     index: int
 
-    base: Optional[str] = None
-    basepair_probability: Optional[float] = None
+    base: str | None = None
+    basepair_probability: float | None = None
     is_three_prime: bool = False
 
     @property
@@ -69,7 +68,7 @@ class StemRegion(Region):
         corresponding to the loop connected to this stem.
         None if no such loop exists.
     """
-    child_loop: Optional[LoopRegion] = None
+    child_loop: LoopRegion | None = None
 
 @dataclass
 class LoopRegion(Region):

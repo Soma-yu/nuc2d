@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from .structure import (
     Nucleotide, StemRegion, LoopRegion
 )
@@ -57,7 +55,7 @@ class _Parser:
             )
         self.char_index += 1
 
-    def consume_run(self, char: str, max_count: Optional[int] = None) -> int:
+    def consume_run(self, char: str, max_count: int | None = None) -> int:
         """Consume a run of one or more occurrences of a character.
 
         Parameters

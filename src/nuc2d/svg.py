@@ -9,8 +9,7 @@ drawing using the composition utilities defined in this module.
 import hashlib
 from dataclasses import dataclass
 from functools import reduce
-from typing import Callable, Optional
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import numpy as np
 import matplotlib as mpl
@@ -192,7 +191,7 @@ class SVGRenderer:
 
     def __init__(
         self,
-        style: Optional[DrawingStyle] = None,
+        style: DrawingStyle | None = None,
     ) -> None:
         self.style = style or DrawingStyle()
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -557,7 +556,7 @@ class SVGRenderer:
 def render_structure(
     drawing: svgwrite.Drawing,
     layout_result: LayoutResult,
-    style: Optional[DrawingStyle] = None,
+    style: DrawingStyle | None = None,
 ) -> SVGComponent:
     """Render an RNA secondary structure as an SVG component.
 
@@ -585,7 +584,7 @@ def render_structure(
 def render_colorbar(
     drawing: svgwrite.Drawing,
     label: str | None = None,
-    style: Optional[DrawingStyle] = None,
+    style: DrawingStyle | None = None,
 ) -> SVGComponent:
     """Render a colorbar as an SVG component.
 

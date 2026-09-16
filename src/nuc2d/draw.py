@@ -5,8 +5,6 @@ directly from secondary structure strings. Parsing, annotation,
 layout generation, and rendering are performed automatically.
 """
 
-from typing import Optional
-
 import numpy as np
 import svgwrite
 
@@ -29,10 +27,10 @@ from .svg import (
 def draw_component(
     drawing: svgwrite.Drawing,
     dpp_string: str,
-    sequences: Optional[list[str]] = None,
-    probs: Optional[np.ndarray] = None,
-    style: Optional[DrawingStyle] = None,
-    layout_engine: Optional[LayoutEngine] = None,
+    sequences: list[str] | None = None,
+    probs: np.ndarray | None = None,
+    style: DrawingStyle | None = None,
+    layout_engine: LayoutEngine | None = None,
 ) -> SVGComponent:
     """Generate an SVG component from a secondary structure string.
 
@@ -117,12 +115,12 @@ def draw_component(
 
 def draw_svg(
     dpp_string: str,
-    sequences: Optional[list[str]] = None,
-    probs: Optional[np.ndarray] = None,
-    style: Optional[DrawingStyle] = None,
-    layout_engine: Optional[LayoutEngine] = None,
-    width_px: Optional[float] = None,
-    height_px: Optional[float] = None,
+    sequences: list[str] | None = None,
+    probs: np.ndarray | None = None,
+    style: DrawingStyle | None = None,
+    layout_engine: LayoutEngine | None = None,
+    width_px: float | None = None,
+    height_px: float | None = None,
 ) -> svgwrite.Drawing:
     """Generate an SVG drawing from a secondary structure string.
 
