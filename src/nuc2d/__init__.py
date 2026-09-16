@@ -1,6 +1,33 @@
-from .draw import draw_svg, draw_component
+"""Nuc2D visualizes RNA and DNA secondary structures as SVG images.
+
+The two entry points are :func:`draw_svg`, which produces a complete SVG
+drawing, and :func:`draw_component`, which produces a single component
+that the caller can place into a drawing of its own.
+"""
+
+from importlib.metadata import PackageNotFoundError, version
+
+from .draw import draw_component, draw_svg
+from .geometry import BBox, Vec2
+from .layout import LayoutEngine, RadialLayoutEngine
+from .parser import ParseError
+from .style import DrawingStyle
+from .svg import SVGComponent
+
+try:
+    __version__ = version("nuc2d")
+except PackageNotFoundError:  # pragma: no cover - running from a source tree
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
-    "draw_svg",
+    "BBox",
+    "DrawingStyle",
+    "LayoutEngine",
+    "ParseError",
+    "RadialLayoutEngine",
+    "SVGComponent",
+    "Vec2",
+    "__version__",
     "draw_component",
+    "draw_svg",
 ]
