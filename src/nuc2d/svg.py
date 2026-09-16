@@ -7,7 +7,8 @@ drawing using the composition utilities defined in this module.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Union, overload
+from functools import reduce
+from typing import Optional
 from collections.abc import Sequence
 
 import numpy as np
@@ -25,7 +26,7 @@ from .layout import (
     LayoutResult,
 )
 from .style import DrawingStyle
-from .geometry import Vec2
+from .geometry import BBox, Vec2
 from .font import find_font, get_vertical_center_offset
 
 
@@ -37,12 +38,15 @@ class SVGComponent:
     ----------
     group : svgwrite.container.Group
         SVG group containing the graphical elements of the component.
-        The group is assumed to be defined in a local coordinate system
-        whose origin is typically ``(0, 0)``.
+    bbox : BBox
+        Extent of the component in its own local coordinate system.
+
+    Attributes
+    ----------
     width : float
-        Width of the component in its local coordinate system.
+        Width of the component, derived from ``bbox``.
     height : float
-        Height of the component in its local coordinate system.
+        Height of the component, derived from ``bbox``.
 
     Notes
     -----
@@ -52,8 +56,17 @@ class SVGComponent:
     """
 
     group: svgwrite.container.Group
-    width: float
-    height: float
+    bbox: BBox
+
+    @property
+    def width(self) -> float:
+        """Width of the component in its local coordinate system."""
+        return self.bbox.width
+
+    @property
+    def height(self) -> float:
+        """Height of the component in its local coordinate system."""
+        return self.bbox.height
 
 
 @dataclass
@@ -78,6 +91,8 @@ class PlacedComponent:
 
     Attributes
     ----------
+    bbox : BBox
+        Extent of the component in the composed drawing, after placement.
     width : float
         Width of the placed component after scaling.
     height : float
@@ -85,11 +100,10 @@ class PlacedComponent:
 
     Notes
     -----
-    The ``width`` and ``height`` attributes are computed dynamically
-    from the original component size and the scaling factor:
-
-    - ``width = component.width * scale``
-    - ``height = component.height * scale``
+    The placement corresponds to the SVG transform
+    ``translate(x, y) scale(scale)``, which scales about the origin of the
+    component's own coordinate system and then moves the result, so
+    :attr:`bbox` applies the two in that order.
     """
 
     component: SVGComponent
@@ -98,6 +112,11 @@ class PlacedComponent:
     scale: float
     z_index: int = 0
     layer: str = "main"
+
+    @property
+    def bbox(self) -> BBox:
+        """Extent of the component in the composed drawing."""
+        return self.component.bbox.scaled(self.scale).translated(Vec2(self.x, self.y))
 
     @property
     def width(self) -> float:
@@ -330,7 +349,7 @@ class SVGRenderer:
 
         drawing.defs.add(arrow)
     
-    def _render_structure(
+    def render_structure(
         self,
         drawing: svgwrite.Drawing,
         layout_result: LayoutResult,
@@ -339,23 +358,13 @@ class SVGRenderer:
 
         group = drawing.g()
 
-        xs = [node.pos.x for node in layout_result.nodes]
-        ys = [node.pos.y for node in layout_result.nodes]
+        layout_bbox = BBox.from_points(
+            node.pos for node in layout_result.nodes
+        ).expanded(self.style.x_margin, self.style.y_margin)
 
-        x_min = min(xs)
-        x_max = max(xs)
-        y_min = min(ys)
-        y_max = max(ys)
-
-        width = x_max - x_min + 2 * self.style.x_margin
-        height = y_max - y_min + 2 * self.style.y_margin
-
-        # Shift the layout so that its bounding box starts at
-        # the configured drawing margin.
-        shift_vec = Vec2(
-            -x_min + self.style.x_margin,
-            -y_min + self.style.y_margin,
-        )
+        # Shift the layout so that its bounding box starts at the origin of
+        # the component's own coordinate system.
+        shift_vec = Vec2(-layout_bbox.xmin, -layout_bbox.ymin)
 
         for edge in layout_result.edges:
             group.add(
@@ -387,11 +396,10 @@ class SVGRenderer:
 
         return SVGComponent(
             group=group,
-            width=width,
-            height=height,
+            bbox=BBox(0.0, 0.0, layout_bbox.width, layout_bbox.height),
         )
-    
-    def _render_colorbar(
+
+    def render_colorbar(
         self,
         drawing: svgwrite.Drawing,
         label: str | None = None,
@@ -475,8 +483,7 @@ class SVGRenderer:
 
         return SVGComponent(
             group=group,
-            width=vb_width,
-            height=vb_height,
+            bbox=BBox(0.0, 0.0, vb_width, vb_height),
         )
 
 
@@ -503,7 +510,7 @@ def render_structure(
         SVG component containing the rendered secondary structure.
     """
     renderer = SVGRenderer(style)
-    return renderer._render_structure(
+    return renderer.render_structure(
         drawing, layout_result,
     )
 
@@ -531,107 +538,46 @@ def render_colorbar(
         SVG component containing the rendered colorbar.
     """
     renderer = SVGRenderer(style)
-    return renderer._render_colorbar(
+    return renderer.render_colorbar(
         drawing, label,
     )
 
 
-class Composer:
-    """Compose multiple SVG components into a single SVG drawing.
-
-    The composer applies placement and scaling information stored in
-    :class:`PlacedComponent` objects and inserts the resulting groups into
-    an existing ``svgwrite.Drawing``.
-
-    The SVG viewBox is automatically computed from the bounding boxes
-    of all placed components. No additional padding or layout
-    adjustment is performed.
-    """
-
-    @overload
-    def _compose(
-        self,
-        container: svgwrite.Drawing,
-        groups: Sequence[PlacedComponent],
-    ) -> svgwrite.Drawing: ...
-
-    @overload
-    def _compose(
-        self,
-        container: svgwrite.container.Group,
-        groups: Sequence[PlacedComponent],
-    ) -> SVGComponent: ...
-
-    def _compose(
-        self,
-        container: Union[svgwrite.Drawing, svgwrite.container.Group],
-        groups: Sequence[PlacedComponent],
-    ) -> Union[svgwrite.Drawing, SVGComponent]:
-        """Compose multiple positioned components into a single SVG.
-
-        Parameters
-        ----------
-        groups
-            Positioned SVG components.
-
-        Returns
-        -------
-        svgwrite.Drawing
-            The composed SVG drawing.
-        """
-        if not groups:
-            if isinstance(container, svgwrite.Drawing):
-                container.viewbox(0, 0, 0, 0)
-                return container
-            elif isinstance(container, svgwrite.container.Group):
-                return SVGComponent(container, 0.0, 0.0)
-
-        groups = sorted(groups, key=lambda g: g.z_index)
-
-        for placed in groups:
-            wrapper = svgwrite.container.Group(
-                transform=(
-                    f"translate({placed.x},{placed.y}) "
-                    f"scale({placed.scale},{placed.scale})"
-                )
-            )
-            wrapper.add(placed.component.group)
-            container.add(wrapper)
-
-        xmin = min(g.x for g in groups)
-        ymin = min(g.y for g in groups)
-        xmax = max(g.x + g.width for g in groups)
-        ymax = max(g.y + g.height for g in groups)
-        total_width = xmax - xmin
-        total_height = ymax - ymin
-
-        if isinstance(container, svgwrite.Drawing):
-            container.viewbox(xmin, ymin, total_width, total_height)
-            container["width"] = f"{total_width}px"
-            container["height"] = f"{total_height}px"
-            return container
-        elif isinstance(container, svgwrite.container.Group):
-            return SVGComponent(container, total_width, total_height)
-
-
 def compose(
-    drawing: svgwrite.Drawing,
-    groups: Sequence[PlacedComponent],
-) -> None:
-    """Compose positioned SVG components into an SVG drawing.
+    container: svgwrite.container.Group,
+    components: Sequence[PlacedComponent],
+) -> SVGComponent:
+    """Compose positioned SVG components into a single group.
 
     Parameters
     ----------
-    drawing : svgwrite.Drawing
-        Drawing object that receives the composed SVG elements.
-    groups : Sequence[PlacedComponent]
-        Sequence of placed components to insert into the drawing.
+    container : svgwrite.container.Group
+        Group that receives the composed SVG elements.
+    components : Sequence[PlacedComponent]
+        Components to insert, each carrying its own placement.
+
+    Returns
+    -------
+    SVGComponent
+        The container together with the extent enclosing every component.
+        An empty sequence yields a component with an empty bounding box.
 
     Notes
     -----
-    Components are rendered in ascending order of ``z_index``.
-    Their associated transformations are applied using SVG
-    ``translate`` and ``scale`` operations, and the drawing viewBox
-    is adjusted to enclose all components.
+    Components are inserted in ascending order of ``z_index``. Each one is
+    wrapped in a group carrying its SVG ``translate`` and ``scale``. No
+    padding or layout adjustment is applied.
     """
-    return Composer()._compose(drawing, groups)
+    for placed in sorted(components, key=lambda c: c.z_index):
+        wrapper = svgwrite.container.Group(
+            transform=(
+                f"translate({placed.x},{placed.y}) "
+                f"scale({placed.scale},{placed.scale})"
+            )
+        )
+        wrapper.add(placed.component.group)
+        container.add(wrapper)
+
+    bbox = reduce(BBox.union, (c.bbox for c in components), BBox.empty())
+
+    return SVGComponent(group=container, bbox=bbox)
