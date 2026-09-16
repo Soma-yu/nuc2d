@@ -6,6 +6,7 @@ including nucleotides and structural regions such as stems and loops.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 
@@ -99,3 +100,39 @@ class LoopRegion(Region):
         frag1 = len(self.nucleotides) == 4 and len(self.child_stems) == 2 and self.is_root
         frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1 and not self.is_root
         return frag1 or frag2
+
+
+def iter_nucleotides(root_loop: LoopRegion) -> Iterator[Nucleotide]:
+    """Yield every nucleotide of a secondary structure exactly once.
+
+    Parameters
+    ----------
+    root_loop : LoopRegion
+        Root loop region of the secondary structure tree.
+
+    Yields
+    ------
+    Nucleotide
+        Each nucleotide in the structure. The order follows the structure
+        tree rather than the sequence.
+
+    Notes
+    -----
+    A region shares its first and last nucleotide with the region it is
+    nested in, so every region except the root contributes only the
+    nucleotides between them. That is what keeps each nucleotide from
+    being yielded twice.
+    """
+    def _from_stem(current_stem: StemRegion) -> Iterator[Nucleotide]:
+        yield from current_stem.nucleotides[1:-1]
+        yield from _from_loop(current_stem.child_loop)
+
+    def _from_loop(current_loop: LoopRegion) -> Iterator[Nucleotide]:
+        if current_loop.is_root:
+            yield from current_loop.nucleotides
+        else:
+            yield from current_loop.nucleotides[1:-1]
+        for stem in current_loop.child_stems:
+            yield from _from_stem(stem)
+
+    yield from _from_loop(root_loop)
