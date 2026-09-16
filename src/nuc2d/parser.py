@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from .structure import (
     Nucleotide, StemRegion, LoopRegion
 )
@@ -55,20 +57,27 @@ class _Parser:
             )
         self.char_index += 1
 
-    def consume_plus(self, char: str, max_count: int = None) -> int:
-        """Consume one or more consecutive occurrences of a character from the input string.
+    def consume_run(self, char: str, max_count: Optional[int] = None) -> int:
+        """Consume a run of one or more occurrences of a character.
 
         Parameters
         ----------
         char : str
             Character to consume.
         max_count : int | None
-            Maximum number of characters to consume.
+            Maximum number of characters to consume. If None, the run is
+            consumed until a different character or the end of the input
+            string is reached.
 
         Returns
         -------
         int
             Number of characters consumed.
+        
+        Raises
+        ------
+        ParseError
+            If the next character in the input string is not the expected one.
         """
         if max_count is None:
             max_count = len(self.dpp_string) - self.char_index
@@ -125,7 +134,7 @@ class _Parser:
         """
         # Parse consecutive "(" characters
         pairing_stack = []
-        for _ in range(self.consume_plus("(")):
+        for _ in range(self.consume_run("(")):
             pairing_stack.append(self.create_nucleotide())
         # Parse child loop region in the second structure tree
         child_loop = LoopRegion(nucleotides=[pairing_stack[-1]])
@@ -133,7 +142,7 @@ class _Parser:
         # Parse the same number of ")" as previously parsed "("
         while pairing_stack:
             # Parse consecutive ")" characters
-            n_close_parens = self.consume_plus(")", len(pairing_stack))
+            n_close_parens = self.consume_run(")", len(pairing_stack))
             for idx in range(n_close_parens):
                 nt = self.create_nucleotide()
                 pairing_stack.append(nt)
@@ -161,9 +170,19 @@ class _Parser:
         ----------
         current_loop : LoopRegion
             Object holding information about the loop region currently being parsed.
+
+        Raises
+        ------
+        ParseError
+            If the input string is not a well-formed secondary structure.
         """
         while not self.is_eof():
             if self.peek() == "+":
+                if not current_loop.nucleotides:
+                    raise ParseError(
+                        f"Unexpected '+' at position {self.char_index}. "
+                        "A strand break must be preceded by at least one nucleotide."
+                    )
                 # Mark as the 3' terminus
                 current_loop.nucleotides[-1].is_three_prime = True
                 # Move to the next strand
@@ -183,11 +202,13 @@ class _Parser:
                 break
             else:
                 # Parse unpaired region
-                for _ in range(self.consume_plus(".")):
+                if self.peek() != ".":
+                    raise ParseError(
+                        f"Unexpected {self.peek()!r} at position {self.char_index}. "
+                        "Expected one of '.', '(', ')' or '+'."
+                    )
+                for _ in range(self.consume_run(".")):
                     current_loop.nucleotides.append(self.create_nucleotide())
-        if current_loop.is_root:
-            current_loop.nucleotides[-1].is_three_prime = True
-            self.finish()
     
     def parse(self) -> LoopRegion:
         """Parse a string representing a secondary structure.
@@ -196,9 +217,21 @@ class _Parser:
         -------
         LoopRegion
             The root loop region of the secondary structure tree.
+
+        Raises
+        ------
+        ParseError
+            If the input string is not a well-formed secondary structure.
         """
         root_loop = LoopRegion(is_root=True)
         self.parse_loop(root_loop)
+        # Report leftover input before inspecting the parsed nucleotides,
+        # so that an unbalanced ")" is named at its own position.
+        self.finish()
+        if not root_loop.nucleotides:
+            raise ParseError("Empty secondary structure.")
+        # The last nucleotide of the last strand is a 3' terminus.
+        root_loop.nucleotides[-1].is_three_prime = True
         return root_loop
 
 def parse(dpp_string: str):

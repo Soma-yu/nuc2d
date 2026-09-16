@@ -1,4 +1,6 @@
-from nuc2d.parser import parse
+import pytest
+
+from nuc2d.parser import parse, ParseError
 from nuc2d.structure import StemRegion, LoopRegion
 
 def collect_boundary_nucleotide_locations(root_loop):
@@ -86,6 +88,23 @@ def test_parse_hinge():
         (1, 9, 21),
         (1, 11, 23),
     ]
+
+
+@pytest.mark.parametrize(
+    "dpp_string",
+    [
+        "",             # empty input
+        ")))",          # closing parens with nothing to close
+        "+",            # strand break with no nucleotide before it
+        "(((",          # unclosed stem
+        "...(((",       # unclosed stem after an unpaired region
+        "(((...)))x",   # unsupported character
+        "abc",          # no valid character at all
+    ],
+)
+def test_parse_invalid_raises_parse_error(dpp_string):
+    with pytest.raises(ParseError):
+        parse(dpp_string)
 
 
 def test_parse_nested():
