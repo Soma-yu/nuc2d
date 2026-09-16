@@ -31,7 +31,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]):
         for nt in current_stem.nucleotides[1:-1]:
             nt.base = sequences[nt.strand_index][nt.index_in_strand]
         _attach_loop_sequences(current_stem.child_loop)
-    
+
     def _attach_loop_sequences(current_loop: LoopRegion):
         if current_loop.is_root:
             nucleotides = current_loop.nucleotides
@@ -41,7 +41,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]):
             nt.base = sequences[nt.strand_index][nt.index_in_strand]
         for stem in current_loop.child_stems:
             _attach_stem_sequences(stem)
-    
+
     _attach_loop_sequences(root_loop)
 
 def attach_basepair_probabilities(root_loop: LoopRegion, probs: np.ndarray):
@@ -64,7 +64,7 @@ def attach_basepair_probabilities(root_loop: LoopRegion, probs: np.ndarray):
             prob = probs[nt1.index][nt2.index]
             nt1.basepair_probability = nt2.basepair_probability = prob
         _attach_loop_probs(current_stem.child_loop)
-    
+
     def _attach_loop_probs(current_loop: LoopRegion):
         if current_loop.is_root:
             nucleotides = current_loop.nucleotides
@@ -74,5 +74,5 @@ def attach_basepair_probabilities(root_loop: LoopRegion, probs: np.ndarray):
             nt.basepair_probability = probs[nt.index][nt.index]
         for stem in current_loop.child_stems:
             _attach_stem_probs(stem)
-    
+
     _attach_loop_probs(root_loop)

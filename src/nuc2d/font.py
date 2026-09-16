@@ -30,7 +30,7 @@ def find_font(font_family: str) -> str:
     str
         Path to the font file selected by Matplotlib. If the requested
         font is not available, Matplotlib's default font fallback is used.
-    
+
     Notes
     -----
     Results are cached per font family.

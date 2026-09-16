@@ -73,7 +73,7 @@ class _Parser:
         -------
         int
             Number of characters consumed.
-        
+
         Raises
         ------
         ParseError
@@ -108,13 +108,13 @@ class _Parser:
                 f"Unexpected '{self.dpp_string[self.char_index]}' at position {self.char_index}."
             )
         return None
-    
+
     def advance_strand(self) -> None:
         """Advance the parser to the next strand in the input structure."""
         self.strand_index += 1
         self.index_in_strand = 0
         return None
-    
+
     def create_nucleotide(self) -> Nucleotide:
         """Create a new Nucleotide at the current parser position."""
         nt = Nucleotide(
@@ -162,7 +162,7 @@ class _Parser:
             else:
                 current_stem.nucleotides = paired_stack
                 current_stem.child_loop  = child_loop
-    
+
     def parse_loop(self, current_loop: LoopRegion) -> None:
         """Parse a loop region.
 
@@ -209,7 +209,7 @@ class _Parser:
                     )
                 for _ in range(self.consume_run(".")):
                     current_loop.nucleotides.append(self.create_nucleotide())
-    
+
     def parse(self) -> LoopRegion:
         """Parse a string representing a secondary structure.
 

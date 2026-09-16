@@ -219,7 +219,7 @@ class SVGRenderer:
                     )
                 )
             )
-        
+
         group.add(
             drawing.circle(
                 center=pos.to_tuple(),
@@ -407,7 +407,7 @@ class SVGRenderer:
             return arrow
 
         return _ensure_def(drawing, self._arrowhead_id(), build)
-    
+
     def render_structure(
         self,
         drawing: svgwrite.Drawing,

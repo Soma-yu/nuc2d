@@ -17,7 +17,7 @@ def collect_boundary_nucleotide_locations(root_loop):
         boundary_nucleotide.append(
             (end_nt.strand_index, end_nt.index_in_strand, end_nt.index)
         )
-    
+
     def _collect_loop(current_loop):
         assert isinstance(current_loop, LoopRegion)
         first_nt = current_loop.nucleotides[0]
@@ -30,7 +30,7 @@ def collect_boundary_nucleotide_locations(root_loop):
         boundary_nucleotide.append(
             (end_nt.strand_index, end_nt.index_in_strand, end_nt.index)
         )
-    
+
     _collect_loop(root_loop)
     if len(boundary_nucleotide) >= 4:
         if boundary_nucleotide[0] == boundary_nucleotide[1]:

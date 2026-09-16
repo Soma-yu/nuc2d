@@ -13,7 +13,7 @@ from typing import Optional
 @dataclass(eq=False)
 class Nucleotide:
     """A class representing a nucleotide.
-    
+
     Parameters
     ----------
     strand_index : int
@@ -49,7 +49,7 @@ class Nucleotide:
 @dataclass
 class Region:
     """Base class for regions in a secondary structure.
-    
+
     Attributes
     ----------
     nucleotides : list[Nucleotide]
@@ -60,7 +60,7 @@ class Region:
 @dataclass
 class StemRegion(Region):
     """Class representing a stem region in a secondary structure.
-    
+
     Attributes
     ----------
     child_loop : LoopRegion | None
@@ -74,7 +74,7 @@ class StemRegion(Region):
 @dataclass
 class LoopRegion(Region):
     """Class representing a loop region (non-stem region) in a secondary structure.
-    
+
     Attributes
     ----------
     child_stems : list[StemRegion] | None
