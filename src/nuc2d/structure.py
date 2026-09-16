@@ -89,8 +89,14 @@ class LoopRegion(Region):
     is_root: bool = False
 
     @property
-    def is_hinge(self) -> bool:
-        """Return whether this loop region forms a hinge-like structure between stem regions."""
+    def is_stacked(self) -> bool:
+        """Return whether two stem regions stack directly across this loop.
+
+        A loop region of four nucleotides with no unpaired nucleotide of its
+        own carries no loop of its own shape: the closing base pair of one
+        stem and the opening base pair of the next meet across it, so the two
+        stems continue as a single helix.
+        """
         frag1 = len(self.nucleotides) == 4 and len(self.child_stems) == 2 and self.is_root
         frag2 = len(self.nucleotides) == 4 and len(self.child_stems) == 1 and not self.is_root
         return frag1 or frag2

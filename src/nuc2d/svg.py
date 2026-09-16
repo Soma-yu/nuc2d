@@ -290,7 +290,7 @@ class SVGRenderer:
     ):
         """Draw an arrow marker."""
 
-        if marker.is_start:
+        if marker.node_at_start:
             start = marker.node.pos + shift_vec
             end = start + marker.direction * marker.length
         else:

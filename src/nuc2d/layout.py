@@ -12,7 +12,7 @@ shapes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 import math
@@ -90,13 +90,33 @@ class ArcEdge(Edge):
 
 @dataclass
 class Marker():
+    """Base class for an annotation attached to a single node.
+
+    Attributes
+    ----------
+    node : Node
+        Node the marker is attached to.
+    """
     node: Node
 
 @dataclass
 class ArrowMarker(Marker):
+    """Arrow drawn alongside a node to indicate strand direction.
+
+    Attributes
+    ----------
+    direction : Vec2
+        Unit vector the arrow points along.
+    length : float, default=7.0
+        Length of the arrow segment.
+    node_at_start : bool, default=True
+        Whether the node sits at the start of the arrow segment, so that
+        the arrow extends away from it. When False, the segment ends at
+        the node and the arrow points into it.
+    """
     direction: Vec2
     length: float = 7.0
-    is_start: bool = True
+    node_at_start: bool = True
 
 @dataclass
 class LayoutResult():
@@ -115,207 +135,267 @@ class LayoutResult():
     edges: list[Edge]
     markers: list[Marker]
 
+
+@dataclass
+class _LayoutState:
+    """Mutable state belonging to a single layout run.
+
+    Attributes
+    ----------
+    nodes : list[Node]
+        Nodes generated so far.
+    edges : list[Edge]
+        Edges generated so far.
+    markers : list[Marker]
+        Markers generated so far.
+    pos : Vec2
+        Current position of the layout walk.
+    vec : Vec2
+        Current unit direction vector of the layout walk.
+
+    Notes
+    -----
+    This is deliberately separate from the layout engine. The engine holds
+    configuration, which is the same for every run; this holds the work in
+    progress, which is not. Keeping the two apart makes an engine instance
+    reusable, and keeps a returned :class:`LayoutResult` from aliasing state
+    that a later run would overwrite.
+    """
+    nodes: list[Node] = field(default_factory=list)
+    edges: list[Edge] = field(default_factory=list)
+    markers: list[Marker] = field(default_factory=list)
+    pos: Vec2 = Vec2(0, 0)
+    vec: Vec2 = Vec2(1, 0)
+
+
 class LayoutEngine(ABC):
     """Abstract base class for secondary structure layout engines."""
 
     @abstractmethod
-    def layout(self, root_loop: LoopRegion):
+    def layout(self, root_loop: LoopRegion) -> LayoutResult:
         """Compute a layout for the given secondary structure."""
         pass
 
 class RadialLayoutEngine(LayoutEngine):
     """Layout engine for generating a radial representation of a secondary structure.
-    
+
     This layout engine places nucleotides and structural elements using a
-    radial geometry based on backbone lengths, base-pair lengths, and
+    radial geometry based on backbone spacings, base-pair widths, and
     deflection angles between connected regions.
-    
+
     Parameters
     ----------
-    backbone_length : float, default=15
-        Length assigned to backbone connections between adjacent nucleotides.
-    basepair_length : float, default=20
-        Length assigned to base-pair connections in stem regions.
-    deflection_angle : float, default=math.pi/18
-        Angular deflection applied when traversing connected regions.
-    
-    Attributes
-    ----------
-    backbone_length : float
-        Length assigned to backbone connections.
-    basepair_length : float
-        Length assigned to base-pair connections.
-    deflection_angle : float
-        Angular deflection between connected regions.
-    nodes : list[Node]
-        Layout nodes generated during layout computation.
-    edges : list[Edge]
-        Layout edges generated during layout computation.
-    current_pos : Vec2
-        Current position used during recursive layout generation.
-    current_vec : Vec2
-        Current unit direction vector used during recursive layout generation.
+    backbone_spacing : float, default=15
+        Distance between adjacent nucleotides along a straight backbone,
+        that is, inside a stem or along an unpaired strand.
+    loop_spacing : float, default=20
+        Distance between adjacent nucleotides around a loop, measured as
+        the chord of the loop circle.
+    pair_width : float, default=20
+        Distance between the two nucleotides of a base pair, that is, the
+        width of a stem.
+    stack_deflection : float, default=math.pi/18
+        Angle in radians by which the backbone is deflected where two stems
+        stack directly on one another.
+
+    Notes
+    -----
+    All attributes are configuration and are never modified by
+    :meth:`layout`. State belonging to a single run lives in a
+    :class:`_LayoutState` created by that call, so one engine instance can
+    lay out any number of structures.
     """
 
     def __init__(
         self,
-        backbone_length: float = 15,
-        basepair_length: float = 20,
-        deflection_angle: float = math.pi/18,
+        backbone_spacing: float = 15,
+        loop_spacing: float = 20,
+        pair_width: float = 20,
+        stack_deflection: float = math.pi/18,
     ) -> None:
-        self.backbone_length = backbone_length
-        self.basepair_length = basepair_length
-        self.deflection_angle = deflection_angle
-        self.nodes: list[Node] = []
-        self.edges: list[Edge] = []
-        self.markers: list[Marker] = []
-        self.current_pos: Vec2 = Vec2(0, 0)
-        self.current_vec: Vec2 = Vec2(1, 0)
-    
-    def add_last_stem_backbone(self):
-        if not self.nodes[-2].nucleotide.is_three_prime:
-            self.edges.append(LineEdge(self.nodes[-2], self.nodes[-1], EdgeType.BACKBONE))
-    
-    def add_last_loop_backbone(self, radius: float):
-        if not self.nodes[-2].nucleotide.is_three_prime:
-            self.edges.append(ArcEdge(self.nodes[-2], self.nodes[-1], EdgeType.BACKBONE, radius, radius, 0, 0, 1))
+        self.backbone_spacing = backbone_spacing
+        self.loop_spacing = loop_spacing
+        self.pair_width = pair_width
+        self.stack_deflection = stack_deflection
 
-    def layout_stem(
+    def _add_backbone_line(self, state: _LayoutState) -> None:
+        """Join the last two nodes with a straight backbone edge.
+
+        Nothing is added when the earlier node is a 3' terminus, because the
+        two nodes then belong to different strands.
+        """
+        if not state.nodes[-2].nucleotide.is_three_prime:
+            state.edges.append(
+                LineEdge(state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE)
+            )
+
+    def _add_backbone_arc(self, state: _LayoutState, radius: float) -> None:
+        """Join the last two nodes with an arched backbone edge.
+
+        Nothing is added when the earlier node is a 3' terminus, because the
+        two nodes then belong to different strands.
+        """
+        if not state.nodes[-2].nucleotide.is_three_prime:
+            state.edges.append(
+                ArcEdge(
+                    state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE,
+                    radius, radius, 0, 0, 1,
+                )
+            )
+
+    def _layout_stem(
         self,
+        state: _LayoutState,
         current_stem: StemRegion,
     ) -> None:
         """Generate layout information for a stem region.
 
         Parameters
         ----------
+        state : _LayoutState
+            State of the layout run in progress.
         current_stem : StemRegion
             Stem region to layout.
         """
-        self.current_vec = self.current_vec.normalized()
+        state.vec = state.vec.normalized()
         stem_length = len(current_stem.nucleotides)//2
-        start_node = self.nodes[-1]
+        # Index of the node the stem starts from. Nodes are only ever
+        # appended, so this stays valid while the stem and everything nested
+        # inside it is laid out.
+        base_idx = len(state.nodes) - 1
         for start_idx in [0, stem_length]:
             nucleotides = current_stem.nucleotides[start_idx+1:start_idx+stem_length]
             for nt in nucleotides:
                 # Generate nodes
-                self.current_pos += self.current_vec * self.backbone_length
-                self.nodes.append(Node(nt, self.current_pos))
+                state.pos += state.vec * self.backbone_spacing
+                state.nodes.append(Node(nt, state.pos))
                 # Generate backbones
-                self.add_last_stem_backbone()
+                self._add_backbone_line(state)
             # Generate markers for 3' termini
             if nucleotides and nucleotides[-1].is_three_prime:
-                self.markers.append(ArrowMarker(self.nodes[-1], self.current_vec))
+                state.markers.append(ArrowMarker(state.nodes[-1], state.vec))
             # Layout child loop region
             if start_idx == 0:
                 child_loop = current_stem.child_loop
-                if not child_loop.is_hinge:
-                    self.current_vec = self.current_vec.rotated(-math.pi/2)
-                self.layout_loop(child_loop)
-                if not child_loop.is_hinge:
-                    self.current_vec = self.current_vec.rotated(-math.pi/2)
+                if not child_loop.is_stacked:
+                    state.vec = state.vec.rotated(-math.pi/2)
+                self._layout_loop(state, child_loop)
+                if not child_loop.is_stacked:
+                    state.vec = state.vec.rotated(-math.pi/2)
         # Generate base pairs
-        base_idx = self.nodes.index(start_node)
         for idx in range(stem_length):
-            self.edges.append(LineEdge(self.nodes[base_idx+idx], self.nodes[-(idx+1)], EdgeType.BASE_PAIR))
-        self.current_vec = self.current_vec.normalized()
+            state.edges.append(
+                LineEdge(
+                    state.nodes[base_idx+idx], state.nodes[-(idx+1)], EdgeType.BASE_PAIR
+                )
+            )
+        state.vec = state.vec.normalized()
         return None
 
-    def layout_loop(
+    def _layout_loop(
         self,
+        state: _LayoutState,
         current_loop: LoopRegion,
     ) -> None:
         """Generate layout information for a loop region.
 
         Parameters
         ----------
+        state : _LayoutState
+            State of the layout run in progress.
         current_loop : LoopRegion
             Loop region to layout.
         """
-        self.current_vec = self.current_vec.normalized()
+        state.vec = state.vec.normalized()
         nucleotides = current_loop.nucleotides
         child_stems = current_loop.child_stems
         if (current_loop.is_root
                 and child_stems
                 and child_stems[0].nucleotides[0] is nucleotides[0]):
-            self.current_vec = self.current_vec.rotated(-math.pi/2)
-            self.layout_stem(child_stems[0])
-            if not current_loop.is_hinge:
-                self.current_vec = self.current_vec.rotated(-math.pi/2)
+            state.vec = state.vec.rotated(-math.pi/2)
+            self._layout_stem(state, child_stems[0])
+            if not current_loop.is_stacked:
+                state.vec = state.vec.rotated(-math.pi/2)
             nucleotides = nucleotides[1:]
             child_stems = child_stems[1:]
-        if current_loop.is_hinge:
+        if current_loop.is_stacked:
             defl_angle = (
-                self.deflection_angle 
+                self.stack_deflection
                 if nucleotides[0].is_three_prime
-                else -self.deflection_angle
+                else -self.stack_deflection
             )
-            intermediate_vec = self.current_vec.rotated(defl_angle/2)
-            delta = self.basepair_length * math.sin(defl_angle/2)
+            intermediate_vec = state.vec.rotated(defl_angle/2)
+            delta = self.pair_width * math.sin(defl_angle/2)
             # Layout the second nucleotide in this loop region
-            self.current_pos += intermediate_vec * (self.backbone_length + delta)
-            self.current_vec = self.current_vec.rotated(defl_angle)
-            self.nodes.append(Node(nucleotides[1], self.current_pos))
-            self.add_last_stem_backbone()
+            state.pos += intermediate_vec * (self.backbone_spacing + delta)
+            state.vec = state.vec.rotated(defl_angle)
+            state.nodes.append(Node(nucleotides[1], state.pos))
+            self._add_backbone_line(state)
             # Layout child stem region
-            self.layout_stem(child_stems[0])
+            self._layout_stem(state, child_stems[0])
             # Layout the 4th nucleotide in this loop region
             if not current_loop.is_root:
-                self.current_pos -= intermediate_vec * (self.backbone_length - delta)
-                self.current_vec = self.current_vec.rotated(-defl_angle)
-                self.nodes.append(Node(nucleotides[3], self.current_pos))
-                self.add_last_stem_backbone()
+                state.pos -= intermediate_vec * (self.backbone_spacing - delta)
+                state.vec = state.vec.rotated(-defl_angle)
+                state.nodes.append(Node(nucleotides[3], state.pos))
+                self._add_backbone_line(state)
         else:
             delta_angle = 2*math.pi / len(current_loop.nucleotides)
-            radius = self.basepair_length/2 / math.sin(delta_angle/2)
-            self.current_vec = self.current_vec.rotated(delta_angle)
+            radius = self.loop_spacing/2 / math.sin(delta_angle/2)
+            state.vec = state.vec.rotated(delta_angle)
             stem_map = {stem.nucleotides[0]: stem for stem in child_stems}
             # Layout nucleotides except the first and stem merge nucleotides
             for nt in [curr for prev, curr in zip(nucleotides, nucleotides[1:]) if prev not in stem_map]:
-                self.current_pos += self.current_vec * self.basepair_length
-                self.current_vec = self.current_vec.rotated(delta_angle)
-                self.nodes.append(Node(nt, self.current_pos))
-                self.add_last_loop_backbone(radius)
+                state.pos += state.vec * self.loop_spacing
+                state.vec = state.vec.rotated(delta_angle)
+                state.nodes.append(Node(nt, state.pos))
+                self._add_backbone_arc(state, radius)
                 if nt.is_three_prime:
-                    direction = self.current_vec.rotated(-delta_angle/2)
-                    self.markers.append(ArrowMarker(self.nodes[-1], direction=direction))
+                    direction = state.vec.rotated(-delta_angle/2)
+                    state.markers.append(ArrowMarker(state.nodes[-1], direction=direction))
                 if (stem := stem_map.pop(nt, None)) is not None:
-                    self.current_vec = self.current_vec.rotated(-math.pi/2)
-                    self.layout_stem(stem)
-                    self.current_vec = self.current_vec.rotated(-math.pi/2+delta_angle)
-        self.current_vec = self.current_vec.normalized()
+                    state.vec = state.vec.rotated(-math.pi/2)
+                    self._layout_stem(state, stem)
+                    state.vec = state.vec.rotated(-math.pi/2+delta_angle)
+        state.vec = state.vec.normalized()
         return None
 
-    def layout(self, root_loop: LoopRegion) -> None:
+    def layout(self, root_loop: LoopRegion) -> LayoutResult:
         """Generate a complete layout starting from the root loop region.
-        
+
         Parameters
         ----------
         root_loop : LoopRegion
             Root loop region of the secondary structure tree.
+
+        Returns
+        -------
+        LayoutResult
+            Nodes, edges and markers describing the geometry of the
+            structure. The result owns its lists; a later call to this
+            method does not modify it.
         """
-        self.current_pos = Vec2(0, 0)
-        self.current_vec = Vec2(1, 0)
+        state = _LayoutState()
         nucleotides = root_loop.nucleotides
         delta_angle = 2*math.pi / len(nucleotides)
         if root_loop.child_stems:
             # Adjust the layout so that the first stem region extends upward
             offset = nucleotides.index(root_loop.child_stems[0].nucleotides[0])
             for _ in range(offset):
-                self.current_vec = self.current_vec.rotated(-delta_angle)
-                self.current_pos -= self.backbone_length * self.current_vec
+                state.vec = state.vec.rotated(-delta_angle)
+                state.pos -= self.backbone_spacing * state.vec
             if offset != 0:
-                self.current_vec = self.current_vec.rotated(-delta_angle)
-            self.nodes.append(Node(nucleotides[0], self.current_pos))
-            self.layout_loop(root_loop)
+                state.vec = state.vec.rotated(-delta_angle)
+            state.nodes.append(Node(nucleotides[0], state.pos))
+            self._layout_loop(state, root_loop)
         else:
             # Layout for secondary structures without base pairs
-            self.nodes.append(Node(nucleotides[0], self.current_pos))
+            state.nodes.append(Node(nucleotides[0], state.pos))
             for nt in nucleotides[1:]:
-                self.current_pos += self.backbone_length * self.current_vec
-                self.nodes.append(Node(nt, self.current_pos))
-                self.edges.append(LineEdge(self.nodes[-2], self.nodes[-1], EdgeType.BACKBONE))
-            self.markers.append(ArrowMarker(self.nodes[-1], self.current_vec))
-        return LayoutResult(self.nodes, self.edges, self.markers)
-
-def layout(root_loop):
-    return RadialLayoutEngine().layout(root_loop)
+                state.pos += self.backbone_spacing * state.vec
+                state.nodes.append(Node(nt, state.pos))
+                state.edges.append(
+                    LineEdge(state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE)
+                )
+            state.markers.append(ArrowMarker(state.nodes[-1], state.vec))
+        return LayoutResult(state.nodes, state.edges, state.markers)
