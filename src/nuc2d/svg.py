@@ -108,7 +108,7 @@ class SVGComponent:
     Notes
     -----
     The component itself does not store placement information.
-    Positioning and scaling are handled by :class:`PlacedComponent` and
+    Positioning and scaling are handled by :class:`Placement` and
     applied during composition.
     """
 
@@ -127,13 +127,13 @@ class SVGComponent:
 
 
 @dataclass
-class PlacedComponent:
-    """An SVG component together with its placement information.
+class Placement:
+    """Where a component goes in a composed drawing.
 
     Parameters
     ----------
     component : SVGComponent
-        SVG component to be placed in the composed drawing.
+        Component being placed.
     x : float
         X-coordinate of the component origin in the composed drawing.
     y : float
@@ -151,9 +151,9 @@ class PlacedComponent:
     bbox : BBox
         Extent of the component in the composed drawing, after placement.
     width : float
-        Width of the placed component after scaling.
+        Width of the component after scaling.
     height : float
-        Height of the placed component after scaling.
+        Height of the component after scaling.
 
     Notes
     -----
@@ -611,7 +611,7 @@ def render_colorbar(
 
 def compose(
     container: svgwrite.container.Group,
-    components: Sequence[PlacedComponent],
+    placements: Sequence[Placement],
 ) -> SVGComponent:
     """Compose positioned SVG components into a single group.
 
@@ -619,8 +619,8 @@ def compose(
     ----------
     container : svgwrite.container.Group
         Group that receives the composed SVG elements.
-    components : Sequence[PlacedComponent]
-        Components to insert, each carrying its own placement.
+    placements : Sequence[Placement]
+        Components to insert, each with the placement to apply to it.
 
     Returns
     -------
@@ -634,16 +634,16 @@ def compose(
     wrapped in a group carrying its SVG ``translate`` and ``scale``. No
     padding or layout adjustment is applied.
     """
-    for placed in sorted(components, key=lambda c: c.z_index):
+    for placement in sorted(placements, key=lambda p: p.z_index):
         wrapper = svgwrite.container.Group(
             transform=(
-                f"translate({placed.x},{placed.y}) "
-                f"scale({placed.scale},{placed.scale})"
+                f"translate({placement.x},{placement.y}) "
+                f"scale({placement.scale},{placement.scale})"
             )
         )
-        wrapper.add(placed.component.group)
+        wrapper.add(placement.component.group)
         container.add(wrapper)
 
-    bbox = reduce(BBox.union, (c.bbox for c in components), BBox.empty())
+    bbox = reduce(BBox.union, (p.bbox for p in placements), BBox.empty())
 
     return SVGComponent(group=container, bbox=bbox)

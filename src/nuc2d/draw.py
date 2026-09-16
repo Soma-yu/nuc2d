@@ -16,7 +16,7 @@ from .annotation import (
 from .layout import LayoutEngine, RadialLayoutEngine
 from .style import DrawingStyle
 from .svg import (
-    PlacedComponent,
+    Placement,
     SVGComponent,
     render_structure,
     render_colorbar,
@@ -83,8 +83,8 @@ def draw_component(
         layout_result,
         style,
     )
-    placed_components = [
-        PlacedComponent(
+    placements = [
+        Placement(
             component=structure,
             x=0.0,
             y=0.0,
@@ -100,8 +100,8 @@ def draw_component(
         )
         # Match colorbar height to the structure height, and set it beside
         # the structure's right edge.
-        placed_components.append(
-            PlacedComponent(
+        placements.append(
+            Placement(
                 component=colorbar,
                 x=structure.bbox.xmax,
                 y=structure.bbox.ymin,
@@ -110,7 +110,7 @@ def draw_component(
         )
 
     # Compose all positioned components into a single SVG group.
-    return compose(drawing.g(), placed_components)
+    return compose(drawing.g(), placements)
 
 
 def draw_svg(
