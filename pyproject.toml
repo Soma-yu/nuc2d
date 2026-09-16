@@ -29,6 +29,11 @@ dependencies = [
   "fonttools",
 ]
 
+[dependency-groups]
+dev = [
+  "pytest>=8",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
