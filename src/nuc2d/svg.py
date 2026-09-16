@@ -6,9 +6,10 @@ components can be positioned, scaled, and combined into a complete SVG
 drawing using the composition utilities defined in this module.
 """
 
+import hashlib
 from dataclasses import dataclass
 from functools import reduce
-from typing import Optional
+from typing import Callable, Optional
 from collections.abc import Sequence
 
 import numpy as np
@@ -28,6 +29,63 @@ from .layout import (
 from .style import DrawingStyle
 from .geometry import BBox, Vec2
 from .font import find_font, get_vertical_center_offset
+
+
+def _def_id(prefix: str, *parts: object) -> str:
+    """Return a stable id for a shared SVG definition.
+
+    Parameters
+    ----------
+    prefix : str
+        Readable prefix identifying the kind of definition.
+    *parts : object
+        Every value that determines the definition's content.
+
+    Returns
+    -------
+    str
+        An id of the form ``"<prefix>-<digest>"``.
+
+    Notes
+    -----
+    Deriving the id from the content rather than from a counter keeps the
+    output of a given drawing reproducible, lets two components that need
+    the same definition share one, and guarantees that two components
+    needing *different* definitions never collide on an id.
+    """
+    digest = hashlib.blake2s(
+        "|".join(map(str, parts)).encode(), digest_size=4
+    ).hexdigest()
+    return f"{prefix}-{digest}"
+
+
+def _ensure_def(
+    drawing: svgwrite.Drawing,
+    element_id: str,
+    build: Callable[[], object],
+) -> str:
+    """Add a definition to a drawing's ``<defs>`` at most once.
+
+    Parameters
+    ----------
+    drawing : svgwrite.Drawing
+        Drawing whose definitions are being populated.
+    element_id : str
+        Id the definition will be referenced by.
+    build : callable
+        Builds the definition element. It is called only when no
+        definition with this id is present yet.
+
+    Returns
+    -------
+    str
+        ``element_id``, so that callers can reference it inline.
+    """
+    for element in drawing.defs.elements:
+        if element.attribs.get("id") == element_id:
+            return element_id
+    drawing.defs.add(build())
+    return element_id
 
 
 @dataclass(frozen=True)
@@ -323,31 +381,41 @@ class SVGRenderer:
             stroke_width=self.style.backbone_width,
         )
 
-        line["marker-end"] = "url(#arrow)"
+        line["marker-end"] = f"url(#{self._arrowhead_id()})"
 
         return line
+
+    def _arrowhead_id(self) -> str:
+        """Return the id of the arrowhead marker for the current style.
+
+        The id is derived from the style values the marker depends on, so
+        renderers using the same style share one definition while
+        renderers using different ones never collide.
+        """
+        return _def_id("arrowhead", self.style.edge_color)
 
     def _add_arrowhead_def(
         self,
         drawing: svgwrite.Drawing,
-    ) -> None:
-        """Add SVG arrow marker definitions."""
+    ) -> str:
+        """Ensure the arrowhead marker is defined and return its id."""
 
-        arrow = drawing.marker(
-            id="arrow",
-            insert=(1, 1.5),
-            size=(10, 10),
-            orient="auto",
-        )
-
-        arrow.add(
-            drawing.path(
-                d="M 0,0 L 0.7,1.5 L 0,3 L 3,1.5 Z",
-                fill=self.style.edge_color,
+        def build() -> svgwrite.container.Marker:
+            arrow = drawing.marker(
+                id=self._arrowhead_id(),
+                insert=(1, 1.5),
+                size=(10, 10),
+                orient="auto",
             )
-        )
+            arrow.add(
+                drawing.path(
+                    d="M 0,0 L 0.7,1.5 L 0,3 L 3,1.5 Z",
+                    fill=self.style.edge_color,
+                )
+            )
+            return arrow
 
-        drawing.defs.add(arrow)
+        return _ensure_def(drawing, self._arrowhead_id(), build)
     
     def render_structure(
         self,
@@ -420,30 +488,42 @@ class SVGRenderer:
         bar_y = (vb_height - bar_height) / 2
 
         # Define the vertical color gradient.
-        gradient = drawing.linearGradient(
-            start=(0, 1),
-            end=(0, 0),
-            id="colorbar_grad",
+        stops = [
+            (
+                value,
+                mpl.colors.to_hex(
+                    self.style.cmap(
+                        self._color_norm(value)
+                    )
+                ),
+            )
+            for value in np.linspace(0.0, 1.0, 101)
+        ]
+
+        gradient_id = _def_id(
+            "colorbar-gradient", *(color for _, color in stops)
         )
 
-        for value in np.linspace(0.0, 1.0, 101):
-            color = mpl.colors.to_hex(
-                self.style.cmap(
-                    self._color_norm(value)
+        def build_gradient() -> svgwrite.gradients.LinearGradient:
+            gradient = drawing.linearGradient(
+                start=(0, 1),
+                end=(0, 0),
+                id=gradient_id,
+            )
+            for offset, color in stops:
+                gradient.add_stop_color(
+                    offset=offset,
+                    color=color,
                 )
-            )
-            gradient.add_stop_color(
-                offset=value,
-                color=color,
-            )
+            return gradient
 
-        drawing.defs.add(gradient)
+        _ensure_def(drawing, gradient_id, build_gradient)
 
         group.add(
             drawing.rect(
                 insert=(bar_x, bar_y),
                 size=(bar_width, bar_height),
-                fill="url(#colorbar_grad)",
+                fill=f"url(#{gradient_id})",
             )
         )
 
