@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import svgwrite
 
-from nuc2d import draw_group, draw_svg
+from nuc2d import draw_component, draw_svg
 from nuc2d.style import DrawingStyle
 
 
@@ -41,8 +41,8 @@ def test_ids_stay_unique_across_several_groups_in_one_drawing():
     drawing = svgwrite.Drawing()
 
     for _ in range(3):
-        group, _ = draw_group(drawing, "(((...)))", probs=PROBS)
-        drawing.add(group)
+        component = draw_component(drawing, "(((...)))", probs=PROBS)
+        drawing.add(component.group)
 
     ids = collect_ids(drawing.tostring())
 
@@ -56,8 +56,8 @@ def test_differing_styles_get_their_own_definitions():
         DrawingStyle(edge_color="black", cmap=mpl.colormaps["turbo"]),
         DrawingStyle(edge_color="red", cmap=mpl.colormaps["viridis"]),
     ]:
-        group, _ = draw_group(drawing, "(((...)))", probs=PROBS, style=style)
-        drawing.add(group)
+        component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
+        drawing.add(component.group)
 
     svg = drawing.tostring()
     ids = collect_ids(svg)
@@ -71,8 +71,8 @@ def test_identical_styles_share_one_definition():
     drawing = svgwrite.Drawing()
 
     for _ in range(3):
-        group, _ = draw_group(drawing, "(((...)))", probs=PROBS)
-        drawing.add(group)
+        component = draw_component(drawing, "(((...)))", probs=PROBS)
+        drawing.add(component.group)
 
     ids = collect_ids(drawing.tostring())
 
@@ -87,8 +87,8 @@ def test_every_reference_resolves():
         DrawingStyle(edge_color="black"),
         DrawingStyle(edge_color="red"),
     ]:
-        group, _ = draw_group(drawing, "(((...)))", probs=PROBS, style=style)
-        drawing.add(group)
+        component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
+        drawing.add(component.group)
 
     svg = drawing.tostring()
 
@@ -101,6 +101,41 @@ def test_every_reference_resolves():
 )
 def test_output_is_well_formed_xml(dpp_string):
     ET.fromstring(draw_svg(dpp_string).tostring())
+
+
+def test_viewbox_frames_exactly_the_component():
+    drawing = svgwrite.Drawing()
+    component = draw_component(drawing, "..(((...)))..", probs=None)
+
+    svg = draw_svg("..(((...)))..").tostring()
+    viewbox = ET.fromstring(svg).attrib["viewBox"]
+
+    assert [float(v) for v in viewbox.replace(",", " ").split()] == list(
+        component.bbox.to_viewbox()
+    )
+
+
+def test_colorbar_sits_beside_the_structure():
+    drawing = svgwrite.Drawing()
+
+    without = draw_component(drawing, "(((...)))")
+    with_bar = draw_component(svgwrite.Drawing(), "(((...)))", probs=PROBS)
+
+    assert with_bar.bbox.width > without.bbox.width
+    assert with_bar.bbox.height == pytest.approx(without.bbox.height)
+
+
+def test_layout_engine_is_configurable():
+    from nuc2d.layout import RadialLayoutEngine
+
+    default = draw_component(svgwrite.Drawing(), "(((...)))")
+    wider = draw_component(
+        svgwrite.Drawing(),
+        "(((...)))",
+        layout_engine=RadialLayoutEngine(backbone_spacing=30),
+    )
+
+    assert wider.bbox.height > default.bbox.height
 
 
 def test_output_is_reproducible():

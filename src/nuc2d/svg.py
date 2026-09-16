@@ -201,11 +201,10 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         node: Node,
-        shift_vec: Vec2,
     ):
         """Draw a nucleotide node."""
 
-        pos = node.pos + shift_vec
+        pos = node.pos
         nt = node.nucleotide
 
         group = drawing.g()
@@ -265,7 +264,6 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: Edge,
-        shift_vec: Vec2,
     ):
         """Draw an edge."""
 
@@ -273,14 +271,12 @@ class SVGRenderer:
             return self._draw_line_edge(
                 drawing,
                 edge,
-                shift_vec,
             )
 
         if isinstance(edge, ArcEdge):
             return self._draw_arc_edge(
                 drawing,
                 edge,
-                shift_vec,
             )
 
         raise TypeError(f"Unsupported edge type: {type(edge)}")
@@ -289,12 +285,11 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: LineEdge,
-        shift_vec: Vec2,
     ):
         """Draw a straight line edge."""
 
-        start = edge.start.pos + shift_vec
-        end = edge.end.pos + shift_vec
+        start = edge.start.pos
+        end = edge.end.pos
 
         if edge.type == EdgeType.BACKBONE:
             width = self.style.backbone_width
@@ -317,12 +312,11 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: ArcEdge,
-        shift_vec: Vec2,
     ):
         """Draw an SVG arc edge."""
 
-        start = edge.start.pos + shift_vec
-        end = edge.end.pos + shift_vec
+        start = edge.start.pos
+        end = edge.end.pos
 
         large_arc = int(edge.large_arc)
         sweep = int(edge.sweep)
@@ -346,7 +340,6 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         marker: Marker,
-        shift_vec: Vec2,
     ):
         """Draw a marker."""
 
@@ -354,7 +347,6 @@ class SVGRenderer:
             return self._draw_arrow_marker(
                 drawing,
                 marker,
-                shift_vec,
             )
 
         return None
@@ -363,15 +355,14 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         marker: ArrowMarker,
-        shift_vec: Vec2,
     ):
         """Draw an arrow marker."""
 
         if marker.node_at_start:
-            start = marker.node.pos + shift_vec
+            start = marker.node.pos
             end = start + marker.direction * marker.length
         else:
-            end = marker.node.pos + shift_vec
+            end = marker.node.pos
             start = end - marker.direction * marker.length
 
         line = drawing.line(
@@ -422,24 +413,25 @@ class SVGRenderer:
         drawing: svgwrite.Drawing,
         layout_result: LayoutResult,
     ) -> SVGComponent:
-        """Render an RNA secondary structure as an SVG component."""
+        """Render an RNA secondary structure as an SVG component.
+
+        The elements are drawn at the coordinates the layout produced,
+        without being moved to the origin first. The component's bounding
+        box records where they actually are, and composition places the
+        component from there.
+        """
 
         group = drawing.g()
 
-        layout_bbox = BBox.from_points(
+        bbox = BBox.from_points(
             node.pos for node in layout_result.nodes
         ).expanded(self.style.x_margin, self.style.y_margin)
-
-        # Shift the layout so that its bounding box starts at the origin of
-        # the component's own coordinate system.
-        shift_vec = Vec2(-layout_bbox.xmin, -layout_bbox.ymin)
 
         for edge in layout_result.edges:
             group.add(
                 self._draw_edge(
                     drawing,
                     edge,
-                    shift_vec,
                 )
             )
 
@@ -448,7 +440,6 @@ class SVGRenderer:
             marker_element = self._draw_marker(
                 drawing,
                 marker,
-                shift_vec,
             )
             if marker_element is not None:
                 group.add(marker_element)
@@ -458,14 +449,10 @@ class SVGRenderer:
                 self._draw_node(
                     drawing,
                     node,
-                    shift_vec,
                 )
             )
 
-        return SVGComponent(
-            group=group,
-            bbox=BBox(0.0, 0.0, layout_bbox.width, layout_bbox.height),
-        )
+        return SVGComponent(group=group, bbox=bbox)
 
     def render_colorbar(
         self,

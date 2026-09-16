@@ -9,7 +9,7 @@ or of SVG, so every other module is free to depend on this one.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 import math
 
 

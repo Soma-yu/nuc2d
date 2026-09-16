@@ -5,7 +5,6 @@ directly from secondary structure strings. Parsing, annotation,
 layout generation, and rendering are performed automatically.
 """
 
-from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -16,52 +15,56 @@ from .annotation import (
     attach_sequences,
     attach_basepair_probabilities,
 )
-from .layout import RadialLayoutEngine
+from .layout import LayoutEngine, RadialLayoutEngine
 from .style import DrawingStyle
 from .svg import (
     PlacedComponent,
+    SVGComponent,
     render_structure,
     render_colorbar,
     compose,
 )
 
 
-@dataclass(frozen=True)
-class BoundingBox:
-    """Bounding box representing the spatial dimensions of an SVG element."""
-
-    xmin: float
-    ymin: float
-    width: float
-    height: float
-
-
-def draw_group(
+def draw_component(
     drawing: svgwrite.Drawing,
     dpp_string: str,
     sequences: Optional[list[str]] = None,
     probs: Optional[np.ndarray] = None,
     style: Optional[DrawingStyle] = None,
-) -> tuple[svgwrite.container.Group, BoundingBox]:
-    """Generate an SVG group and its bounding box from a secondary structure string.
+    layout_engine: Optional[LayoutEngine] = None,
+) -> SVGComponent:
+    """Generate an SVG component from a secondary structure string.
 
     Parameters
     ----------
     drawing : svgwrite.Drawing
-        The target SVG drawing instance used for element factory and defs registration.
+        The target SVG drawing instance used for element factory and defs
+        registration. The component is not added to the drawing; the
+        caller decides where it goes.
     dpp_string : str
         A secondary structure written in dot-parens-plus notation.
     sequences : list[str], optional
         A list of sequences corresponding to the structure.
     probs : ndarray, optional
-        Base-pair probability matrix.
+        Base-pair probability matrix. When given, a colorbar is placed
+        beside the structure.
     style : DrawingStyle, optional
         Drawing style configuration.
+    layout_engine : LayoutEngine, optional
+        Engine computing nucleotide positions. Defaults to a
+        :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
 
     Returns
     -------
-    tuple[svgwrite.container.Group, BoundingBox]
-        A tuple containing the generated SVG group and its bounding box.
+    SVGComponent
+        The generated SVG group together with the bounding box it
+        occupies, in the coordinate system the component was drawn in.
+
+    Raises
+    ------
+    ParseError
+        If ``dpp_string`` is not a well-formed secondary structure.
     """
     # Parse the secondary structure string.
     root_loop = parse(dpp_string)
@@ -73,7 +76,8 @@ def draw_group(
         attach_basepair_probabilities(root_loop, probs)
 
     # Compute nucleotide positions and drawing geometry.
-    layout_result = RadialLayoutEngine().layout(root_loop)
+    engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
+    layout_result = engine.layout(root_loop)
 
     # Render the secondary structure as an independent SVG component.
     structure = render_structure(
@@ -90,43 +94,25 @@ def draw_group(
         )
     ]
 
-    total_width = structure.width
-    total_height = structure.height
-
     # Add a colorbar when base-pair probabilities are visualized.
     if probs is not None:
         colorbar = render_colorbar(
             drawing,
             style=style,
         )
-        # Match colorbar height to the structure height at base scale.
-        colorbar_scale = structure.height / colorbar.height
+        # Match colorbar height to the structure height, and set it beside
+        # the structure's right edge.
         placed_components.append(
             PlacedComponent(
                 component=colorbar,
-                x=structure.width,
-                y=0.0,
-                scale=colorbar_scale,
+                x=structure.bbox.xmax,
+                y=structure.bbox.ymin,
+                scale=structure.height / colorbar.height,
             )
         )
-        total_width += colorbar.width * colorbar_scale
 
-    # Create the bounding box representing unscaled component bounds.
-    bbox = BoundingBox(
-        xmin=0.0,
-        ymin=0.0,
-        width=total_width,
-        height=total_height,
-    )
-
-    # Compose all positioned components into the SVG group.
-    group = drawing.g()
-    compose(
-        group,
-        placed_components,
-    )
-
-    return group, bbox
+    # Compose all positioned components into a single SVG group.
+    return compose(drawing.g(), placed_components)
 
 
 def draw_svg(
@@ -134,6 +120,7 @@ def draw_svg(
     sequences: Optional[list[str]] = None,
     probs: Optional[np.ndarray] = None,
     style: Optional[DrawingStyle] = None,
+    layout_engine: Optional[LayoutEngine] = None,
     width_px: Optional[float] = None,
     height_px: Optional[float] = None,
 ) -> svgwrite.Drawing:
@@ -149,6 +136,9 @@ def draw_svg(
         Base-pair probability matrix.
     style : DrawingStyle, optional
         Drawing style configuration.
+    layout_engine : LayoutEngine, optional
+        Engine computing nucleotide positions. Defaults to a
+        :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
     width_px : float, optional
         Width of the final SVG output (in pixels).
         If specified without height_px, height is calculated automatically to maintain aspect ratio.
@@ -161,24 +151,29 @@ def draw_svg(
     -------
     svgwrite.Drawing
         Generated SVG drawing.
+
+    Raises
+    ------
+    ParseError
+        If ``dpp_string`` is not a well-formed secondary structure.
     """
     # Create the root SVG drawing container.
     drawing = svgwrite.Drawing()
 
-    # Generate the component group and retrieve its bounding box.
-    group, bbox = draw_group(
+    # Generate the component and add it to the drawing.
+    component = draw_component(
         drawing=drawing,
         dpp_string=dpp_string,
         sequences=sequences,
         probs=probs,
         style=style,
+        layout_engine=layout_engine,
     )
+    drawing.add(component.group)
 
-    # Add the composed group to the main drawing.
-    drawing.add(group)
-
-    # Set the viewBox based on the unscaled bounding box.
-    drawing.viewbox(bbox.xmin, bbox.ymin, bbox.width, bbox.height)
+    # Frame the drawing on exactly the area the component occupies.
+    bbox = component.bbox
+    drawing.viewbox(*bbox.to_viewbox())
 
     # Calculate missing dimension to maintain aspect ratio
     aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
