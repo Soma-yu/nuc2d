@@ -82,7 +82,7 @@ class LoopRegion(Region):
         For a loop region, this is assumed to be a list of one or more
         StemRegion instances corresponding to stems connected to this loop.
         None if no such stems exist.
-    is_loot : bool
+    is_root : bool
         Whether this loop region is the root of the secondary structure tree.
     """
     child_stems: list[StemRegion] = field(default_factory=list)

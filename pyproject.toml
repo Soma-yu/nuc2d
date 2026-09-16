@@ -26,6 +26,7 @@ dependencies = [
   "numpy",
   "matplotlib",
   "svgwrite",
+  "fonttools",
 ]
 
 [tool.setuptools.packages.find]

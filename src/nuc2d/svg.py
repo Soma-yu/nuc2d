@@ -7,7 +7,7 @@ drawing using the composition utilities defined in this module.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Union, overload
+from typing import Optional, Union, overload
 from collections.abc import Sequence
 
 import numpy as np
@@ -225,6 +225,8 @@ class SVGRenderer:
         elif edge.type == EdgeType.BASE_PAIR:
             width = self.style.basepair_width
             dasharray = self.style.basepair_dasharray
+        else:
+            raise ValueError(f"Unsupported edge type: {edge.type}")
 
         return drawing.line(
             start=start.to_tuple(),
