@@ -388,11 +388,18 @@ class SVGRenderer:
         """Ensure the arrowhead marker is defined and return its id."""
 
         def build() -> svgwrite.container.Marker:
+            # The viewBox matches the path's own extent, so the arrowhead is
+            # drawn at the size the path describes. Without one, a renderer
+            # has to guess how the path maps into the marker viewport: a
+            # browser draws it unscaled, while cairosvg stretches it to fill
+            # the viewport, which made PNG exports show an oversized arrow.
             arrow = drawing.marker(
                 id=self._arrowhead_id(),
                 insert=(1, 1.5),
-                size=(10, 10),
+                size=(3, 3),
                 orient="auto",
+                markerUnits="strokeWidth",
+                viewBox="0 0 3 3",
             )
             arrow.add(
                 drawing.path(

@@ -170,6 +170,29 @@ def test_layout_engine_is_configurable():
     assert wider.bbox.height > default.bbox.height
 
 
+def test_arrowhead_marker_carries_its_own_coordinate_system():
+    """Pin the marker's viewBox, which decides the arrowhead's size.
+
+    A marker without a viewBox leaves renderers to guess how its content
+    maps into the marker viewport: browsers draw it unscaled, while
+    cairosvg stretches it to fill the viewport. Declaring a viewBox as
+    large as the viewport settles it at a scale of one.
+    """
+    svg = draw_svg("(((...)))").tostring()
+
+    marker = ET.fromstring(svg).find(".//{*}marker")
+
+    assert marker is not None, "expected an arrowhead marker definition"
+    assert "viewBox" in marker.attrib, "the marker must declare a viewBox"
+
+    *_, vb_width, vb_height = [
+        float(value) for value in marker.attrib["viewBox"].replace(",", " ").split()
+    ]
+
+    assert float(marker.attrib["markerWidth"]) == vb_width
+    assert float(marker.attrib["markerHeight"]) == vb_height
+
+
 def test_output_is_reproducible():
     first = draw_svg("(((...)))", probs=PROBS).tostring()
     second = draw_svg("(((...)))", probs=PROBS).tostring()
