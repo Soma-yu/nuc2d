@@ -13,6 +13,7 @@ so the two stay in step.
 from pathlib import Path
 
 import cairosvg
+import numpy as np
 import matplotlib as mpl
 import svgwrite
 
@@ -23,6 +24,7 @@ from nuc2d import (
     SVGComponent,
     compose,
     draw_component,
+    draw_svg,
 )
 
 DOCS = Path(__file__).parent
@@ -71,6 +73,29 @@ def write(drawing: svgwrite.Drawing, name: str) -> None:
     print(f"wrote {name}.svg and {name}.png")
 
 
+def example() -> svgwrite.Drawing:
+    """The drawing at the top of the README: sequences and probabilities.
+
+    The probability matrix comes from a structure prediction tool rather
+    than from this package, so it is stored beside this script instead of
+    being recomputed. Regenerate it with np.save if the structure shown
+    here ever changes.
+    """
+    dpp_string = (
+        ".....((((((((((..((("
+        "+(((((.....))))))))..(((((.(((((.....))))))))))..)))))"
+        "+.....)))))"
+    )
+    sequences = [
+        "TTTTTATATGAGCGTTTCCG",
+        "CGTGCTTTTTGCACGCGGTTACCACTGTGCCTTTTTGGCACGTGGTTTACGCT",
+        "TGCACCATAT",
+    ]
+    probs = np.load(DOCS / "example_probs.npy")
+
+    return draw_svg(dpp_string, sequences=sequences, probs=probs)
+
+
 def styling() -> svgwrite.Drawing:
     """The default drawing beside the styled one, as the README shows it."""
     dpp_string = "(((..+...)))"
@@ -112,6 +137,7 @@ def composing() -> svgwrite.Drawing:
 
 def main() -> None:
     IMAGES.mkdir(parents=True, exist_ok=True)
+    write(example(), "example")
     write(styling(), "styling")
     write(composing(), "composing")
 
