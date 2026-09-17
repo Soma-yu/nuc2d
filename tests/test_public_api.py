@@ -16,6 +16,7 @@ PUBLIC_NAMES = {
     "compose",
     "draw_component",
     "draw_svg",
+    "render_colorbar",
 }
 
 

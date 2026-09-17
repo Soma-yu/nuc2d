@@ -32,6 +32,7 @@ def draw_component(
     style: DrawingStyle | None = None,
     layout_engine: LayoutEngine | None = None,
     colorbar_label: str | None = None,
+    add_colorbar: bool = True,
 ) -> SVGComponent:
     """Generate an SVG component from a secondary structure string.
 
@@ -57,6 +58,13 @@ def draw_component(
         Text written alongside the colorbar. Defaults to
         ``"Base-pair probability"``. Has no effect unless ``probs`` is
         given, since the colorbar is drawn only then.
+    add_colorbar : bool, default=True
+        Whether to place a colorbar beside the structure. Passing False
+        colors the nucleotides from ``probs`` but leaves the colorbar out,
+        for a caller placing one of its own with
+        :func:`~nuc2d.svg.render_colorbar`. The colorbar placed here is as
+        tall as the structure, which is a poor fit for a structure much
+        wider than it is tall.
 
     Returns
     -------
@@ -98,8 +106,8 @@ def draw_component(
     ]
 
     # Add a colorbar when base-pair probabilities are visualized.
-    if probs is not None:
-        colorbar = render_colorbar(
+    if probs is not None and add_colorbar:
+        colorbar_component = render_colorbar(
             drawing,
             label=colorbar_label,
             style=style,
@@ -108,10 +116,10 @@ def draw_component(
         # the structure's right edge.
         placements.append(
             Placement(
-                component=colorbar,
+                component=colorbar_component,
                 x=structure.bbox.xmax,
                 y=structure.bbox.ymin,
-                scale=structure.height / colorbar.height,
+                scale=structure.height / colorbar_component.height,
             )
         )
 
@@ -126,6 +134,7 @@ def draw_svg(
     style: DrawingStyle | None = None,
     layout_engine: LayoutEngine | None = None,
     colorbar_label: str | None = None,
+    add_colorbar: bool = True,
     width_px: float | None = None,
     height_px: float | None = None,
 ) -> svgwrite.Drawing:
@@ -148,6 +157,8 @@ def draw_svg(
         Text written alongside the colorbar. Defaults to
         ``"Base-pair probability"``. Has no effect unless ``probs`` is
         given, since the colorbar is drawn only then.
+    add_colorbar : bool, default=True
+        Whether to place a colorbar beside the structure.
     width_px : float, optional
         Width of the final SVG output (in pixels).
         If specified without height_px, height is calculated automatically to maintain aspect ratio.
@@ -178,6 +189,7 @@ def draw_svg(
         style=style,
         layout_engine=layout_engine,
         colorbar_label=colorbar_label,
+        add_colorbar=add_colorbar,
     )
     drawing.add(component.group)
 

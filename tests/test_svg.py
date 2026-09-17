@@ -157,6 +157,41 @@ def test_colorbar_label_is_ignored_without_probabilities():
     assert with_label.tostring() == draw_svg("(((...)))").tostring()
 
 
+def test_the_colorbar_can_be_left_out():
+    """probs colors the nucleotides; the colorbar beside them is optional."""
+    drawing = svgwrite.Drawing()
+
+    with_bar = draw_component(drawing, "(((...)))", probs=PROBS)
+    without_bar = draw_component(svgwrite.Drawing(), "(((...)))", probs=PROBS,
+                                 add_colorbar=False)
+    plain = draw_component(svgwrite.Drawing(), "(((...)))")
+
+    # The structure itself is unchanged; only the colorbar beside it is gone.
+    assert without_bar.bbox.width == pytest.approx(plain.bbox.width)
+    assert without_bar.bbox.width < with_bar.bbox.width
+    assert "Base-pair probability" not in collect_texts(
+        draw_svg("(((...)))", probs=PROBS, add_colorbar=False).tostring()
+    )
+
+
+def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
+    """The point of leaving it out: size it against something else."""
+    from nuc2d import Placement, compose, render_colorbar
+
+    drawing = svgwrite.Drawing()
+    structure = draw_component(drawing, "(((...)))", probs=PROBS, add_colorbar=False)
+    colorbar = render_colorbar(drawing)
+
+    panel = compose(drawing.g(), [
+        Placement(component=structure, x=0.0, y=0.0, scale=1.0),
+        Placement(component=colorbar, x=structure.bbox.xmax, y=0.0, scale=0.5),
+    ])
+
+    assert panel.bbox.width == pytest.approx(
+        structure.bbox.width + colorbar.width * 0.5
+    )
+
+
 def test_layout_engine_is_configurable():
     from nuc2d.layout import RadialLayoutEngine
 
