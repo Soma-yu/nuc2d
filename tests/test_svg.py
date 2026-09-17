@@ -97,7 +97,7 @@ def test_every_reference_resolves():
 
 @pytest.mark.parametrize(
     "dpp_string",
-    ["(((...)))", "(((..+...)))", ".....", "((..((..))..))"],
+    ["(((...)))", "(((..+...)))", ".....", "((..((...))..))"],
 )
 def test_output_is_well_formed_xml(dpp_string):
     ET.fromstring(draw_svg(dpp_string).tostring())

@@ -108,17 +108,17 @@ def test_parse_invalid_raises_parse_error(dpp_string):
 
 
 def test_parse_nested():
-    root = parse("((..((..))..))")
+    root = parse("((..((...))..))")
 
     assert collect_boundary_nucleotide_locations(root) == [
         (0, 0, 0),
         (0, 1, 1),
         (0, 4, 4),
         (0, 5, 5),
-        (0, 8, 8),
         (0, 9, 9),
-        (0, 12, 12),
+        (0, 10, 10),
         (0, 13, 13),
+        (0, 14, 14),
     ]
 
 
@@ -168,3 +168,44 @@ def test_strand_groups_merges_through_a_third_strand():
     assert sorted(len(group) for group in groups.groups()) == [1, 3]
     assert groups.root_of(0) == groups.root_of(2)
     assert groups.root_of(3) != groups.root_of(0)
+
+
+@pytest.mark.parametrize(
+    "dpp_string",
+    [
+        "()",              # no nucleotides in the loop at all
+        "(.)",             # one
+        "(..)",            # two
+        "((..))",          # two, closed by a stem of more than one pair
+        "((..((..))..))",  # two, in the inner hairpin of a nested structure
+        "(.(.).)",         # the inner of two loops is the tight one
+    ],
+)
+def test_tight_hairpin_loops_are_rejected(dpp_string):
+    """A backbone cannot turn back on itself in fewer than three nucleotides."""
+    with pytest.raises(ParseError):
+        parse(dpp_string)
+
+
+@pytest.mark.parametrize(
+    "dpp_string",
+    [
+        "(...)",            # the smallest hairpin there is
+        "((...))",
+        "((..((...))..))",
+        "((.((...)).))",    # the outer loop closes a stem, so it has no minimum
+        "(+)",              # not a hairpin: the strands break inside it
+        "((+))",
+        "(((+)))",
+        "((.+.))",
+        "(..+..)",
+    ],
+)
+def test_loops_that_are_wide_enough_or_broken_by_a_strand_are_accepted(dpp_string):
+    """Only a loop where one backbone turns back has a minimum size."""
+    assert parse(dpp_string) is not None
+
+
+def test_the_position_of_a_tight_hairpin_is_named_in_the_error():
+    with pytest.raises(ParseError, match="position 8"):
+        parse("((..((..))..))")

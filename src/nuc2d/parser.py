@@ -7,6 +7,12 @@ from .structure import (
     Nucleotide, StemRegion, LoopRegion, iter_nucleotides, iter_stems
 )
 
+# A hairpin loop is one backbone turning back on itself, which it cannot do
+# in fewer nucleotides than this. Structure prediction tools impose the same
+# minimum, so a tighter loop comes from a string written by hand.
+MINIMUM_HAIRPIN_LOOP_SIZE = 3
+
+
 class ParseError(Exception):
     """Exception raised when an error occurs during parsing of a string."""
     pass
@@ -196,7 +202,27 @@ class _Parser:
                     [child_stem.nucleotides[0], child_stem.nucleotides[-1]]
                 )
             elif self.peek() == ")":
-                # End of this loop region
+                # End of this loop region.
+                # A loop closing no stem of its own is a hairpin: the backbone
+                # turns back here. A loop the strands break inside is two
+                # backbones meeting instead, so the strand must not have
+                # changed since the loop opened.
+                is_hairpin = (
+                    not current_loop.is_root
+                    and not current_loop.child_stems
+                    and self.strand_index == current_loop.nucleotides[0].strand_index
+                )
+                # Only the opening nucleotide and the unpaired ones are in the
+                # list so far; the closing one is added by parse_stem.
+                loop_size = len(current_loop.nucleotides) - 1
+                if is_hairpin and loop_size < MINIMUM_HAIRPIN_LOOP_SIZE:
+                    raise ParseError(
+                        f"The hairpin loop closing at position "
+                        f"{self.char_index} holds {loop_size} nucleotide(s). "
+                        f"A hairpin loop needs at least "
+                        f"{MINIMUM_HAIRPIN_LOOP_SIZE}, because a backbone "
+                        "cannot turn back on itself in fewer."
+                    )
                 break
             else:
                 # Parse unpaired region
