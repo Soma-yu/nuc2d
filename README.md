@@ -170,6 +170,16 @@ drawing.saveas("panel.svg")
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="80%">
 </p>
 
+## Changes in 0.6.0
+
+`draw_svg` and `draw_component` accept `add_colorbar=False`, which colors the
+nucleotides from `probs` but leaves the colorbar out. It is for placing a
+colorbar of your own with the newly exported `render_colorbar`: the one these
+functions place is as tall as the structure, which leaves it small beside a
+structure much wider than it is tall.
+
+Nothing else changes, and neither does the output unless `add_colorbar` is used.
+
 ## Changes in 0.5.0
 
 Version 0.5.0 rejects two kinds of string that earlier versions drew.
