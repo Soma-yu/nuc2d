@@ -2,7 +2,8 @@
 
 The two entry points are :func:`draw_svg`, which produces a complete SVG
 drawing, and :func:`draw_component`, which produces a single component
-that the caller can place into a drawing of its own.
+that the caller can place into a drawing of its own. :class:`Placement`
+and :func:`compose` position such components relative to one another.
 """
 
 from importlib.metadata import PackageNotFoundError, version
@@ -12,7 +13,7 @@ from .geometry import BBox, Vec2
 from .layout import LayoutEngine, RadialLayoutEngine
 from .parser import ParseError
 from .style import DrawingStyle
-from .svg import SVGComponent
+from .svg import Placement, SVGComponent, compose
 
 try:
     __version__ = version("nuc2d")
@@ -24,10 +25,12 @@ __all__ = [
     "DrawingStyle",
     "LayoutEngine",
     "ParseError",
+    "Placement",
     "RadialLayoutEngine",
     "SVGComponent",
     "Vec2",
     "__version__",
+    "compose",
     "draw_component",
     "draw_svg",
 ]
