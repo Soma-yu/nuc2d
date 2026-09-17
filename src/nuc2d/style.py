@@ -1,7 +1,7 @@
-"""Drawing style definitions for RNA secondary structure rendering.
+"""Drawing style definitions for secondary structure rendering.
 
 This module provides classes for configuring the visual appearance of
-rendered RNA secondary structure diagrams. Style parameters control
+rendered secondary structure diagrams. Style parameters control
 the appearance of graphical elements such as nucleotide nodes,
 backbone and base-pair edges, labels, margins, and color mappings.
 

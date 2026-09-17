@@ -1,6 +1,6 @@
-"""SVG rendering utilities for RNA secondary structure visualization.
+"""SVG rendering utilities for secondary structure visualization.
 
-This module provides functions for rendering RNA secondary structures
+This module provides functions for rendering secondary structures
 and related graphical elements as reusable SVG components. Individual
 components can be positioned, scaled, and combined into a complete SVG
 drawing using the composition utilities defined in this module.
@@ -416,7 +416,7 @@ class SVGRenderer:
         drawing: svgwrite.Drawing,
         layout_result: LayoutResult,
     ) -> SVGComponent:
-        """Render an RNA secondary structure as an SVG component.
+        """Render a secondary structure as an SVG component.
 
         The elements are drawn at the coordinates the layout produced,
         without being moved to the origin first. The component's bounding
@@ -562,14 +562,14 @@ def render_structure(
     layout_result: LayoutResult,
     style: DrawingStyle | None = None,
 ) -> SVGComponent:
-    """Render an RNA secondary structure as an SVG component.
+    """Render a secondary structure as an SVG component.
 
     Parameters
     ----------
     drawing : svgwrite.Drawing
         Drawing object used to create SVG elements and definitions.
     layout_result : LayoutResult
-        Layout result describing the geometry of the RNA secondary
+        Layout result describing the geometry of the secondary
         structure.
     style : DrawingStyle, optional
         Drawing style controlling colors, sizes, and line widths.

@@ -1,4 +1,4 @@
-"""Utilities for attaching annotations to RNA secondary structures.
+"""Utilities for attaching annotations to secondary structures.
 
 This module provides functions for adding biological or visualization-
 related annotations to parsed secondary structure objects. Examples
