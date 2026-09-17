@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .structure import (
-    Nucleotide, StemRegion, LoopRegion
+    Nucleotide, StemRegion, LoopRegion, iter_nucleotides, iter_stems
 )
 
 class ParseError(Exception):
@@ -228,9 +228,110 @@ class _Parser:
         self.finish()
         if not root_loop.nucleotides:
             raise ParseError("Empty secondary structure.")
+        _check_strands_are_connected(root_loop)
         # The last nucleotide of the last strand is a 3' terminus.
         root_loop.nucleotides[-1].is_three_prime = True
         return root_loop
+
+class _StrandGroups:
+    """Strands grouped by the base pairs that join them.
+
+    Each strand starts in a group of its own, and :meth:`join` merges the
+    groups of two strands that a base pair holds together.
+
+    Notes
+    -----
+    This is the disjoint-set forest usually called union-find. A group is
+    a tree of strands, each pointing at its parent, with the strand at the
+    root pointing at itself; that root stands for the whole group, so two
+    strands share a group exactly when they have the same root. Merging
+    two groups is one assignment: point the root of one at the root of
+    the other.
+
+    Two habits keep the trees flat, which is what makes lookups cheap.
+    :meth:`root_of` points every strand it passes at its grandparent,
+    halving the path it just walked, and :meth:`join` hangs the smaller
+    group under the larger one.
+
+    The operations are named ``find`` and ``union`` in the literature.
+    They are named for what they return and what they do here, because
+    ``find`` alone says nothing about what is found.
+    """
+
+    def __init__(self, strand_count: int) -> None:
+        # Every strand is the root of its own group to begin with.
+        self.parent_of = list(range(strand_count))
+        self.group_size_at = [1] * strand_count
+
+    def root_of(self, strand: int) -> int:
+        """Return the strand at the root of this strand's group."""
+        while self.parent_of[strand] != strand:
+            self.parent_of[strand] = self.parent_of[self.parent_of[strand]]
+            strand = self.parent_of[strand]
+        return strand
+
+    def join(self, one: int, other: int) -> None:
+        """Merge the groups of two strands."""
+        one_root, other_root = self.root_of(one), self.root_of(other)
+        if one_root == other_root:
+            return
+        if self.group_size_at[one_root] < self.group_size_at[other_root]:
+            one_root, other_root = other_root, one_root
+        self.parent_of[other_root] = one_root
+        self.group_size_at[one_root] += self.group_size_at[other_root]
+
+    def groups(self) -> list[list[int]]:
+        """Return the strands of each group, in the order the strands appear."""
+        grouped: dict[int, list[int]] = {}
+        for strand in range(len(self.parent_of)):
+            grouped.setdefault(self.root_of(strand), []).append(strand)
+        return list(grouped.values())
+
+
+def _check_strands_are_connected(root_loop: LoopRegion) -> None:
+    """Raise unless base pairs join every strand into one complex.
+
+    Parameters
+    ----------
+    root_loop : LoopRegion
+        Root loop region of the parsed structure.
+
+    Raises
+    ------
+    ParseError
+        If the strands fall into more than one group, where two strands
+        are in the same group when base pairs join them, directly or
+        through other strands.
+
+    Notes
+    -----
+    A secondary structure describes a single complex, and a complex is
+    held together by its base pairs. Strands that no base pair reaches
+    are separate molecules that happen to share a string.
+    """
+    strand_count = 1 + max(
+        nt.strand_index for nt in iter_nucleotides(root_loop)
+    )
+    strand_groups = _StrandGroups(strand_count)
+
+    for stem in iter_stems(root_loop):
+        nucleotides = stem.nucleotides
+        for one, other in zip(nucleotides, reversed(nucleotides)):
+            strand_groups.join(one.strand_index, other.strand_index)
+
+    groups = strand_groups.groups()
+    if len(groups) > 1:
+        listed = " and ".join(
+            "(" + ", ".join(str(strand) for strand in group) + ")"
+            for group in groups
+        )
+        raise ParseError(
+            f"The {strand_count} strands fall into {len(groups)} groups that "
+            f"no base pair joins: {listed}. A secondary structure describes "
+            "one complex, so every strand must be reachable from every other "
+            "through base pairs."
+        )
+
 
 def parse(dpp_string: str):
     return _Parser(dpp_string).parse()

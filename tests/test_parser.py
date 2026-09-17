@@ -1,6 +1,6 @@
 import pytest
 
-from nuc2d.parser import parse, ParseError
+from nuc2d.parser import parse, ParseError, _StrandGroups
 from nuc2d.structure import StemRegion, LoopRegion
 
 def collect_boundary_nucleotide_locations(root_loop):
@@ -120,3 +120,51 @@ def test_parse_nested():
         (0, 12, 12),
         (0, 13, 13),
     ]
+
+
+@pytest.mark.parametrize(
+    "dpp_string",
+    [
+        "...+...",          # two strands, no base pairs at all
+        "((...))+...",      # a hairpin and a loose strand
+        "((...))+((...))",  # two hairpins that never meet
+        "((+))+((+))",      # two duplexes that never meet
+        "((+..+))",         # a loose strand sitting inside a loop
+        "((+(+)+))",        # an independent duplex inside a loop
+        "((.+.((+)).+.))",  # the same, with unpaired nucleotides around it
+    ],
+)
+def test_disconnected_strands_are_rejected(dpp_string):
+    """A secondary structure describes one complex, so the strands must hold together."""
+    with pytest.raises(ParseError):
+        parse(dpp_string)
+
+
+@pytest.mark.parametrize(
+    "dpp_string",
+    [
+        "(((..+...)))",       # two strands held by one stem
+        "(((+)))",            # the same, with no unpaired nucleotides
+        "((..((..+..))..))",  # the pair that joins them is nested
+        "(((+)))(((+)))",     # the outer strands meet only through the middle one
+    ],
+)
+def test_strands_joined_by_base_pairs_are_accepted(dpp_string):
+    """A base pair anywhere is enough, however deeply nested it is."""
+    assert parse(dpp_string) is not None
+
+
+def test_the_groups_are_named_in_the_error():
+    with pytest.raises(ParseError, match=r"\(0, 3\) and \(1, 2\)"):
+        parse("((+(+)+))")
+
+
+def test_strand_groups_merges_through_a_third_strand():
+    """Joining 0-1 and 1-2 leaves one group, not two."""
+    groups = _StrandGroups(4)
+    groups.join(0, 1)
+    groups.join(1, 2)
+
+    assert sorted(len(group) for group in groups.groups()) == [1, 3]
+    assert groups.root_of(0) == groups.root_of(2)
+    assert groups.root_of(3) != groups.root_of(0)

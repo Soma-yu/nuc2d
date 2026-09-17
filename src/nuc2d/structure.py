@@ -132,3 +132,24 @@ def iter_nucleotides(root_loop: LoopRegion) -> Iterator[Nucleotide]:
             yield from _from_stem(stem)
 
     yield from _from_loop(root_loop)
+
+
+def iter_stems(root_loop: LoopRegion) -> Iterator[StemRegion]:
+    """Yield every stem region of a secondary structure.
+
+    Parameters
+    ----------
+    root_loop : LoopRegion
+        Root loop region of the secondary structure tree.
+
+    Yields
+    ------
+    StemRegion
+        Each stem in the structure, outermost first.
+    """
+    def _from_loop(current_loop: LoopRegion) -> Iterator[StemRegion]:
+        for stem in current_loop.child_stems:
+            yield stem
+            yield from _from_loop(stem.child_loop)
+
+    yield from _from_loop(root_loop)
