@@ -19,9 +19,9 @@ pip install nuc2d
 ```python
 from nuc2d import draw_svg
 
-svg = draw_svg("(((..+...)))")
+drawing = draw_svg("(((..+...)))")
 
-svg.saveas("output.svg")
+drawing.saveas("output.svg")
 ```
 
 Structures are written in dot-parens-plus notation: `(` and `)` for the two
@@ -33,7 +33,7 @@ In Jupyter Notebook or JupyterLab the result can be displayed directly:
 ```python
 from IPython.display import SVG, display
 
-display(SVG(svg.tostring()))
+display(SVG(drawing.tostring()))
 ```
 
 An input that is not a well-formed structure raises `ParseError`:
@@ -53,7 +53,7 @@ Nucleotide sequences can be provided through the `sequences` argument, one per
 strand, in the order the strands appear in the structure.
 
 ```python
-svg = draw_svg(
+drawing = draw_svg(
     "(((..+...)))",
     sequences=["AUGCA", "UGCCAU"],
 )
@@ -73,7 +73,7 @@ matrix through the `probs` argument. A colorbar is placed beside the structure.
 # The diagonal probs[i][i] is the probability that nucleotide i is unpaired.
 probs = ...
 
-svg = draw_svg(
+drawing = draw_svg(
     "(((..+...)))",
     probs=probs,
 )
@@ -82,7 +82,7 @@ svg = draw_svg(
 The colorbar is labelled `Base-pair probability` unless another label is given:
 
 ```python
-svg = draw_svg(
+drawing = draw_svg(
     "(((..+...)))",
     probs=probs,
     colorbar_label="Pairing probability",
@@ -92,7 +92,7 @@ svg = draw_svg(
 ## Output size
 
 ```python
-svg = draw_svg("(((..+...)))", width_px=600)
+drawing = draw_svg("(((..+...)))", width_px=600)
 ```
 
 Giving `width_px` or `height_px` alone lets the other follow from the aspect
@@ -109,7 +109,7 @@ import matplotlib as mpl
 
 from nuc2d import DrawingStyle, RadialLayoutEngine, draw_svg
 
-svg = draw_svg(
+drawing = draw_svg(
     "(((..+...)))",
     style=DrawingStyle(
         node_fill="steelblue",
@@ -123,6 +123,12 @@ svg = draw_svg(
     ),
 )
 ```
+
+The defaults are on the left, the settings above on the right.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="80%">
+</p>
 
 ## Combining several structures
 
@@ -159,6 +165,10 @@ drawing.add(panel.group)
 drawing.viewbox(*panel.bbox.to_viewbox())
 drawing.saveas("panel.svg")
 ```
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="80%">
+</p>
 
 ## Changes in 0.4.0
 
