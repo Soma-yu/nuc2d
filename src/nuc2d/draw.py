@@ -31,6 +31,7 @@ def draw_component(
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: LayoutEngine | None = None,
+    colorbar_label: str | None = None,
 ) -> SVGComponent:
     """Generate an SVG component from a secondary structure string.
 
@@ -52,6 +53,10 @@ def draw_component(
     layout_engine : LayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
+    colorbar_label : str, optional
+        Text written alongside the colorbar. Defaults to
+        ``"Base-pair probability"``. Has no effect unless ``probs`` is
+        given, since the colorbar is drawn only then.
 
     Returns
     -------
@@ -96,6 +101,7 @@ def draw_component(
     if probs is not None:
         colorbar = render_colorbar(
             drawing,
+            label=colorbar_label,
             style=style,
         )
         # Match colorbar height to the structure height, and set it beside
@@ -119,6 +125,7 @@ def draw_svg(
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: LayoutEngine | None = None,
+    colorbar_label: str | None = None,
     width_px: float | None = None,
     height_px: float | None = None,
 ) -> svgwrite.Drawing:
@@ -137,6 +144,10 @@ def draw_svg(
     layout_engine : LayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
+    colorbar_label : str, optional
+        Text written alongside the colorbar. Defaults to
+        ``"Base-pair probability"``. Has no effect unless ``probs`` is
+        given, since the colorbar is drawn only then.
     width_px : float, optional
         Width of the final SVG output (in pixels).
         If specified without height_px, height is calculated automatically to maintain aspect ratio.
@@ -166,6 +177,7 @@ def draw_svg(
         probs=probs,
         style=style,
         layout_engine=layout_engine,
+        colorbar_label=colorbar_label,
     )
     drawing.add(component.group)
 

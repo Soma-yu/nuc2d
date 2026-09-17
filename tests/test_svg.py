@@ -125,6 +125,38 @@ def test_colorbar_sits_beside_the_structure():
     assert with_bar.bbox.height == pytest.approx(without.bbox.height)
 
 
+def collect_texts(svg_string):
+    """Return the text content of every text element, in order."""
+    return [
+        element.text
+        for element in ET.fromstring(svg_string).iter()
+        if element.tag.endswith("text")
+    ]
+
+
+def test_colorbar_carries_a_default_label():
+    svg = draw_svg("(((...)))", probs=PROBS).tostring()
+
+    assert "Base-pair probability" in collect_texts(svg)
+
+
+def test_colorbar_label_is_configurable():
+    svg = draw_svg(
+        "(((...)))", probs=PROBS, colorbar_label="Unpaired probability"
+    ).tostring()
+
+    texts = collect_texts(svg)
+
+    assert "Unpaired probability" in texts
+    assert "Base-pair probability" not in texts
+
+
+def test_colorbar_label_is_ignored_without_probabilities():
+    with_label = draw_svg("(((...)))", colorbar_label="Unpaired probability")
+
+    assert with_label.tostring() == draw_svg("(((...)))").tostring()
+
+
 def test_layout_engine_is_configurable():
     from nuc2d.layout import RadialLayoutEngine
 
