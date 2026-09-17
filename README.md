@@ -1,6 +1,8 @@
 # Nuc2D
 
-Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG images.
+Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG
+images. The output stays sharp at any size and remains editable in tools such
+as Illustrator or Inkscape, so a figure can be adjusted without being redrawn.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="80%">
@@ -17,19 +19,16 @@ pip install nuc2d
 ```python
 from nuc2d import draw_svg
 
-dpp_string = "(((..+...)))"
-
-svg = draw_svg(
-    dpp_string=dpp_string,
-)
+svg = draw_svg("(((..+...)))")
 
 svg.saveas("output.svg")
 ```
 
-The `dpp_string` argument should be specified in dot-parens-plus notation.
+Structures are written in dot-parens-plus notation: `(` and `)` for the two
+halves of a base pair, `.` for an unpaired nucleotide, and `+` for a break
+between strands.
 
-If you are using Jupyter Notebook or JupyterLab, you can also display
-the generated SVG directly:
+In Jupyter Notebook or JupyterLab the result can be displayed directly:
 
 ```python
 from IPython.display import SVG, display
@@ -37,39 +36,149 @@ from IPython.display import SVG, display
 display(SVG(svg.tostring()))
 ```
 
+An input that is not a well-formed structure raises `ParseError`:
+
+```python
+from nuc2d import ParseError
+
+try:
+    draw_svg("(((")
+except ParseError as error:
+    print(error)
+```
+
 ## Sequence annotation
 
-Nucleotide sequences can be provided through the `sequences` argument.
-```python
-sequences = ["AUGCA", "UGCCAU"]
+Nucleotide sequences can be provided through the `sequences` argument, one per
+strand, in the order the strands appear in the structure.
 
+```python
 svg = draw_svg(
-    dpp_string=dpp_string,
-    sequences=sequences,
+    "(((..+...)))",
+    sequences=["AUGCA", "UGCCAU"],
 )
 ```
 
+A wrong number of sequences, or a sequence that is not as long as its strand,
+raises `ValueError` rather than drawing something misleading.
+
 ## Base-pair probability visualization
 
-Base-pair probabilities can be visualized by providing a symmetric
-base-pair probability matrix through the `probs` argument.
+Base-pair probabilities are visualized by passing a symmetric probability
+matrix through the `probs` argument. A colorbar is placed beside the structure.
+
 ```python
 # Base-pair probability matrix from a structure prediction tool.
 # probs[i][j] is the probability of nucleotides i and j forming a base pair.
-# The diagonal probs[i][i] represents the probability that nucleotide i is unpaired.
+# The diagonal probs[i][i] is the probability that nucleotide i is unpaired.
 probs = ...
 
 svg = draw_svg(
-    dpp_string=dpp_string,
+    "(((..+...)))",
     probs=probs,
 )
 ```
 
-## Output
+The colorbar is labelled `Base-pair probability` unless another label is given:
 
-`nuc2d` renders structures as SVG, making the resulting figures
-suitable for further editing and use in presentations and
-publications.
+```python
+svg = draw_svg(
+    "(((..+...)))",
+    probs=probs,
+    colorbar_label="Pairing probability",
+)
+```
+
+## Output size
+
+```python
+svg = draw_svg("(((..+...)))", width_px=600)
+```
+
+Giving `width_px` or `height_px` alone lets the other follow from the aspect
+ratio of the drawing. Giving neither defaults the height to 500 px.
+
+## Style and layout
+
+`DrawingStyle` controls appearance — colors, stroke widths, node size, fonts,
+and the colormap used for probabilities. `RadialLayoutEngine` controls
+geometry — how far apart nucleotides are placed.
+
+```python
+import matplotlib as mpl
+
+from nuc2d import DrawingStyle, RadialLayoutEngine, draw_svg
+
+svg = draw_svg(
+    "(((..+...)))",
+    style=DrawingStyle(
+        node_fill="steelblue",
+        edge_color="dimgray",
+        node_radius=5.0,
+        cmap=mpl.colormaps["viridis"],
+    ),
+    layout_engine=RadialLayoutEngine(
+        backbone_spacing=20.0,
+        loop_spacing=25.0,
+    ),
+)
+```
+
+## Combining several structures
+
+`draw_component` renders one structure into an SVG component without deciding
+where it goes, so several structures can share a single drawing. Each component
+carries the bounding box it occupies, and `compose` collects placed components
+into one group whose bounding box encloses them all.
+
+```python
+import svgwrite
+
+from nuc2d import Placement, compose, draw_component
+
+drawing = svgwrite.Drawing()
+
+components = [
+    draw_component(drawing, "(((...)))"),
+    draw_component(drawing, "((..((...))..))"),
+    draw_component(drawing, "((((....))))"),
+]
+
+# Lay the structures out in a row, with a gap between them.
+placements = []
+x = 0.0
+for component in components:
+    placements.append(
+        Placement(component=component, x=x - component.bbox.xmin, y=0.0, scale=1.0)
+    )
+    x += component.bbox.width + 10.0
+
+panel = compose(drawing.g(), placements)
+
+drawing.add(panel.group)
+drawing.viewbox(*panel.bbox.to_viewbox())
+drawing.saveas("panel.svg")
+```
+
+## Changes in 0.4.0
+
+Version 0.4.0 changes the public API. Existing code written against 0.3.0 needs
+the following adjustments.
+
+- `draw_group` is now `draw_component`. It returns a single `SVGComponent`
+  instead of a `(Group, BoundingBox)` tuple; use `component.group` and
+  `component.bbox`.
+- `BoundingBox(xmin, ymin, width, height)` is now `BBox(xmin, ymin, xmax,
+  ymax)`, with `width` and `height` as derived properties. A component's
+  bounding box now reports where the component actually sits, instead of
+  always starting at the origin.
+- `draw_svg` and `draw_component` accept `layout_engine` and `colorbar_label`.
+  On `draw_svg` these come before `width_px` and `height_px`, so any call that
+  passes those two positionally needs updating.
+- Malformed structures raise `ParseError`, and sequences or probability
+  matrices that do not match the structure raise `ValueError`. Both previously
+  surfaced as `IndexError`, or as a silently wrong drawing.
+- `DrawingStyle.colorbar_spacing` is gone; it never affected the output.
 
 ## License
 
