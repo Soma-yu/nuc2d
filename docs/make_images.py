@@ -25,8 +25,14 @@ from nuc2d import (
     draw_component,
 )
 
-IMAGES = Path(__file__).parent / "images"
-PIXEL_WIDTH = 900
+DOCS = Path(__file__).parent
+IMAGES = DOCS / "images"
+
+# The PNG is what the README displays, so it is sized for a high-density
+# screen. The SVG carries only a default display size for anyone who opens
+# it directly; 500 px tall is what draw_svg itself defaults to.
+PNG_WIDTH = 1600
+SVG_HEIGHT = 500.0
 
 
 def row(
@@ -47,8 +53,8 @@ def row(
 
     drawing.add(panel.group)
     drawing.viewbox(*panel.bbox.to_viewbox())
-    drawing["width"] = f"{PIXEL_WIDTH}px"
-    drawing["height"] = f"{PIXEL_WIDTH * panel.bbox.height / panel.bbox.width}px"
+    drawing["height"] = f"{SVG_HEIGHT}px"
+    drawing["width"] = f"{SVG_HEIGHT * panel.bbox.width / panel.bbox.height}px"
     return drawing
 
 
@@ -59,7 +65,7 @@ def write(drawing: svgwrite.Drawing, name: str) -> None:
     cairosvg.svg2png(
         url=str(svg_path),
         write_to=str(IMAGES / f"{name}.png"),
-        output_width=PIXEL_WIDTH,
+        output_width=PNG_WIDTH,
         background_color="white",
     )
     print(f"wrote {name}.svg and {name}.png")
