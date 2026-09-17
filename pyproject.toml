@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nuc2d"
-version = "0.4.1"
+version = "0.5.0"
 description = "Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG images."
 authors = [
   { name = "Soma Ishii" }

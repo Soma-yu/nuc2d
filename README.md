@@ -170,6 +170,21 @@ drawing.saveas("panel.svg")
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="80%">
 </p>
 
+## Changes in 0.5.0
+
+Version 0.5.0 rejects two kinds of string that earlier versions drew.
+
+- Strands that no base pair connects, such as `...+...` or `((...))+((...))`,
+  raise `ParseError`. A secondary structure describes one complex, and
+  strands nothing holds together are separate molecules that happen to share
+  a string.
+- Hairpin loops of fewer than three nucleotides, such as `(..)`, raise
+  `ParseError`. A backbone cannot turn back on itself in fewer, which is the
+  same minimum structure prediction tools impose.
+
+Structures that came from a prediction tool are unaffected: neither shape can
+occur in one.
+
 ## Changes in 0.4.0
 
 Version 0.4.0 changes the public API. Existing code written against 0.3.0 needs
