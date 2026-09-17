@@ -49,9 +49,7 @@ class DrawingStyle:
         Colormap used for probability visualization.
 
     colorbar_width_ratio : float
-        Ratio of the colorbar width to its height.
-    colorbar_spacing : float
-        Horizontal spacing between the structure and the colorbar.
+        Width of the colorbar's bar, as a fraction of its height.
     colorbar_tick_length : float
         Length of colorbar tick marks.
     colorbar_tick_font_size : float
@@ -80,7 +78,6 @@ class DrawingStyle:
     )
 
     colorbar_width_ratio: float = 1 / 30
-    colorbar_spacing: float = 20.0
 
     colorbar_tick_length: float = 5.0
     colorbar_tick_font_size: float = 12.0

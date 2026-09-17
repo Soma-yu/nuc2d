@@ -143,8 +143,6 @@ class Placement:
     z_index : int, default=0
         Drawing order of the component. Components with smaller values
         are rendered first.
-    layer : str, default="main"
-        Logical layer identifier reserved for future use.
 
     Attributes
     ----------
@@ -168,7 +166,6 @@ class Placement:
     y: float
     scale: float
     z_index: int = 0
-    layer: str = "main"
 
     @property
     def bbox(self) -> BBox:
@@ -468,8 +465,8 @@ class SVGRenderer:
         vb_width = 150
         vb_height = 500
 
-        bar_width = 15
         bar_height = 450
+        bar_width = bar_height * self.style.colorbar_width_ratio
         bar_x = 30
         bar_y = (vb_height - bar_height) / 2
 
@@ -520,7 +517,7 @@ class SVGRenderer:
             group.add(
                 drawing.line(
                     start=(bar_x + bar_width, y),
-                    end=(bar_x + bar_width + 5, y),
+                    end=(bar_x + bar_width + self.style.colorbar_tick_length, y),
                     stroke="black",
                 )
             )

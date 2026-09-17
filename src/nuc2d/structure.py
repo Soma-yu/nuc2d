@@ -64,10 +64,8 @@ class StemRegion(Region):
     Attributes
     ----------
     child_loop : LoopRegion | None
-        Child region in the secondary structure tree.
-        For a stem region, this is assumed to be a single LoopRegion instance
-        corresponding to the loop connected to this stem.
-        None if no such loop exists.
+        Loop region enclosed by this stem. None only while the parser is
+        still building the stem; every stem in a parsed structure has one.
     """
     child_loop: LoopRegion | None = None
 
@@ -77,11 +75,9 @@ class LoopRegion(Region):
 
     Attributes
     ----------
-    child_stems : list[StemRegion] | None
-        Child regions in the secondary structure tree.
-        For a loop region, this is assumed to be a list of one or more
-        StemRegion instances corresponding to stems connected to this loop.
-        None if no such stems exist.
+    child_stems : list[StemRegion]
+        Stem regions connected to this loop. Empty when the loop closes no
+        stems, as in a structure with no base pairs.
     is_root : bool
         Whether this loop region is the root of the secondary structure tree.
     """

@@ -380,11 +380,13 @@ class RadialLayoutEngine(LayoutEngine):
         nucleotides = root_loop.nucleotides
         delta_angle = 2*math.pi / len(nucleotides)
         if root_loop.child_stems:
-            # Adjust the layout so that the first stem region extends upward
+            # Turn the starting direction so that the first stem region
+            # extends upward. Only the direction matters: the walk's starting
+            # position just translates the whole drawing, which the bounding
+            # box absorbs.
             offset = nucleotides.index(root_loop.child_stems[0].nucleotides[0])
             for _ in range(offset):
                 state.vec = state.vec.rotated(-delta_angle)
-                state.pos -= self.backbone_spacing * state.vec
             if offset != 0:
                 state.vec = state.vec.rotated(-delta_angle)
             state.nodes.append(Node(nucleotides[0], state.pos))
