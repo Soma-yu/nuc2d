@@ -9,7 +9,6 @@ or of SVG, so every other module is free to depend on this one.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Iterable
 import math
 
 
@@ -132,6 +131,10 @@ class BBox:
     ``height`` are derived. A box whose lower corner exceeds its upper
     corner is empty, which gives :meth:`union` an identity element and
     lets a box be built up from nothing without special cases.
+
+    A box is built from its corners and moved by two numbers, so nothing
+    here depends on :class:`Vec2`. Enclosing several things is a
+    :func:`~functools.reduce` of :meth:`union` over the boxes they occupy.
     """
 
     xmin: float
@@ -143,25 +146,6 @@ class BBox:
     def empty(cls) -> BBox:
         """Return the empty box, the identity element of :meth:`union`."""
         return cls(math.inf, math.inf, -math.inf, -math.inf)
-
-    @classmethod
-    def from_points(cls, points: Iterable[Vec2]) -> BBox:
-        """Return the smallest box containing every given point.
-
-        Parameters
-        ----------
-        points : iterable of Vec2
-            Points to enclose. An empty iterable yields :meth:`empty`.
-
-        Returns
-        -------
-        BBox
-            The enclosing box.
-        """
-        box = cls.empty()
-        for p in points:
-            box = box.union(cls(p.x, p.y, p.x, p.y))
-        return box
 
     @property
     def is_empty(self) -> bool:
@@ -228,13 +212,15 @@ class BBox:
         dy = dx if dy is None else dy
         return BBox(self.xmin - dx, self.ymin - dy, self.xmax + dx, self.ymax + dy)
 
-    def translated(self, offset: Vec2) -> BBox:
+    def translated(self, dx: float, dy: float) -> BBox:
         """Return the box moved by the given offset.
 
         Parameters
         ----------
-        offset : Vec2
-            Translation to apply.
+        dx : float
+            Distance to move along the x-axis.
+        dy : float
+            Distance to move along the y-axis.
 
         Returns
         -------
@@ -244,10 +230,10 @@ class BBox:
         if self.is_empty:
             return self
         return BBox(
-            self.xmin + offset.x,
-            self.ymin + offset.y,
-            self.xmax + offset.x,
-            self.ymax + offset.y,
+            self.xmin + dx,
+            self.ymin + dy,
+            self.xmax + dx,
+            self.ymax + dy,
         )
 
     def scaled(self, scale: float) -> BBox:

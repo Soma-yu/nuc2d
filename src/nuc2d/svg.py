@@ -152,7 +152,7 @@ class Placement:
     @property
     def bbox(self) -> BBox:
         """Extent of the component in the composed drawing."""
-        return self.component.bbox.scaled(self.scale).translated(Vec2(self.x, self.y))
+        return self.component.bbox.scaled(self.scale).translated(self.x, self.y)
 
 
 class SVGRenderer:
@@ -399,8 +399,15 @@ class SVGRenderer:
 
         group = drawing.g()
 
-        bbox = BBox.from_points(
-            node.pos for node in layout_result.nodes
+        # Each node contributes the point it sits at. What the node draws
+        # around that point is not enclosed yet; the margin covers it.
+        bbox = reduce(
+            BBox.union,
+            (
+                BBox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
+                for node in layout_result.nodes
+            ),
+            BBox.empty(),
         ).expanded(self.style.x_margin, self.style.y_margin)
 
         for edge in layout_result.edges:

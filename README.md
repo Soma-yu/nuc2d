@@ -211,6 +211,23 @@ interface.
 | `compose(container, ...)` | `compose(group, ...)` | The argument is the group the composed component is returned with, and the package calls one of those a group everywhere else. |
 | `RadialLayoutEngine(pair_width=...)` | `RadialLayoutEngine(pair_spacing=...)` | A distance between two nucleotides, like `backbone_spacing` and `loop_spacing`. `DrawingStyle.basepair_width`, a stroke width, keeps its name. |
 
+`BBox` no longer refers to `Vec2`. It is built from its corners and moved by
+two numbers, and `BBox.from_points` is gone — a caller enclosing several
+things unions the boxes they occupy, which is also what it will want once
+those things have a size of their own.
+
+```python
+box.translated(Vec2(dx, dy))  # 0.6.0
+box.translated(dx, dy)        # 0.7.0
+
+BBox.from_points(points)      # 0.6.0
+reduce(                       # 0.7.0
+    BBox.union,
+    (BBox(p.x, p.y, p.x, p.y) for p in points),
+    BBox.empty(),
+)
+```
+
 `SVGComponent` and `Placement` no longer carry `width` and `height`. Both
 still carry `bbox`, which reports where the component sits and, through its
 own `width` and `height`, how large it is.

@@ -2,25 +2,11 @@ import math
 
 import pytest
 
-from nuc2d.geometry import BBox, Vec2
+from nuc2d.geometry import BBox
 
 
-def test_from_points():
-    box = BBox.from_points([Vec2(1, 5), Vec2(-2, 3), Vec2(4, -1)])
-
-    assert (box.xmin, box.ymin, box.xmax, box.ymax) == (-2, -1, 4, 5)
-    assert (box.width, box.height) == (6, 6)
-
-
-def test_from_no_points_is_empty():
-    box = BBox.from_points([])
-
-    assert box.is_empty
-    assert (box.width, box.height) == (0.0, 0.0)
-
-
-def test_from_single_point_is_not_empty():
-    box = BBox.from_points([Vec2(3, 4)])
+def test_a_single_point_encloses_an_empty_area_but_is_not_the_empty_box():
+    box = BBox(3, 4, 3, 4)
 
     assert not box.is_empty
     assert (box.width, box.height) == (0.0, 0.0)
@@ -63,7 +49,7 @@ def test_expanded_past_itself_is_empty():
 
 
 def test_translated():
-    box = BBox(0, 0, 10, 20).translated(Vec2(3, -4))
+    box = BBox(0, 0, 10, 20).translated(3, -4)
 
     assert box == BBox(3, -4, 13, 16)
 
@@ -85,7 +71,7 @@ def test_empty_box_is_unchanged_by_transforms():
     empty = BBox.empty()
 
     assert empty.expanded(10).is_empty
-    assert empty.translated(Vec2(5, 5)).is_empty
+    assert empty.translated(5, 5).is_empty
     assert empty.scaled(3).is_empty
 
 
@@ -97,7 +83,7 @@ def test_to_viewbox():
     "method, args",
     [
         ("expanded", (5,)),
-        ("translated", (Vec2(1, 1),)),
+        ("translated", (1, 1)),
         ("scaled", (2,)),
     ],
 )
