@@ -212,6 +212,27 @@ def test_a_size_is_read_from_a_bounding_box():
     assert placement.bbox.height == pytest.approx(component.bbox.height * 2.0)
 
 
+def test_the_sequence_reaches_the_drawing():
+    """Drawing the bases is what sequences= is for, end to end.
+
+    Each base is written twice, once outlined and once filled, so that the
+    letter stays readable over any node color.
+    """
+    svg = draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"]).tostring()
+
+    letters = [text for text in collect_texts(svg) if text in set("ACGU")]
+
+    assert letters == [base for base in "AUGCAUGCCAU" for _ in range(2)]
+
+    drawn = [
+        element
+        for element in ET.fromstring(svg).iter()
+        if element.tag.endswith("text") and element.text == "A"
+    ]
+    assert {element.attrib["fill"] for element in drawn} == {"black", "white"}
+    assert {element.attrib["font-family"] for element in drawn} == {"Arial"}
+
+
 def test_layout_engine_is_configurable():
     from nuc2d.layout import RadialLayoutEngine
 

@@ -51,8 +51,7 @@ def draw_component(
         Base-pairing probability matrix. ``probs[i][j]`` is the equilibrium
         probability that bases ``i`` and ``j`` pair, and the diagonal
         ``probs[i][i]`` the equilibrium probability that base ``i`` is
-        unpaired. When given, a colorbar is placed
-        beside the structure.
+        unpaired. When given, a colorbar is placed beside the structure.
     style : DrawingStyle, optional
         Drawing style configuration.
     layout_engine : LayoutEngine, optional
@@ -109,7 +108,7 @@ def draw_component(
         )
     ]
 
-    # Add a colorbar when base-pair probabilities are visualized.
+    # Add a colorbar when the nucleotides are colored by probability.
     if probs is not None and add_colorbar:
         colorbar = render_colorbar(
             drawing,

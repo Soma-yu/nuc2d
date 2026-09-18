@@ -182,8 +182,8 @@ class RadialLayoutEngine(LayoutEngine):
     """Layout engine for generating a radial representation of a secondary structure.
 
     This layout engine places nucleotides and structural elements using a
-    radial geometry based on backbone spacings, base-pair widths, and
-    deflection angles between connected regions.
+    radial geometry, built from the spacing along the backbone, the spacing
+    around a loop, and the angle by which stacked stems are deflected.
 
     Parameters
     ----------
@@ -196,9 +196,11 @@ class RadialLayoutEngine(LayoutEngine):
         stacked, measured as the chord of the loop circle. This is the same
         backbone curved rather than straight, and it is what sets the
         radius the loop is drawn on.
-    basepair_spacing : float, default=20
-        Distance between the two nucleotides of a base pair, that is, the
-        width of a stem.
+
+        It sets the width of every stem as well: the base pair closing a
+        loop joins two nucleotides that are neighbours on that loop's
+        circle, so the pair spans one chord, and the two strands of the
+        stem then run parallel at that separation.
     stack_deflection : float, default=math.pi/18
         Angle in radians by which the backbone is deflected where two stems
         stack directly on one another.
@@ -214,12 +216,10 @@ class RadialLayoutEngine(LayoutEngine):
         *,
         backbone_spacing: float = 15,
         loop_spacing: float = 20,
-        basepair_spacing: float = 20,
         stack_deflection: float = math.pi/18,
     ) -> None:
         self.backbone_spacing = backbone_spacing
         self.loop_spacing = loop_spacing
-        self.basepair_spacing = basepair_spacing
         self.stack_deflection = stack_deflection
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
@@ -341,7 +341,7 @@ class RadialLayoutEngine(LayoutEngine):
                 else -self.stack_deflection
             )
             intermediate_vec = state.vec.rotated(defl_angle/2)
-            delta = self.basepair_spacing * math.sin(defl_angle/2)
+            delta = self.loop_spacing * math.sin(defl_angle/2)
             # Layout the second nucleotide in this loop region
             state.pos += intermediate_vec * (self.backbone_spacing + delta)
             state.vec = state.vec.rotated(defl_angle)
