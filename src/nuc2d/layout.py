@@ -90,18 +90,18 @@ class ArcEdge(Edge):
     sweep: bool
 
 @dataclass(kw_only=True)
-class Marker():
-    """Base class for an annotation attached to a single node.
+class Decoration():
+    """Base class for something drawn at a single node.
 
     Attributes
     ----------
     node : Node
-        Node the marker is attached to.
+        Node the decoration is attached to.
     """
     node: Node
 
 @dataclass(kw_only=True)
-class ArrowMarker(Marker):
+class ArrowDecoration(Decoration):
     """Arrow drawn alongside a node to indicate strand direction.
 
     Attributes
@@ -129,12 +129,13 @@ class LayoutResult():
         Nodes with computed layout positions.
     edges : list[Edge]
         Edges connecting the laid out nodes.
-    markers : list[Marker]
-        Markers associated with the layout, such as directional annotations.
+    decorations : list[Decoration]
+        Anything drawn at a node rather than between nodes, such as the
+        arrow at a 3' terminus.
     """
     nodes: list[Node]
     edges: list[Edge]
-    markers: list[Marker]
+    decorations: list[Decoration]
 
 
 @dataclass(kw_only=True)
@@ -147,8 +148,8 @@ class _LayoutState:
         Nodes generated so far.
     edges : list[Edge]
         Edges generated so far.
-    markers : list[Marker]
-        Markers generated so far.
+    decorations : list[Decoration]
+        Decorations generated so far.
     pos : Vec2
         Current position of the layout walk.
     vec : Vec2
@@ -164,7 +165,7 @@ class _LayoutState:
     """
     nodes: list[Node] = field(default_factory=list)
     edges: list[Edge] = field(default_factory=list)
-    markers: list[Marker] = field(default_factory=list)
+    decorations: list[Decoration] = field(default_factory=list)
     pos: Vec2 = Vec2(0, 0)
     vec: Vec2 = Vec2(1, 0)
 
@@ -195,7 +196,7 @@ class RadialLayoutEngine(LayoutEngine):
         stacked, measured as the chord of the loop circle. This is the same
         backbone curved rather than straight, and it is what sets the
         radius the loop is drawn on.
-    pair_spacing : float, default=20
+    basepair_spacing : float, default=20
         Distance between the two nucleotides of a base pair, that is, the
         width of a stem.
     stack_deflection : float, default=math.pi/18
@@ -213,12 +214,12 @@ class RadialLayoutEngine(LayoutEngine):
         *,
         backbone_spacing: float = 15,
         loop_spacing: float = 20,
-        pair_spacing: float = 20,
+        basepair_spacing: float = 20,
         stack_deflection: float = math.pi/18,
     ) -> None:
         self.backbone_spacing = backbone_spacing
         self.loop_spacing = loop_spacing
-        self.pair_spacing = pair_spacing
+        self.basepair_spacing = basepair_spacing
         self.stack_deflection = stack_deflection
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
@@ -284,9 +285,9 @@ class RadialLayoutEngine(LayoutEngine):
                 state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 # Generate backbones
                 self._add_backbone_line(state)
-            # Generate markers for 3' termini
+            # Generate decorations for 3' termini
             if nucleotides and nucleotides[-1].is_three_prime:
-                state.markers.append(ArrowMarker(node=state.nodes[-1], direction=state.vec))
+                state.decorations.append(ArrowDecoration(node=state.nodes[-1], direction=state.vec))
             # Layout child loop region
             if start_idx == 0:
                 child_loop = current_stem.child_loop
@@ -340,7 +341,7 @@ class RadialLayoutEngine(LayoutEngine):
                 else -self.stack_deflection
             )
             intermediate_vec = state.vec.rotated(defl_angle/2)
-            delta = self.pair_spacing * math.sin(defl_angle/2)
+            delta = self.basepair_spacing * math.sin(defl_angle/2)
             # Layout the second nucleotide in this loop region
             state.pos += intermediate_vec * (self.backbone_spacing + delta)
             state.vec = state.vec.rotated(defl_angle)
@@ -367,7 +368,7 @@ class RadialLayoutEngine(LayoutEngine):
                 self._add_backbone_arc(state, radius)
                 if nt.is_three_prime:
                     direction = state.vec.rotated(-delta_angle/2)
-                    state.markers.append(ArrowMarker(node=state.nodes[-1], direction=direction))
+                    state.decorations.append(ArrowDecoration(node=state.nodes[-1], direction=direction))
                 if (stem := stem_map.pop(nt, None)) is not None:
                     state.vec = state.vec.rotated(-math.pi/2)
                     self._layout_stem(state, stem)
@@ -386,7 +387,7 @@ class RadialLayoutEngine(LayoutEngine):
         Returns
         -------
         LayoutResult
-            Nodes, edges and markers describing the geometry of the
+            Nodes, edges and decorations describing the geometry of the
             structure. The result owns its lists; a later call to this
             method does not modify it.
         """
@@ -418,5 +419,9 @@ class RadialLayoutEngine(LayoutEngine):
                         edge_type=EdgeType.BACKBONE,
                     )
                 )
-            state.markers.append(ArrowMarker(node=state.nodes[-1], direction=state.vec))
-        return LayoutResult(nodes=state.nodes, edges=state.edges, markers=state.markers)
+            state.decorations.append(ArrowDecoration(node=state.nodes[-1], direction=state.vec))
+        return LayoutResult(
+            nodes=state.nodes,
+            edges=state.edges,
+            decorations=state.decorations,
+        )

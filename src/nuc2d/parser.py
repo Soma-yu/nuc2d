@@ -18,7 +18,7 @@ class ParseError(Exception):
     pass
 
 class _Parser:
-    def __init__(self, dpp_string: str):
+    def __init__(self, dpp_string: str) -> None:
         self.dpp_string: str = dpp_string
         self.char_index: int = 0
         self.strand_index: int = 0
@@ -359,5 +359,5 @@ def _check_strands_are_connected(root_loop: LoopRegion) -> None:
         )
 
 
-def parse(dpp_string: str):
+def parse(dpp_string: str) -> LoopRegion:
     return _Parser(dpp_string).parse()

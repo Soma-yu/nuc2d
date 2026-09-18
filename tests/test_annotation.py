@@ -3,7 +3,7 @@ import pytest
 
 from nuc2d.annotation import (
     attach_sequences,
-    attach_basepair_probabilities,
+    attach_equilibrium_probabilities,
 )
 from nuc2d.parser import parse
 from nuc2d.structure import iter_nucleotides
@@ -65,7 +65,7 @@ def test_attach_sequences_duplex():
     ]
 
 
-def test_attach_basepair_probabilities_hairpin():
+def test_attach_equilibrium_probabilities_hairpin():
     root = parse("(((...)))")
 
     probs = np.zeros((9, 9))
@@ -83,24 +83,24 @@ def test_attach_basepair_probabilities_hairpin():
     probs[4, 4] = 0.2
     probs[5, 5] = 0.3
 
-    attach_basepair_probabilities(
+    attach_equilibrium_probabilities(
         root,
         probs,
     )
 
     nts = collect_nucleotides(root)
 
-    assert nts[0].basepair_probability == 0.9
-    assert nts[1].basepair_probability == 0.8
-    assert nts[2].basepair_probability == 0.7
+    assert nts[0].equilibrium_probability == 0.9
+    assert nts[1].equilibrium_probability == 0.8
+    assert nts[2].equilibrium_probability == 0.7
 
-    assert nts[3].basepair_probability == 0.1
-    assert nts[4].basepair_probability == 0.2
-    assert nts[5].basepair_probability == 0.3
+    assert nts[3].equilibrium_probability == 0.1
+    assert nts[4].equilibrium_probability == 0.2
+    assert nts[5].equilibrium_probability == 0.3
 
-    assert nts[6].basepair_probability == 0.7
-    assert nts[7].basepair_probability == 0.8
-    assert nts[8].basepair_probability == 0.9
+    assert nts[6].equilibrium_probability == 0.7
+    assert nts[7].equilibrium_probability == 0.8
+    assert nts[8].equilibrium_probability == 0.9
 
 
 @pytest.mark.parametrize(
@@ -172,21 +172,21 @@ def test_attach_probabilities_rejects_a_wrong_shape(size):
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match=r"shape \(9, 9\)"):
-        attach_basepair_probabilities(root, np.eye(size))
+        attach_equilibrium_probabilities(root, np.eye(size))
 
 
 def test_attach_probabilities_rejects_a_non_square_matrix():
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match="shape"):
-        attach_basepair_probabilities(root, np.zeros((9, 4)))
+        attach_equilibrium_probabilities(root, np.zeros((9, 4)))
 
 
 def test_attach_probabilities_accepts_a_nested_list():
     root = parse("(((...)))")
 
-    attach_basepair_probabilities(root, np.eye(9).tolist())
+    attach_equilibrium_probabilities(root, np.eye(9).tolist())
 
     assert all(
-        nt.basepair_probability is not None for nt in iter_nucleotides(root)
+        nt.equilibrium_probability is not None for nt in iter_nucleotides(root)
     )

@@ -62,15 +62,16 @@ drawing = draw_svg(
 A wrong number of sequences, or a sequence that is not as long as its strand,
 raises `ValueError` rather than drawing something misleading.
 
-## Base-pair probability visualization
+## Equilibrium probability visualization
 
-Base-pair probabilities are visualized by passing a symmetric probability
+Base-pairing probabilities are visualized by passing a symmetric probability
 matrix through the `probs` argument. A colorbar is placed beside the structure.
 
 ```python
-# Base-pair probability matrix from a structure prediction tool.
-# probs[i][j] is the probability of nucleotides i and j forming a base pair.
-# The diagonal probs[i][i] is the probability that nucleotide i is unpaired.
+# Base-pairing probability matrix from a structure prediction tool.
+# probs[i][j] is the equilibrium probability that nucleotides i and j pair.
+# The diagonal probs[i][i] is the equilibrium probability that nucleotide i
+# is unpaired.
 probs = ...
 
 drawing = draw_svg(
@@ -79,7 +80,10 @@ drawing = draw_svg(
 )
 ```
 
-The colorbar is labelled `Base-pair probability` unless another label is given:
+Each nucleotide is coloured by the probability of the state the structure
+puts it in: of pairing with its partner if it is paired, and of being
+unpaired if it is not. The colorbar is labelled `Equilibrium probability`
+unless another label is given:
 
 ```python
 drawing = draw_svg(
@@ -112,7 +116,7 @@ from nuc2d import DrawingStyle, RadialLayoutEngine, draw_svg
 drawing = draw_svg(
     "(((..+...)))",
     style=DrawingStyle(
-        node_fill="steelblue",
+        node_color="steelblue",
         edge_color="dimgray",
         node_radius=5.0,
         cmap=mpl.colormaps["viridis"],

@@ -29,7 +29,7 @@ def test_layout_unpaired():
     assert len(result.nodes) == 5
     assert n_backbone == 4
     assert n_basepair == 0
-    assert len(result.markers) == 1
+    assert len(result.decorations) == 1
 
 
 def test_layout_hairpin():
@@ -43,7 +43,7 @@ def test_layout_hairpin():
     assert len(result.nodes) == 9
     assert n_backbone == 8
     assert n_basepair == 3
-    assert len(result.markers) == 1
+    assert len(result.decorations) == 1
 
 
 def test_layout_duplex():
@@ -56,7 +56,7 @@ def test_layout_duplex():
     assert len(result.nodes) == 10
     assert n_backbone == 8
     assert n_basepair == 5
-    assert len(result.markers) == 2
+    assert len(result.decorations) == 2
 
 
 def test_layout_hinge():
@@ -69,7 +69,7 @@ def test_layout_hinge():
     assert len(result.nodes) == 24
     assert n_backbone == 22
     assert n_basepair == 9
-    assert len(result.markers) == 2
+    assert len(result.decorations) == 2
 
 
 def test_layout_nested():
@@ -82,4 +82,4 @@ def test_layout_nested():
     assert len(result.nodes) == 15
     assert n_backbone == 14
     assert n_basepair == 4
-    assert len(result.markers) == 1
+    assert len(result.decorations) == 1

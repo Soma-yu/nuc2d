@@ -11,7 +11,7 @@ import svgwrite
 from .parser import parse
 from .annotation import (
     attach_sequences,
-    attach_basepair_probabilities,
+    attach_equilibrium_probabilities,
 )
 from .layout import LayoutEngine, RadialLayoutEngine
 from .style import DrawingStyle
@@ -48,7 +48,10 @@ def draw_component(
     sequences : list[str], optional
         A list of sequences corresponding to the structure.
     probs : ndarray, optional
-        Base-pair probability matrix. When given, a colorbar is placed
+        Base-pairing probability matrix. ``probs[i][j]`` is the equilibrium
+        probability that bases ``i`` and ``j`` pair, and the diagonal
+        ``probs[i][i]`` the equilibrium probability that base ``i`` is
+        unpaired. When given, a colorbar is placed
         beside the structure.
     style : DrawingStyle, optional
         Drawing style configuration.
@@ -57,7 +60,7 @@ def draw_component(
         :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
     colorbar_label : str, optional
         Text written alongside the colorbar. Defaults to
-        ``"Base-pair probability"``. Has no effect unless ``probs`` is
+        ``"Equilibrium probability"``. Has no effect unless ``probs`` is
         given, since the colorbar is drawn only then.
     add_colorbar : bool, default=True
         Whether to place a colorbar beside the structure. Passing False
@@ -85,7 +88,7 @@ def draw_component(
     if sequences is not None:
         attach_sequences(root_loop, sequences)
     if probs is not None:
-        attach_basepair_probabilities(root_loop, probs)
+        attach_equilibrium_probabilities(root_loop, probs)
 
     # Compute nucleotide positions and drawing geometry.
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
@@ -149,7 +152,10 @@ def draw_svg(
     sequences : list[str], optional
         A list of sequences corresponding to the structure.
     probs : ndarray, optional
-        Base-pair probability matrix.
+        Base-pairing probability matrix. ``probs[i][j]`` is the equilibrium
+        probability that bases ``i`` and ``j`` pair, and the diagonal
+        ``probs[i][i]`` the equilibrium probability that base ``i`` is
+        unpaired.
     style : DrawingStyle, optional
         Drawing style configuration.
     layout_engine : LayoutEngine, optional
@@ -157,7 +163,7 @@ def draw_svg(
         :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
     colorbar_label : str, optional
         Text written alongside the colorbar. Defaults to
-        ``"Base-pair probability"``. Has no effect unless ``probs`` is
+        ``"Equilibrium probability"``. Has no effect unless ``probs`` is
         given, since the colorbar is drawn only then.
     add_colorbar : bool, default=True
         Whether to place a colorbar beside the structure.

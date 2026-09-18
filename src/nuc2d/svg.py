@@ -21,8 +21,8 @@ from .layout import (
     Edge,
     LineEdge,
     ArcEdge,
-    Marker,
-    ArrowMarker,
+    Decoration,
+    ArrowDecoration,
     LayoutResult,
 )
 from .style import DrawingStyle
@@ -118,11 +118,11 @@ class Placement:
     ----------
     component : SVGComponent
         Component being placed.
-    x : float
+    x : float, default=0.0
         X-coordinate of the component origin in the composed drawing.
-    y : float
+    y : float, default=0.0
         Y-coordinate of the component origin in the composed drawing.
-    scale : float
+    scale : float, default=1.0
         Uniform scaling factor applied to the component.
     z_index : int, default=0
         Drawing order of the component. Components with smaller values
@@ -144,9 +144,9 @@ class Placement:
     """
 
     component: SVGComponent
-    x: float
-    y: float
-    scale: float
+    x: float = 0.0
+    y: float = 0.0
+    scale: float = 1.0
     z_index: int = 0
 
     @property
@@ -170,7 +170,7 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         node: Node,
-    ):
+    ) -> svgwrite.container.Group:
         """Draw a nucleotide node."""
 
         pos = node.pos
@@ -178,13 +178,13 @@ class SVGRenderer:
 
         group = drawing.g()
 
-        if nt.basepair_probability is None:
-            fill = self.style.node_fill
+        if nt.equilibrium_probability is None:
+            fill = self.style.node_color
         else:
             fill = mpl.colors.to_hex(
                 self.style.cmap(
                     self._color_norm(
-                        nt.basepair_probability
+                        nt.equilibrium_probability
                     )
                 )
             )
@@ -201,7 +201,7 @@ class SVGRenderer:
             font_path = find_font_path(self.style.font_family)
             baseline_offset = vertical_center_offset(
                 font_path,
-                self.style.font_size,
+                self.style.node_font_size,
             )
             text_pos = pos + Vec2(0, baseline_offset)
             group.add(
@@ -210,7 +210,7 @@ class SVGRenderer:
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
                     font_family=self.style.font_family,
-                    font_size=self.style.font_size,
+                    font_size=self.style.node_font_size,
                     fill="black",
                     stroke="black",
                     stroke_width=1,
@@ -222,7 +222,7 @@ class SVGRenderer:
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
                     font_family=self.style.font_family,
-                    font_size=self.style.font_size,
+                    font_size=self.style.node_font_size,
                     fill="white",
                 )
             )
@@ -233,7 +233,7 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: Edge,
-    ):
+    ) -> svgwrite.shapes.Line | svgwrite.path.Path:
         """Draw an edge."""
 
         if isinstance(edge, LineEdge):
@@ -254,7 +254,7 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: LineEdge,
-    ):
+    ) -> svgwrite.shapes.Line:
         """Draw a straight line edge."""
 
         start = edge.start.pos
@@ -281,7 +281,7 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         edge: ArcEdge,
-    ):
+    ) -> svgwrite.path.Path:
         """Draw an SVG arc edge."""
 
         start = edge.start.pos
@@ -305,34 +305,34 @@ class SVGRenderer:
             stroke_width=self.style.backbone_width,
         )
 
-    def _draw_marker(
+    def _draw_decoration(
         self,
         drawing: svgwrite.Drawing,
-        marker: Marker,
-    ):
-        """Draw a marker."""
+        decoration: Decoration,
+    ) -> svgwrite.shapes.Line | None:
+        """Draw a decoration."""
 
-        if isinstance(marker, ArrowMarker):
-            return self._draw_arrow_marker(
+        if isinstance(decoration, ArrowDecoration):
+            return self._draw_arrow_decoration(
                 drawing,
-                marker,
+                decoration,
             )
 
         return None
 
-    def _draw_arrow_marker(
+    def _draw_arrow_decoration(
         self,
         drawing: svgwrite.Drawing,
-        marker: ArrowMarker,
-    ):
-        """Draw an arrow marker."""
+        decoration: ArrowDecoration,
+    ) -> svgwrite.shapes.Line:
+        """Draw the arrow that marks a 3' terminus."""
 
-        if marker.node_at_start:
-            start = marker.node.pos
-            end = start + marker.direction * marker.length
+        if decoration.node_at_start:
+            start = decoration.node.pos
+            end = start + decoration.direction * decoration.length
         else:
-            end = marker.node.pos
-            start = end - marker.direction * marker.length
+            end = decoration.node.pos
+            start = end - decoration.direction * decoration.length
 
         line = drawing.line(
             start=start.to_tuple(),
@@ -419,13 +419,13 @@ class SVGRenderer:
             )
 
         self._add_arrowhead_def(drawing)
-        for marker in layout_result.markers:
-            marker_element = self._draw_marker(
+        for decoration in layout_result.decorations:
+            element = self._draw_decoration(
                 drawing,
-                marker,
+                decoration,
             )
-            if marker_element is not None:
-                group.add(marker_element)
+            if element is not None:
+                group.add(element)
 
         for node in layout_result.nodes:
             group.add(
@@ -446,7 +446,7 @@ class SVGRenderer:
         """Render a colorbar as an SVG component."""
 
         if label is None:
-            label = "Base-pair probability"
+            label = "Equilibrium probability"
 
         group = drawing.g()
 

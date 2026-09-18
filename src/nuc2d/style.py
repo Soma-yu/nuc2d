@@ -36,15 +36,15 @@ class DrawingStyle:
         Horizontal margin added around the drawing area.
     y_margin : float
         Vertical margin added around the drawing area.
-    node_fill : str
-        Default node fill color.
+    node_color : str
+        Default node color.
     edge_color : str
         Default edge color.
     font_family : str
         Font family used for nucleotide labels.
         Arial is recommended for consistent rendering in PowerPoint.
-    font_size : float
-        Font size for nucleotide labels.
+    node_font_size : float
+        Font size of the base letter drawn inside a node.
     cmap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
         Colormap used for probability visualization.
 
@@ -68,11 +68,11 @@ class DrawingStyle:
     x_margin: float = 20.0
     y_margin: float = 20.0
 
-    node_fill: str = "black"
+    node_color: str = "black"
     edge_color: str = "black"
 
     font_family: str = "Arial"
-    font_size: float = 6.5
+    node_font_size: float = 6.5
 
     cmap: mpl.colors.Colormap = field(
         default_factory=lambda: mpl.colormaps["turbo"]

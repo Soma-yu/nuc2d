@@ -137,7 +137,7 @@ def collect_texts(svg_string):
 def test_colorbar_carries_a_default_label():
     svg = draw_svg("(((...)))", probs=PROBS).tostring()
 
-    assert "Base-pair probability" in collect_texts(svg)
+    assert "Equilibrium probability" in collect_texts(svg)
 
 
 def test_colorbar_label_is_configurable():
@@ -148,7 +148,7 @@ def test_colorbar_label_is_configurable():
     texts = collect_texts(svg)
 
     assert "Unpaired probability" in texts
-    assert "Base-pair probability" not in texts
+    assert "Equilibrium probability" not in texts
 
 
 def test_colorbar_label_is_ignored_without_probabilities():
@@ -169,7 +169,7 @@ def test_the_colorbar_can_be_left_out():
     # The structure itself is unchanged; only the colorbar beside it is gone.
     assert without_bar.bbox.width == pytest.approx(plain.bbox.width)
     assert without_bar.bbox.width < with_bar.bbox.width
-    assert "Base-pair probability" not in collect_texts(
+    assert "Equilibrium probability" not in collect_texts(
         draw_svg("(((...)))", probs=PROBS, add_colorbar=False).tostring()
     )
 

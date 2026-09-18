@@ -39,6 +39,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+nuc2d = ["py.typed"]
+
 [project.urls]
 Repository = "https://github.com/Soma-yu/nuc2d"
 Changelog = "https://github.com/Soma-yu/nuc2d/releases"

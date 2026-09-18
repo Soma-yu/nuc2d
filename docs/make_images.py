@@ -107,7 +107,7 @@ def styling() -> svgwrite.Drawing:
             drawing,
             dpp_string,
             style=DrawingStyle(
-                node_fill="steelblue",
+                node_color="steelblue",
                 edge_color="dimgray",
                 node_radius=5.0,
                 cmap=mpl.colormaps["viridis"],

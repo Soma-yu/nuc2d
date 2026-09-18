@@ -2,7 +2,7 @@
 
 This module provides functions for adding biological or visualization-
 related annotations to parsed secondary structure objects. Examples
-include nucleotide sequences, base-pair probabilities, and other
+include nucleotide sequences, equilibrium probabilities, and other
 metadata associated with nucleotides or structural elements.
 
 Annotations are applied after parsing and before layout or rendering,
@@ -81,20 +81,25 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
         nt.base = sequences[nt.strand_index][nt.index_in_strand]
 
 
-def attach_basepair_probabilities(
+def attach_equilibrium_probabilities(
     root_loop: LoopRegion,
     probs: np.ndarray,
 ) -> None:
-    """Attach base-pair probabilities to a secondary structure.
+    """Attach an equilibrium probability to every nucleotide.
+
+    Each nucleotide is given the probability of the state the structure
+    puts it in: of pairing with its partner if it is paired, and of
+    being unpaired if it is not.
 
     Parameters
     ----------
     root_loop : LoopRegion
         Root loop of the secondary structure.
     probs : ndarray
-        Base-pair probability matrix. Element (i, j) gives the probability
-        that nucleotide i pairs with nucleotide j. Diagonal elements give
-        the probabilities that nucleotides remain unpaired.
+        Base-pairing probability matrix. Element (i, j) is the
+        equilibrium probability that nucleotides i and j pair, and the
+        diagonal element (i, i) the equilibrium probability that
+        nucleotide i is unpaired.
 
     Raises
     ------
@@ -117,7 +122,7 @@ def attach_basepair_probabilities(
             nt1 = nucleotides[idx]
             nt2 = nucleotides[-(idx+1)]
             prob = probs[nt1.index][nt2.index]
-            nt1.basepair_probability = nt2.basepair_probability = prob
+            nt1.equilibrium_probability = nt2.equilibrium_probability = prob
         _attach_loop_probs(current_stem.child_loop)
 
     def _attach_loop_probs(current_loop: LoopRegion) -> None:
@@ -126,7 +131,7 @@ def attach_basepair_probabilities(
         else:
             nucleotides = current_loop.nucleotides[1:-1]
         for nt in nucleotides:
-            nt.basepair_probability = probs[nt.index][nt.index]
+            nt.equilibrium_probability = probs[nt.index][nt.index]
         for stem in current_loop.child_stems:
             _attach_stem_probs(stem)
 

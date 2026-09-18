@@ -27,9 +27,10 @@ class Nucleotide:
     ----------
     base : str or None
         The nucleotide base.
-    basepair_probability : float or None
-        If the nucleotide is paired, this is the probability of pairing with its partner.
-        If unpaired, this is the probability of remaining unpaired.
+    equilibrium_probability : float or None
+        Probability at equilibrium of the state this nucleotide is drawn
+        in: of pairing with its partner if it is paired, and of being
+        unpaired if it is not.
     is_three_prime : bool, default=False
         Whether this nucleotide corresponds to the 3' terminus.
     """
@@ -38,7 +39,7 @@ class Nucleotide:
     index: int
 
     base: str | None = None
-    basepair_probability: float | None = None
+    equilibrium_probability: float | None = None
     is_three_prime: bool = False
 
     @property
