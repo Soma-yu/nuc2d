@@ -108,7 +108,7 @@ def draw_component(
 
     # Add a colorbar when base-pair probabilities are visualized.
     if probs is not None and add_colorbar:
-        colorbar_component = render_colorbar(
+        colorbar = render_colorbar(
             drawing,
             label=colorbar_label,
             style=style,
@@ -117,10 +117,10 @@ def draw_component(
         # the structure's right edge.
         placements.append(
             Placement(
-                component=colorbar_component,
+                component=colorbar,
                 x=structure.bbox.xmax,
                 y=structure.bbox.ymin,
-                scale=structure.bbox.height / colorbar_component.bbox.height,
+                scale=structure.bbox.height / colorbar.bbox.height,
             )
         )
 

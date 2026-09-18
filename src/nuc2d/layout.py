@@ -187,11 +187,14 @@ class RadialLayoutEngine(LayoutEngine):
     Parameters
     ----------
     backbone_spacing : float, default=15
-        Distance between adjacent nucleotides along a straight backbone,
-        that is, inside a stem or along an unpaired strand.
+        Distance between adjacent nucleotides wherever the backbone runs
+        straight: inside a stem, along an unpaired strand, and through a
+        loop whose stems stack coaxially on one another.
     loop_spacing : float, default=20
-        Distance between adjacent nucleotides around a loop, measured as
-        the chord of the loop circle.
+        Distance between adjacent nucleotides around a loop that is not
+        stacked, measured as the chord of the loop circle. This is the same
+        backbone curved rather than straight, and it is what sets the
+        radius the loop is drawn on.
     pair_spacing : float, default=20
         Distance between the two nucleotides of a base pair, that is, the
         width of a stem.
@@ -249,7 +252,7 @@ class RadialLayoutEngine(LayoutEngine):
                     edge_type=EdgeType.BACKBONE,
                     rx=radius,
                     ry=radius,
-                    x_axis_rotation=0,
+                    x_axis_rotation=0.0,
                     large_arc=False,
                     sweep=True,
                 )
