@@ -204,10 +204,8 @@ class RadialLayoutEngine(LayoutEngine):
 
     Notes
     -----
-    All attributes are configuration and are never modified by
-    :meth:`layout`. State belonging to a single run lives in a
-    :class:`_LayoutState` created by that call, so one engine instance can
-    lay out any number of structures.
+    Every parameter is configuration that :meth:`layout` does not modify,
+    so one engine can lay out any number of structures.
     """
 
     def __init__(

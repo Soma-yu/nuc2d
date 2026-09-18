@@ -49,9 +49,8 @@ class DrawingStyle:
         Colormap used for probability visualization.
 
     colorbar_aspect_ratio : float
-        Aspect ratio of the colorbar's bar, its width divided by its height,
-        as CSS defines an aspect ratio. Matplotlib's colorbar spells the
-        same quantity the other way up, as long over short.
+        Aspect ratio of the colorbar's bar: its width divided by its
+        height.
     colorbar_tick_length : float
         Length of colorbar tick marks.
     colorbar_tick_font_size : float

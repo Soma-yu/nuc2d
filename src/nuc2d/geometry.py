@@ -126,15 +126,10 @@ class BBox:
 
     Notes
     -----
-    The box is stored as its two corners rather than as an origin and a
-    size, because corners are what :meth:`union` combines; ``width`` and
-    ``height`` are derived. A box whose lower corner exceeds its upper
-    corner is empty, which gives :meth:`union` an identity element and
-    lets a box be built up from nothing without special cases.
-
-    A box is built from its corners and moved by two numbers, so nothing
-    here depends on :class:`Vec2`. Enclosing several things is a
-    :func:`~functools.reduce` of :meth:`union` over the boxes they occupy.
+    A box is stored as its two corners, and ``width`` and ``height`` are
+    derived from them. A box whose lower corner exceeds its upper corner
+    is empty: :meth:`empty` returns one, its width and height are zero,
+    and it is the identity element of :meth:`union`.
     """
 
     xmin: float

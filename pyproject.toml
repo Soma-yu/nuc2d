@@ -41,3 +41,4 @@ where = ["src"]
 
 [project.urls]
 Repository = "https://github.com/Soma-yu/nuc2d"
+Changelog = "https://github.com/Soma-yu/nuc2d/releases"
