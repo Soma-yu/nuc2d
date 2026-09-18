@@ -209,6 +209,7 @@ class RadialLayoutEngine(LayoutEngine):
 
     def __init__(
         self,
+        *,
         backbone_spacing: float = 15,
         loop_spacing: float = 20,
         pair_width: float = 20,

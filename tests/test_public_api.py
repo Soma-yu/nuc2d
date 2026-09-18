@@ -1,4 +1,7 @@
+import inspect
+
 import nuc2d
+from nuc2d.svg import render_colorbar, render_structure
 
 
 # The names the package promises. Changing this set changes the promise, so
@@ -29,3 +32,44 @@ def test_star_import_provides_every_listed_name():
     exec("from nuc2d import *", namespace)
 
     assert PUBLIC_NAMES <= set(namespace)
+
+
+# How many leading arguments each callable takes positionally. Everything
+# after them is keyword-only, so a later release can insert an argument
+# where it belongs instead of appending it to keep the order intact.
+POSITIONAL_COUNT = {
+    nuc2d.draw_svg: 1,  # dpp_string
+    nuc2d.draw_component: 2,  # drawing, dpp_string
+    nuc2d.DrawingStyle: 0,
+    nuc2d.Placement: 0,
+    nuc2d.RadialLayoutEngine: 0,
+    render_colorbar: 1,  # drawing
+    render_structure: 2,  # drawing, layout_result
+}
+
+
+def test_optional_arguments_are_keyword_only():
+    """Adding an argument must not be a breaking change.
+
+    The required arguments stay positional, since they are what the call is
+    about. Everything optional is keyword-only.
+    """
+    for target, positional in POSITIONAL_COUNT.items():
+        kinds = [p.kind for p in inspect.signature(target).parameters.values()]
+
+        assert kinds[:positional] == [inspect.Parameter.POSITIONAL_OR_KEYWORD] * (
+            positional
+        ), f"{target.__name__} should take {positional} positional argument(s)"
+        assert all(
+            kind is inspect.Parameter.KEYWORD_ONLY for kind in kinds[positional:]
+        ), f"{target.__name__} takes an argument that is not keyword-only"
+
+
+def test_coordinates_are_still_positional():
+    """The exception: a pair or a box reads better written out in order."""
+    for target in (nuc2d.Vec2, nuc2d.BBox, nuc2d.SVGComponent):
+        kinds = [p.kind for p in inspect.signature(target).parameters.values()]
+
+        assert all(
+            kind is inspect.Parameter.POSITIONAL_OR_KEYWORD for kind in kinds
+        ), f"{target.__name__} should stay positional"

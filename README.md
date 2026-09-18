@@ -172,6 +172,23 @@ drawing.saveas("panel.svg")
 
 ## Changes in 0.7.0
 
+Optional arguments are now keyword-only. The arguments a call is about stay
+positional — the structure for `draw_svg`, the drawing and the structure for
+`draw_component` — and everything else is passed by name.
+
+```python
+draw_svg("(((..+...)))", ["AUGCA", "UGCCAU"])            # 0.6.0
+draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"])  # 0.7.0
+```
+
+`DrawingStyle`, `Placement` and `RadialLayoutEngine` are built by name for the
+same reason. Code that already passes these by name, as the examples above do,
+is unaffected.
+
+This is the change that lets the ones after it be additions: a new argument can
+go where it belongs, instead of being appended to leave the existing order
+intact.
+
 `SVGComponent` and `Placement` no longer carry `width` and `height`. Both
 still carry `bbox`, which reports where the component sits and, through its
 own `width` and `height`, how large it is.

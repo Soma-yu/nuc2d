@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import matplotlib as mpl
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DrawingStyle:
     """Container for drawing style parameters.
 

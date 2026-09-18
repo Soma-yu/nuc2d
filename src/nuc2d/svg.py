@@ -110,7 +110,7 @@ class SVGComponent:
     bbox: BBox
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Placement:
     """Where a component goes in a composed drawing.
 
@@ -532,6 +532,7 @@ class SVGRenderer:
 def render_structure(
     drawing: svgwrite.Drawing,
     layout_result: LayoutResult,
+    *,
     style: DrawingStyle | None = None,
 ) -> SVGComponent:
     """Render a secondary structure as an SVG component.
@@ -559,6 +560,7 @@ def render_structure(
 
 def render_colorbar(
     drawing: svgwrite.Drawing,
+    *,
     label: str | None = None,
     style: DrawingStyle | None = None,
 ) -> SVGComponent:

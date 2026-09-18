@@ -27,6 +27,7 @@ from .svg import (
 def draw_component(
     drawing: svgwrite.Drawing,
     dpp_string: str,
+    *,
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
@@ -94,7 +95,7 @@ def draw_component(
     structure = render_structure(
         drawing,
         layout_result,
-        style,
+        style=style,
     )
     placements = [
         Placement(
@@ -129,6 +130,7 @@ def draw_component(
 
 def draw_svg(
     dpp_string: str,
+    *,
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
