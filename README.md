@@ -194,13 +194,22 @@ ArcEdge(                                               # 0.7.0
 )
 ```
 
+This is the change that lets the ones after it be additions: a new argument can
+go where it belongs, instead of being appended to leave the existing order
+intact.
+
 `Edge.type` is now `Edge.edge_type`. Keyword-only construction makes a field
 name the only way to reach it, which is a reason not to leave one sharing a
 name with a builtin.
 
-This is the change that lets the ones after it be additions: a new argument can
-go where it belongs, instead of being appended to leave the existing order
-intact.
+Three more names change, for the same reason that a name is now the whole
+interface.
+
+| 0.6.0 | 0.7.0 | |
+|---|---|---|
+| `DrawingStyle.colorbar_width_ratio` | `DrawingStyle.colorbar_aspect_ratio` | The same number, `1/30`, under a name that says what it is the ratio of: the bar's width over its height, as CSS defines an aspect ratio. |
+| `compose(container, ...)` | `compose(group, ...)` | The argument is the group the composed component is returned with, and the package calls one of those a group everywhere else. |
+| `RadialLayoutEngine(pair_width=...)` | `RadialLayoutEngine(pair_spacing=...)` | A distance between two nucleotides, like `backbone_spacing` and `loop_spacing`. `DrawingStyle.basepair_width`, a stroke width, keeps its name. |
 
 `SVGComponent` and `Placement` no longer carry `width` and `height`. Both
 still carry `bbox`, which reports where the component sits and, through its

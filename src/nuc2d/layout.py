@@ -192,7 +192,7 @@ class RadialLayoutEngine(LayoutEngine):
     loop_spacing : float, default=20
         Distance between adjacent nucleotides around a loop, measured as
         the chord of the loop circle.
-    pair_width : float, default=20
+    pair_spacing : float, default=20
         Distance between the two nucleotides of a base pair, that is, the
         width of a stem.
     stack_deflection : float, default=math.pi/18
@@ -212,12 +212,12 @@ class RadialLayoutEngine(LayoutEngine):
         *,
         backbone_spacing: float = 15,
         loop_spacing: float = 20,
-        pair_width: float = 20,
+        pair_spacing: float = 20,
         stack_deflection: float = math.pi/18,
     ) -> None:
         self.backbone_spacing = backbone_spacing
         self.loop_spacing = loop_spacing
-        self.pair_width = pair_width
+        self.pair_spacing = pair_spacing
         self.stack_deflection = stack_deflection
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
@@ -339,7 +339,7 @@ class RadialLayoutEngine(LayoutEngine):
                 else -self.stack_deflection
             )
             intermediate_vec = state.vec.rotated(defl_angle/2)
-            delta = self.pair_width * math.sin(defl_angle/2)
+            delta = self.pair_spacing * math.sin(defl_angle/2)
             # Layout the second nucleotide in this loop region
             state.pos += intermediate_vec * (self.backbone_spacing + delta)
             state.vec = state.vec.rotated(defl_angle)

@@ -1,7 +1,7 @@
 import inspect
 
 import nuc2d
-from nuc2d.svg import render_colorbar, render_structure
+from nuc2d.svg import SVGRenderer, render_colorbar, render_structure
 
 
 # The names the package promises. Changing this set changes the promise, so
@@ -43,6 +43,7 @@ POSITIONAL_COUNT = {
     nuc2d.RadialLayoutEngine: 0,
     render_colorbar: 1,  # drawing
     render_structure: 2,  # drawing, layout_result
+    SVGRenderer: 0,
 }
 
 

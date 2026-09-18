@@ -160,6 +160,7 @@ class SVGRenderer:
 
     def __init__(
         self,
+        *,
         style: DrawingStyle | None = None,
     ) -> None:
         self.style = style or DrawingStyle()
@@ -432,6 +433,7 @@ class SVGRenderer:
     def render_colorbar(
         self,
         drawing: svgwrite.Drawing,
+        *,
         label: str | None = None,
     ) -> SVGComponent:
         """Render a colorbar as an SVG component."""
@@ -445,7 +447,7 @@ class SVGRenderer:
         vb_height = 500
 
         bar_height = 450
-        bar_width = bar_height * self.style.colorbar_width_ratio
+        bar_width = bar_height * self.style.colorbar_aspect_ratio
         bar_x = 30
         bar_y = (vb_height - bar_height) / 2
 
@@ -552,7 +554,7 @@ def render_structure(
     SVGComponent
         SVG component containing the rendered secondary structure.
     """
-    renderer = SVGRenderer(style)
+    renderer = SVGRenderer(style=style)
     return renderer.render_structure(
         drawing, layout_result,
     )
@@ -581,21 +583,21 @@ def render_colorbar(
     SVGComponent
         SVG component containing the rendered colorbar.
     """
-    renderer = SVGRenderer(style)
+    renderer = SVGRenderer(style=style)
     return renderer.render_colorbar(
-        drawing, label,
+        drawing, label=label,
     )
 
 
 def compose(
-    container: svgwrite.container.Group,
+    group: svgwrite.container.Group,
     placements: Sequence[Placement],
 ) -> SVGComponent:
     """Compose positioned SVG components into a single group.
 
     Parameters
     ----------
-    container : svgwrite.container.Group
+    group : svgwrite.container.Group
         Group that receives the composed SVG elements.
     placements : Sequence[Placement]
         Components to insert, each with the placement to apply to it.
@@ -620,8 +622,8 @@ def compose(
             )
         )
         wrapper.add(placement.component.group)
-        container.add(wrapper)
+        group.add(wrapper)
 
     bbox = reduce(BBox.union, (p.bbox for p in placements), BBox.empty())
 
-    return SVGComponent(group=container, bbox=bbox)
+    return SVGComponent(group=group, bbox=bbox)

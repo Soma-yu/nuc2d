@@ -48,8 +48,10 @@ class DrawingStyle:
     cmap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
         Colormap used for probability visualization.
 
-    colorbar_width_ratio : float
-        Width of the colorbar's bar, as a fraction of its height.
+    colorbar_aspect_ratio : float
+        Aspect ratio of the colorbar's bar, its width divided by its height,
+        as CSS defines an aspect ratio. Matplotlib's colorbar spells the
+        same quantity the other way up, as long over short.
     colorbar_tick_length : float
         Length of colorbar tick marks.
     colorbar_tick_font_size : float
@@ -77,7 +79,7 @@ class DrawingStyle:
         default_factory=lambda: mpl.colormaps["turbo"]
     )
 
-    colorbar_width_ratio: float = 1 / 30
+    colorbar_aspect_ratio: float = 1 / 30
 
     colorbar_tick_length: float = 5.0
     colorbar_tick_font_size: float = 12.0
