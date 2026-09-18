@@ -27,7 +27,7 @@ class EdgeType(Enum):
     BASE_PAIR = auto()
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Node:
     """Node representing a nucleotide and its drawing position.
 
@@ -42,7 +42,7 @@ class Node:
     pos: Vec2
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Edge:
     """Base class representing a connection between two nodes.
 
@@ -60,13 +60,13 @@ class Edge:
     type: EdgeType
 
 
-@dataclass
+@dataclass(kw_only=True)
 class LineEdge(Edge):
     """Edge represented as a straight line segment."""
     pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ArcEdge(Edge):
     """Edge represented as an SVG elliptical arc.
 
@@ -89,7 +89,7 @@ class ArcEdge(Edge):
     large_arc: bool
     sweep: bool
 
-@dataclass
+@dataclass(kw_only=True)
 class Marker():
     """Base class for an annotation attached to a single node.
 
@@ -100,7 +100,7 @@ class Marker():
     """
     node: Node
 
-@dataclass
+@dataclass(kw_only=True)
 class ArrowMarker(Marker):
     """Arrow drawn alongside a node to indicate strand direction.
 
@@ -119,7 +119,7 @@ class ArrowMarker(Marker):
     length: float = 7.0
     node_at_start: bool = True
 
-@dataclass
+@dataclass(kw_only=True)
 class LayoutResult():
     """Container for the generated layout information.
 
@@ -228,7 +228,11 @@ class RadialLayoutEngine(LayoutEngine):
         """
         if not state.nodes[-2].nucleotide.is_three_prime:
             state.edges.append(
-                LineEdge(state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE)
+                LineEdge(
+                    start=state.nodes[-2],
+                    end=state.nodes[-1],
+                    type=EdgeType.BACKBONE,
+                )
             )
 
     def _add_backbone_arc(self, state: _LayoutState, radius: float) -> None:
@@ -240,8 +244,14 @@ class RadialLayoutEngine(LayoutEngine):
         if not state.nodes[-2].nucleotide.is_three_prime:
             state.edges.append(
                 ArcEdge(
-                    state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE,
-                    radius, radius, 0, 0, 1,
+                    start=state.nodes[-2],
+                    end=state.nodes[-1],
+                    type=EdgeType.BACKBONE,
+                    rx=radius,
+                    ry=radius,
+                    x_axis_rotation=0,
+                    large_arc=False,
+                    sweep=True,
                 )
             )
 
@@ -270,12 +280,12 @@ class RadialLayoutEngine(LayoutEngine):
             for nt in nucleotides:
                 # Generate nodes
                 state.pos += state.vec * self.backbone_spacing
-                state.nodes.append(Node(nt, state.pos))
+                state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 # Generate backbones
                 self._add_backbone_line(state)
             # Generate markers for 3' termini
             if nucleotides and nucleotides[-1].is_three_prime:
-                state.markers.append(ArrowMarker(state.nodes[-1], state.vec))
+                state.markers.append(ArrowMarker(node=state.nodes[-1], direction=state.vec))
             # Layout child loop region
             if start_idx == 0:
                 child_loop = current_stem.child_loop
@@ -288,7 +298,9 @@ class RadialLayoutEngine(LayoutEngine):
         for idx in range(stem_length):
             state.edges.append(
                 LineEdge(
-                    state.nodes[base_idx+idx], state.nodes[-(idx+1)], EdgeType.BASE_PAIR
+                    start=state.nodes[base_idx+idx],
+                    end=state.nodes[-(idx+1)],
+                    type=EdgeType.BASE_PAIR,
                 )
             )
         state.vec = state.vec.normalized()
@@ -331,7 +343,7 @@ class RadialLayoutEngine(LayoutEngine):
             # Layout the second nucleotide in this loop region
             state.pos += intermediate_vec * (self.backbone_spacing + delta)
             state.vec = state.vec.rotated(defl_angle)
-            state.nodes.append(Node(nucleotides[1], state.pos))
+            state.nodes.append(Node(nucleotide=nucleotides[1], pos=state.pos))
             self._add_backbone_line(state)
             # Layout child stem region
             self._layout_stem(state, child_stems[0])
@@ -339,7 +351,7 @@ class RadialLayoutEngine(LayoutEngine):
             if not current_loop.is_root:
                 state.pos -= intermediate_vec * (self.backbone_spacing - delta)
                 state.vec = state.vec.rotated(-defl_angle)
-                state.nodes.append(Node(nucleotides[3], state.pos))
+                state.nodes.append(Node(nucleotide=nucleotides[3], pos=state.pos))
                 self._add_backbone_line(state)
         else:
             delta_angle = 2*math.pi / len(current_loop.nucleotides)
@@ -350,11 +362,11 @@ class RadialLayoutEngine(LayoutEngine):
             for nt in [curr for prev, curr in zip(nucleotides, nucleotides[1:]) if prev not in stem_map]:
                 state.pos += state.vec * self.loop_spacing
                 state.vec = state.vec.rotated(delta_angle)
-                state.nodes.append(Node(nt, state.pos))
+                state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 self._add_backbone_arc(state, radius)
                 if nt.is_three_prime:
                     direction = state.vec.rotated(-delta_angle/2)
-                    state.markers.append(ArrowMarker(state.nodes[-1], direction=direction))
+                    state.markers.append(ArrowMarker(node=state.nodes[-1], direction=direction))
                 if (stem := stem_map.pop(nt, None)) is not None:
                     state.vec = state.vec.rotated(-math.pi/2)
                     self._layout_stem(state, stem)
@@ -390,16 +402,20 @@ class RadialLayoutEngine(LayoutEngine):
                 state.vec = state.vec.rotated(-delta_angle)
             if offset != 0:
                 state.vec = state.vec.rotated(-delta_angle)
-            state.nodes.append(Node(nucleotides[0], state.pos))
+            state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
             self._layout_loop(state, root_loop)
         else:
             # Layout for secondary structures without base pairs
-            state.nodes.append(Node(nucleotides[0], state.pos))
+            state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
             for nt in nucleotides[1:]:
                 state.pos += self.backbone_spacing * state.vec
-                state.nodes.append(Node(nt, state.pos))
+                state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 state.edges.append(
-                    LineEdge(state.nodes[-2], state.nodes[-1], EdgeType.BACKBONE)
+                    LineEdge(
+                        start=state.nodes[-2],
+                        end=state.nodes[-1],
+                        type=EdgeType.BACKBONE,
+                    )
                 )
-            state.markers.append(ArrowMarker(state.nodes[-1], state.vec))
-        return LayoutResult(state.nodes, state.edges, state.markers)
+            state.markers.append(ArrowMarker(node=state.nodes[-1], direction=state.vec))
+        return LayoutResult(nodes=state.nodes, edges=state.edges, markers=state.markers)

@@ -1,6 +1,7 @@
 import inspect
 
 import nuc2d
+from nuc2d.layout import ArcEdge, ArrowMarker, Edge, LayoutResult, LineEdge, Marker, Node
 from nuc2d.svg import render_colorbar, render_structure
 
 
@@ -45,6 +46,15 @@ POSITIONAL_COUNT = {
     nuc2d.RadialLayoutEngine: 0,
     render_colorbar: 1,  # drawing
     render_structure: 2,  # drawing, layout_result
+    # Not in __all__, but a caller writing a LayoutEngine of its own has to
+    # build these to return a LayoutResult, so they are promised too.
+    Node: 0,
+    Edge: 0,
+    LineEdge: 0,
+    ArcEdge: 0,
+    Marker: 0,
+    ArrowMarker: 0,
+    LayoutResult: 0,
 }
 
 

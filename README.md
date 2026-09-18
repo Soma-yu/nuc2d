@@ -182,8 +182,18 @@ draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"])  # 0.7.0
 ```
 
 `DrawingStyle`, `Placement` and `RadialLayoutEngine` are built by name for the
-same reason. Code that already passes these by name, as the examples above do,
-is unaffected.
+same reason, as are the layout types a `LayoutEngine` of your own returns:
+`Node`, `Edge`, `LineEdge`, `ArcEdge`, `Marker`, `ArrowMarker` and
+`LayoutResult`. Code that already passes these by name, as the examples above
+do, is unaffected.
+
+```python
+ArcEdge(start, end, EdgeType.BACKBONE, r, r, 0, 0, 1)  # 0.6.0
+ArcEdge(                                               # 0.7.0
+    start=start, end=end, type=EdgeType.BACKBONE,
+    rx=r, ry=r, x_axis_rotation=0, large_arc=False, sweep=True,
+)
+```
 
 This is the change that lets the ones after it be additions: a new argument can
 go where it belongs, instead of being appended to leave the existing order
