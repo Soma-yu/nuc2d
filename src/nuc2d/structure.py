@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Nucleotide:
     """A class representing a nucleotide.
 
@@ -46,7 +46,7 @@ class Nucleotide:
         """Return whether this nucleotide corresponds to the 5' terminus."""
         return self.index_in_strand == 0
 
-@dataclass
+@dataclass(kw_only=True)
 class Region:
     """Base class for regions in a secondary structure.
 
@@ -57,7 +57,7 @@ class Region:
     """
     nucleotides: list[Nucleotide] = field(default_factory=list)
 
-@dataclass
+@dataclass(kw_only=True)
 class StemRegion(Region):
     """Class representing a stem region in a secondary structure.
 
@@ -69,7 +69,7 @@ class StemRegion(Region):
     """
     child_loop: LoopRegion | None = None
 
-@dataclass
+@dataclass(kw_only=True)
 class LoopRegion(Region):
     """Class representing a loop region (non-stem region) in a secondary structure.
 

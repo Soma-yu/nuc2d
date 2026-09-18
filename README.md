@@ -181,19 +181,22 @@ draw_svg("(((..+...)))", ["AUGCA", "UGCCAU"])            # 0.6.0
 draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"])  # 0.7.0
 ```
 
-`DrawingStyle`, `Placement` and `RadialLayoutEngine` are built by name for the
-same reason, as are the layout types a `LayoutEngine` of your own returns:
-`Node`, `Edge`, `LineEdge`, `ArcEdge`, `Marker`, `ArrowMarker` and
-`LayoutResult`. Code that already passes these by name, as the examples above
-do, is unaffected.
+Every type the package defines is built by name too, with two exceptions:
+`Vec2` and `BBox`, whose numbers are written out in order as in any other
+geometry library. Code that already passes these by name, as the examples
+above do, is unaffected.
 
 ```python
 ArcEdge(start, end, EdgeType.BACKBONE, r, r, 0, 0, 1)  # 0.6.0
 ArcEdge(                                               # 0.7.0
-    start=start, end=end, type=EdgeType.BACKBONE,
+    start=start, end=end, edge_type=EdgeType.BACKBONE,
     rx=r, ry=r, x_axis_rotation=0, large_arc=False, sweep=True,
 )
 ```
+
+`Edge.type` is now `Edge.edge_type`. Keyword-only construction makes a field
+name the only way to reach it, which is a reason not to leave one sharing a
+name with a builtin.
 
 This is the change that lets the ones after it be additions: a new argument can
 go where it belongs, instead of being appended to leave the existing order

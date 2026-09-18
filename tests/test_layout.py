@@ -7,12 +7,12 @@ from nuc2d.layout import (
 
 def get_edge_counts(layout_result):
     n_backbone = sum(
-        edge.type == EdgeType.BACKBONE
+        edge.edge_type == EdgeType.BACKBONE
         for edge in layout_result.edges
     )
 
     n_basepair = sum(
-        edge.type == EdgeType.BASE_PAIR
+        edge.edge_type == EdgeType.BASE_PAIR
         for edge in layout_result.edges
     )
 

@@ -87,7 +87,7 @@ def _ensure_def(
     return element_id
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SVGComponent:
     """SVG component defined in its own local coordinate system.
 
@@ -259,14 +259,14 @@ class SVGRenderer:
         start = edge.start.pos
         end = edge.end.pos
 
-        if edge.type == EdgeType.BACKBONE:
+        if edge.edge_type == EdgeType.BACKBONE:
             width = self.style.backbone_width
             dasharray = self.style.backbone_dasharray
-        elif edge.type == EdgeType.BASE_PAIR:
+        elif edge.edge_type == EdgeType.BASE_PAIR:
             width = self.style.basepair_width
             dasharray = self.style.basepair_dasharray
         else:
-            raise ValueError(f"Unsupported edge type: {edge.type}")
+            raise ValueError(f"Unsupported edge type: {edge.edge_type}")
 
         return drawing.line(
             start=start.to_tuple(),

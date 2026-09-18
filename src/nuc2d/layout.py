@@ -52,12 +52,12 @@ class Edge:
         Start node of the edge.
     end : Node
         End node of the edge.
-    type : EdgeType
+    edge_type : EdgeType
         Type of the edge.
     """
     start: Node
     end: Node
-    type: EdgeType
+    edge_type: EdgeType
 
 
 @dataclass(kw_only=True)
@@ -137,7 +137,7 @@ class LayoutResult():
     markers: list[Marker]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class _LayoutState:
     """Mutable state belonging to a single layout run.
 
@@ -231,7 +231,7 @@ class RadialLayoutEngine(LayoutEngine):
                 LineEdge(
                     start=state.nodes[-2],
                     end=state.nodes[-1],
-                    type=EdgeType.BACKBONE,
+                    edge_type=EdgeType.BACKBONE,
                 )
             )
 
@@ -246,7 +246,7 @@ class RadialLayoutEngine(LayoutEngine):
                 ArcEdge(
                     start=state.nodes[-2],
                     end=state.nodes[-1],
-                    type=EdgeType.BACKBONE,
+                    edge_type=EdgeType.BACKBONE,
                     rx=radius,
                     ry=radius,
                     x_axis_rotation=0,
@@ -300,7 +300,7 @@ class RadialLayoutEngine(LayoutEngine):
                 LineEdge(
                     start=state.nodes[base_idx+idx],
                     end=state.nodes[-(idx+1)],
-                    type=EdgeType.BASE_PAIR,
+                    edge_type=EdgeType.BASE_PAIR,
                 )
             )
         state.vec = state.vec.normalized()
@@ -414,7 +414,7 @@ class RadialLayoutEngine(LayoutEngine):
                     LineEdge(
                         start=state.nodes[-2],
                         end=state.nodes[-1],
-                        type=EdgeType.BACKBONE,
+                        edge_type=EdgeType.BACKBONE,
                     )
                 )
             state.markers.append(ArrowMarker(node=state.nodes[-1], direction=state.vec))
