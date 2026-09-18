@@ -188,8 +188,28 @@ def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     ])
 
     assert panel.bbox.width == pytest.approx(
-        structure.bbox.width + colorbar.width * 0.5
+        structure.bbox.width + colorbar.bbox.width * 0.5
     )
+
+
+def test_a_size_is_read_from_a_bounding_box():
+    """There is one way to ask how big something is, and it is the box.
+
+    A component and a placement each report where they are; how wide and
+    how tall follows from that. Repeating the two on the objects gave the
+    same numbers a second spelling, which callers then mixed.
+    """
+    from nuc2d import Placement
+
+    component = draw_component(svgwrite.Drawing(), "(((...)))")
+    placement = Placement(component=component, x=3.0, y=4.0, scale=2.0)
+
+    for obj in (component, placement):
+        assert not hasattr(obj, "width")
+        assert not hasattr(obj, "height")
+
+    assert placement.bbox.width == pytest.approx(component.bbox.width * 2.0)
+    assert placement.bbox.height == pytest.approx(component.bbox.height * 2.0)
 
 
 def test_layout_engine_is_configurable():

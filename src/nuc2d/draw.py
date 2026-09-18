@@ -119,7 +119,7 @@ def draw_component(
                 component=colorbar_component,
                 x=structure.bbox.xmax,
                 y=structure.bbox.ymin,
-                scale=structure.height / colorbar_component.height,
+                scale=structure.bbox.height / colorbar_component.bbox.height,
             )
         )
 

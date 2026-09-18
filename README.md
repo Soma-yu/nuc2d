@@ -170,6 +170,23 @@ drawing.saveas("panel.svg")
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="80%">
 </p>
 
+## Changes in 0.7.0
+
+`SVGComponent` and `Placement` no longer carry `width` and `height`. Both
+still carry `bbox`, which reports where the component sits and, through its
+own `width` and `height`, how large it is.
+
+```python
+component.width        # 0.6.0
+component.bbox.width   # 0.7.0
+
+placement.height       # 0.6.0
+placement.bbox.height  # 0.7.0
+```
+
+The numbers are the same; only the spelling changes. Code that already reads
+`component.bbox.width`, as the examples above do, is unaffected.
+
 ## Changes in 0.6.0
 
 `draw_svg` and `draw_component` accept `add_colorbar=False`, which colors the

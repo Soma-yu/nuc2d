@@ -96,14 +96,8 @@ class SVGComponent:
     group : svgwrite.container.Group
         SVG group containing the graphical elements of the component.
     bbox : BBox
-        Extent of the component in its own local coordinate system.
-
-    Attributes
-    ----------
-    width : float
-        Width of the component, derived from ``bbox``.
-    height : float
-        Height of the component, derived from ``bbox``.
+        Extent of the component in its own local coordinate system. Its
+        ``width`` and ``height`` give the size of the component.
 
     Notes
     -----
@@ -114,16 +108,6 @@ class SVGComponent:
 
     group: svgwrite.container.Group
     bbox: BBox
-
-    @property
-    def width(self) -> float:
-        """Width of the component in its local coordinate system."""
-        return self.bbox.width
-
-    @property
-    def height(self) -> float:
-        """Height of the component in its local coordinate system."""
-        return self.bbox.height
 
 
 @dataclass
@@ -148,10 +132,8 @@ class Placement:
     ----------
     bbox : BBox
         Extent of the component in the composed drawing, after placement.
-    width : float
-        Width of the component after scaling.
-    height : float
-        Height of the component after scaling.
+        Its ``width`` and ``height`` give the size of the component once
+        scaled.
 
     Notes
     -----
@@ -171,16 +153,6 @@ class Placement:
     def bbox(self) -> BBox:
         """Extent of the component in the composed drawing."""
         return self.component.bbox.scaled(self.scale).translated(Vec2(self.x, self.y))
-
-    @property
-    def width(self) -> float:
-        """Width of the component after scaling."""
-        return self.component.width * self.scale
-
-    @property
-    def height(self) -> float:
-        """Height of the component after scaling."""
-        return self.component.height * self.scale
 
 
 class SVGRenderer:
