@@ -18,8 +18,8 @@ class ParseError(Exception):
     pass
 
 class _Parser:
-    def __init__(self, dpp_string: str) -> None:
-        self.dpp_string: str = dpp_string
+    def __init__(self, dot_bracket: str) -> None:
+        self.dot_bracket: str = dot_bracket
         self.char_index: int = 0
         self.strand_index: int = 0
         self.nt_index = 0
@@ -27,7 +27,7 @@ class _Parser:
 
     def is_eof(self) -> bool:
         """Return whether the entire input string has been consumed."""
-        return self.char_index == len(self.dpp_string)
+        return self.char_index == len(self.dot_bracket)
 
     def peek(self) -> str:
         """Return the next character in the input string without consuming it.
@@ -39,7 +39,7 @@ class _Parser:
         """
         if self.is_eof():
             raise ParseError("Unexpected end of input string.")
-        return self.dpp_string[self.char_index]
+        return self.dot_bracket[self.char_index]
 
     def consume(self, char: str) -> None:
         """Consume a single expected character from the input string.
@@ -84,7 +84,7 @@ class _Parser:
             If the next character in the input string is not the expected one.
         """
         if max_count is None:
-            max_count = len(self.dpp_string) - self.char_index
+            max_count = len(self.dot_bracket) - self.char_index
 
         self.consume(char)
         count = 1
@@ -92,7 +92,7 @@ class _Parser:
         while count < max_count:
             if self.is_eof():
                 break
-            if self.dpp_string[self.char_index] != char:
+            if self.dot_bracket[self.char_index] != char:
                 break
             self.consume(char)
             count += 1
@@ -109,7 +109,7 @@ class _Parser:
         """
         if not self.is_eof():
             raise ParseError(
-                f"Unexpected '{self.dpp_string[self.char_index]}' at position {self.char_index}."
+                f"Unexpected '{self.dot_bracket[self.char_index]}' at position {self.char_index}."
             )
         return None
 
@@ -359,5 +359,5 @@ def _check_strands_are_connected(root_loop: LoopRegion) -> None:
         )
 
 
-def parse(dpp_string: str) -> LoopRegion:
-    return _Parser(dpp_string).parse()
+def parse(dot_bracket: str) -> LoopRegion:
+    return _Parser(dot_bracket).parse()

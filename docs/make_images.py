@@ -81,7 +81,7 @@ def example() -> svgwrite.Drawing:
     being recomputed. Regenerate it with np.save if the structure shown
     here ever changes.
     """
-    dpp_string = (
+    dot_bracket = (
         ".....((((((((((..((("
         "+(((((.....))))))))..(((((.(((((.....))))))))))..)))))"
         "+.....)))))"
@@ -93,19 +93,19 @@ def example() -> svgwrite.Drawing:
     ]
     probs = np.load(DOCS / "example_probs.npy")
 
-    return draw_svg(dpp_string, sequences=sequences, probs=probs)
+    return draw_svg(dot_bracket, sequences=sequences, probs=probs)
 
 
 def styling() -> svgwrite.Drawing:
     """The default drawing beside the styled one, as the README shows it."""
-    dpp_string = "(((..+...)))"
+    dot_bracket = "(((..+...)))"
     drawing = svgwrite.Drawing()
 
     components = [
-        draw_component(drawing, dpp_string),
+        draw_component(drawing, dot_bracket),
         draw_component(
             drawing,
-            dpp_string,
+            dot_bracket,
             style=DrawingStyle(
                 node_color="steelblue",
                 edge_color="dimgray",

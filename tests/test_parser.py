@@ -91,7 +91,7 @@ def test_parse_hinge():
 
 
 @pytest.mark.parametrize(
-    "dpp_string",
+    "dot_bracket",
     [
         "",             # empty input
         ")))",          # closing parens with nothing to close
@@ -102,9 +102,9 @@ def test_parse_hinge():
         "abc",          # no valid character at all
     ],
 )
-def test_parse_invalid_raises_parse_error(dpp_string):
+def test_parse_invalid_raises_parse_error(dot_bracket):
     with pytest.raises(ParseError):
-        parse(dpp_string)
+        parse(dot_bracket)
 
 
 def test_parse_nested():
@@ -123,7 +123,7 @@ def test_parse_nested():
 
 
 @pytest.mark.parametrize(
-    "dpp_string",
+    "dot_bracket",
     [
         "...+...",          # two strands, no base pairs at all
         "((...))+...",      # a hairpin and a loose strand
@@ -134,14 +134,14 @@ def test_parse_nested():
         "((.+.((+)).+.))",  # the same, with unpaired nucleotides around it
     ],
 )
-def test_disconnected_strands_are_rejected(dpp_string):
+def test_disconnected_strands_are_rejected(dot_bracket):
     """A secondary structure describes one complex, so the strands must hold together."""
     with pytest.raises(ParseError):
-        parse(dpp_string)
+        parse(dot_bracket)
 
 
 @pytest.mark.parametrize(
-    "dpp_string",
+    "dot_bracket",
     [
         "(((..+...)))",       # two strands held by one stem
         "(((+)))",            # the same, with no unpaired nucleotides
@@ -149,9 +149,9 @@ def test_disconnected_strands_are_rejected(dpp_string):
         "(((+)))(((+)))",     # the outer strands meet only through the middle one
     ],
 )
-def test_strands_joined_by_base_pairs_are_accepted(dpp_string):
+def test_strands_joined_by_base_pairs_are_accepted(dot_bracket):
     """A base pair anywhere is enough, however deeply nested it is."""
-    assert parse(dpp_string) is not None
+    assert parse(dot_bracket) is not None
 
 
 def test_the_groups_are_named_in_the_error():
@@ -171,7 +171,7 @@ def test_strand_groups_merges_through_a_third_strand():
 
 
 @pytest.mark.parametrize(
-    "dpp_string",
+    "dot_bracket",
     [
         "()",              # no nucleotides in the loop at all
         "(.)",             # one
@@ -181,14 +181,14 @@ def test_strand_groups_merges_through_a_third_strand():
         "(.(.).)",         # the inner of two loops is the tight one
     ],
 )
-def test_tight_hairpin_loops_are_rejected(dpp_string):
+def test_tight_hairpin_loops_are_rejected(dot_bracket):
     """A backbone cannot turn back on itself in fewer than three nucleotides."""
     with pytest.raises(ParseError):
-        parse(dpp_string)
+        parse(dot_bracket)
 
 
 @pytest.mark.parametrize(
-    "dpp_string",
+    "dot_bracket",
     [
         "(...)",            # the smallest hairpin there is
         "((...))",
@@ -201,9 +201,9 @@ def test_tight_hairpin_loops_are_rejected(dpp_string):
         "(..+..)",
     ],
 )
-def test_loops_that_are_wide_enough_or_broken_by_a_strand_are_accepted(dpp_string):
+def test_loops_that_are_wide_enough_or_broken_by_a_strand_are_accepted(dot_bracket):
     """Only a loop where one backbone turns back has a minimum size."""
-    assert parse(dpp_string) is not None
+    assert parse(dot_bracket) is not None
 
 
 def test_the_position_of_a_tight_hairpin_is_named_in_the_error():

@@ -96,10 +96,9 @@ def attach_equilibrium_probabilities(
     root_loop : LoopRegion
         Root loop of the secondary structure.
     probs : ndarray
-        Base-pairing probability matrix. Element (i, j) is the
-        equilibrium probability that nucleotides i and j pair, and the
-        diagonal element (i, i) the equilibrium probability that
-        nucleotide i is unpaired.
+        Base-pair probability matrix. Element (i, j) is how likely
+        nucleotides i and j are to be paired with each other, and element
+        (i, i) how likely nucleotide i is to be left unpaired.
 
     Raises
     ------

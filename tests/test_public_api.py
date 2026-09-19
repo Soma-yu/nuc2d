@@ -38,8 +38,8 @@ def test_star_import_provides_every_listed_name():
 # after them is keyword-only, so a later release can insert an argument
 # where it belongs instead of appending it to keep the order intact.
 POSITIONAL_COUNT = {
-    nuc2d.draw_svg: 1,  # dpp_string
-    nuc2d.draw_component: 2,  # drawing, dpp_string
+    nuc2d.draw_svg: 1,  # dot_bracket
+    nuc2d.draw_component: 2,  # drawing, dot_bracket
     nuc2d.RadialLayoutEngine: 0,
     render_colorbar: 1,  # drawing
     render_structure: 2,  # drawing, layout_result

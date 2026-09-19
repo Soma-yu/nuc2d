@@ -104,7 +104,7 @@ def test_attach_equilibrium_probabilities_hairpin():
 
 
 @pytest.mark.parametrize(
-    "dpp_string, expected",
+    "dot_bracket, expected",
     [
         ("(((...)))", [9]),
         (".....", [5]),
@@ -112,8 +112,8 @@ def test_attach_equilibrium_probabilities_hairpin():
         ("((((((...)))+)))(((...)))", [12, 12]),
     ],
 )
-def test_iter_nucleotides_yields_each_once(dpp_string, expected):
-    root = parse(dpp_string)
+def test_iter_nucleotides_yields_each_once(dot_bracket, expected):
+    root = parse(dot_bracket)
 
     indices = sorted(nt.index for nt in iter_nucleotides(root))
 
@@ -121,7 +121,7 @@ def test_iter_nucleotides_yields_each_once(dpp_string, expected):
 
 
 @pytest.mark.parametrize(
-    "dpp_string, expected",
+    "dot_bracket, expected",
     [
         ("(((...)))", [9]),
         (".....", [5]),
@@ -129,10 +129,10 @@ def test_iter_nucleotides_yields_each_once(dpp_string, expected):
         ("((((((...)))+)))(((...)))", [12, 12]),
     ],
 )
-def test_positions_within_each_strand_are_consecutive(dpp_string, expected):
+def test_positions_within_each_strand_are_consecutive(dot_bracket, expected):
     """_strand_lengths counts nucleotides, which is only a length because
     every position from zero is present exactly once."""
-    root = parse(dpp_string)
+    root = parse(dot_bracket)
 
     positions: dict[int, list[int]] = {}
     for nt in iter_nucleotides(root):

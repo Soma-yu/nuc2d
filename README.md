@@ -24,9 +24,8 @@ drawing = draw_svg("(((..+...)))")
 drawing.saveas("output.svg")
 ```
 
-Structures are written in dot-parens-plus notation: `(` and `)` for the two
-halves of a base pair, `.` for an unpaired nucleotide, and `+` for a break
-between strands.
+Structures are written with `(` and `)` for the two halves of a base pair,
+`.` for an unpaired nucleotide, and `+` for a break between strands.
 
 In Jupyter Notebook or JupyterLab the result can be displayed directly:
 
@@ -64,14 +63,13 @@ raises `ValueError` rather than drawing something misleading.
 
 ## Equilibrium probability visualization
 
-Base-pairing probabilities are visualized by passing a symmetric probability
+Base-pair probabilities are visualized by passing a symmetric probability
 matrix through the `probs` argument. A colorbar is placed beside the structure.
 
 ```python
-# Base-pairing probability matrix from a structure prediction tool.
-# probs[i][j] is the equilibrium probability that nucleotides i and j pair.
-# The diagonal probs[i][i] is the equilibrium probability that nucleotide i
-# is unpaired.
+# Base-pair probability matrix from a structure prediction tool.
+# probs[i][j] is how likely nucleotides i and j are to be paired with
+# each other, and probs[i][i] how likely nucleotide i is to be left unpaired.
 probs = ...
 
 drawing = draw_svg(
@@ -80,7 +78,7 @@ drawing = draw_svg(
 )
 ```
 
-Each nucleotide is coloured by the probability of the state the structure
+Each nucleotide is colored by the probability of the state the structure
 puts it in: of pairing with its partner if it is paired, and of being
 unpaired if it is not. The colorbar is labelled `Equilibrium probability`
 unless another label is given:

@@ -26,7 +26,7 @@ from .svg import (
 
 def draw_component(
     drawing: svgwrite.Drawing,
-    dpp_string: str,
+    dot_bracket: str,
     *,
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
@@ -43,15 +43,17 @@ def draw_component(
         The target SVG drawing instance used for element factory and defs
         registration. The component is not added to the drawing; the
         caller decides where it goes.
-    dpp_string : str
-        A secondary structure written in dot-parens-plus notation.
+    dot_bracket : str
+        A secondary structure written with ``(`` and ``)`` for the two
+        halves of a base pair, ``.`` for an unpaired nucleotide, and ``+``
+        for a break between strands.
     sequences : list[str], optional
         A list of sequences corresponding to the structure.
     probs : ndarray, optional
-        Base-pairing probability matrix. ``probs[i][j]`` is the equilibrium
-        probability that bases ``i`` and ``j`` pair, and the diagonal
-        ``probs[i][i]`` the equilibrium probability that base ``i`` is
-        unpaired. When given, a colorbar is placed beside the structure.
+        Base-pair probability matrix: ``probs[i][j]`` is how likely
+        nucleotides ``i`` and ``j`` are to be paired with each other, and
+        ``probs[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
+        When given, a colorbar is placed beside the structure.
     style : DrawingStyle, optional
         Drawing style configuration.
     layout_engine : LayoutEngine, optional
@@ -78,10 +80,10 @@ def draw_component(
     Raises
     ------
     ParseError
-        If ``dpp_string`` is not a well-formed secondary structure.
+        If ``dot_bracket`` is not a well-formed secondary structure.
     """
     # Parse the secondary structure string.
-    root_loop = parse(dpp_string)
+    root_loop = parse(dot_bracket)
 
     # Attach sequence and probability annotations.
     if sequences is not None:
@@ -131,7 +133,7 @@ def draw_component(
 
 
 def draw_svg(
-    dpp_string: str,
+    dot_bracket: str,
     *,
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
@@ -146,14 +148,16 @@ def draw_svg(
 
     Parameters
     ----------
-    dpp_string : str
-        A secondary structure written in dot-parens-plus notation.
+    dot_bracket : str
+        A secondary structure written with ``(`` and ``)`` for the two
+        halves of a base pair, ``.`` for an unpaired nucleotide, and ``+``
+        for a break between strands.
     sequences : list[str], optional
         A list of sequences corresponding to the structure.
     probs : ndarray, optional
-        Base-pairing probability matrix. ``probs[i][j]`` is the equilibrium
-        probability that bases ``i`` and ``j`` pair, and the diagonal
-        ``probs[i][i]`` the equilibrium probability that base ``i`` is
+        Base-pair probability matrix: ``probs[i][j]`` is how likely
+        nucleotides ``i`` and ``j`` are to be paired with each other, and
+        ``probs[i][i]`` how likely nucleotide ``i`` is to be left
         unpaired.
     style : DrawingStyle, optional
         Drawing style configuration.
@@ -182,7 +186,7 @@ def draw_svg(
     Raises
     ------
     ParseError
-        If ``dpp_string`` is not a well-formed secondary structure.
+        If ``dot_bracket`` is not a well-formed secondary structure.
     """
     # Create the root SVG drawing container.
     drawing = svgwrite.Drawing()
@@ -190,7 +194,7 @@ def draw_svg(
     # Generate the component and add it to the drawing.
     component = draw_component(
         drawing=drawing,
-        dpp_string=dpp_string,
+        dot_bracket=dot_bracket,
         sequences=sequences,
         probs=probs,
         style=style,
