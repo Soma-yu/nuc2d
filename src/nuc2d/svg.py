@@ -323,7 +323,14 @@ class SVGRenderer:
         drawing: svgwrite.Drawing,
         decoration: ArrowDecoration,
     ) -> svgwrite.shapes.Line:
-        """Draw the arrow that marks a 3' terminus."""
+        """Draw the arrow that marks a 3' terminus.
+
+        The marker the arrowhead refers to is added here rather than by
+        the caller, so that the reference and its definition are made
+        together and a drawing with no arrow declares no arrowhead.
+        """
+
+        self._ensure_arrowhead_def(drawing)
 
         start = decoration.node.pos
         end = start + decoration.direction * self.style.three_prime_arrow_length
@@ -412,7 +419,6 @@ class SVGRenderer:
                 )
             )
 
-        self._ensure_arrowhead_def(drawing)
         for decoration in layout_result.decorations:
             group.add(
                 self._draw_decoration(
