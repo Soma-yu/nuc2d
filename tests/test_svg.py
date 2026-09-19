@@ -277,6 +277,69 @@ def test_the_three_prime_arrow_length_is_a_style_setting():
     ) == pytest.approx([15.0, 15.0])
 
 
+def test_something_the_renderer_cannot_draw_says_so():
+    """Not knowing how to draw a thing is reported, not passed over.
+
+    A drawing that quietly leaves a piece out looks finished, so a
+    caller extending the layout has nothing to go on. Both dispatches
+    answer the same way.
+    """
+    from dataclasses import dataclass
+
+    from nuc2d.layout import Decoration, Edge, EdgeType, RadialLayoutEngine
+    from nuc2d.parser import parse
+    from nuc2d.svg import SVGRenderer
+
+    renderer = SVGRenderer()
+    drawing = svgwrite.Drawing()
+    node = RadialLayoutEngine().layout(parse("(((...)))")).nodes[0]
+
+    @dataclass(kw_only=True)
+    class Squiggle(Decoration):
+        pass
+
+    with pytest.raises(TypeError, match="Unsupported decoration type"):
+        renderer._draw_decoration(drawing, Squiggle(node=node))
+
+    with pytest.raises(TypeError, match="Unsupported edge type"):
+        renderer._draw_edge(
+            drawing, Edge(start=node, end=node, edge_type=EdgeType.BACKBONE)
+        )
+
+
+def test_the_dash_pattern_reaches_the_whole_backbone():
+    """A backbone runs as straight segments in stems and as arcs in loops.
+
+    Both are backbone edges, so both take backbone_dasharray. Leaving the
+    arcs out left most of the backbone solid while the stems went dashed.
+    """
+    root = ET.fromstring(
+        draw_svg(
+            "((..((...))..))",
+            style=DrawingStyle(backbone_dasharray="6,3", basepair_dasharray="1,4"),
+        ).tostring()
+    )
+
+    dashes = Counter()
+    for element in root.iter():
+        tag = element.tag.split("}")[-1]
+        if tag not in ("line", "path") or "stroke" not in element.attrib:
+            continue
+        # The 3' arrow is a terminus marker rather than a stretch of
+        # backbone, so it stays solid whatever the backbone is dashed with.
+        kind = (
+            "arrow" if "marker-end" in element.attrib
+            else "arc" if tag == "path"
+            else "line"
+        )
+        dashes[(kind, element.attrib.get("stroke-dasharray"))] += 1
+
+    assert dashes[("arc", "6,3")] > 0, "the loop arcs must follow the backbone"
+    assert dashes[("line", "6,3")] > 0
+    assert dashes[("line", "1,4")] > 0
+    assert [key for key in dashes if key[0] != "arrow" and key[1] is None] == []
+
+
 def test_the_backbone_and_the_base_pairs_take_their_own_colors():
     """Color joins the width and the dash pattern in being per edge type.
 

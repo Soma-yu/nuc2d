@@ -305,13 +305,14 @@ class SVGRenderer:
             stroke=self.style.backbone_color,
             fill="none",
             stroke_width=self.style.backbone_width,
+            stroke_dasharray=self.style.backbone_dasharray,
         )
 
     def _draw_decoration(
         self,
         drawing: svgwrite.Drawing,
         decoration: Decoration,
-    ) -> svgwrite.shapes.Line | None:
+    ) -> svgwrite.shapes.Line:
         """Draw a decoration."""
 
         if isinstance(decoration, ArrowDecoration):
@@ -320,7 +321,7 @@ class SVGRenderer:
                 decoration,
             )
 
-        return None
+        raise TypeError(f"Unsupported decoration type: {type(decoration)}")
 
     def _draw_arrow_decoration(
         self,
@@ -418,12 +419,12 @@ class SVGRenderer:
 
         self._add_arrowhead_def(drawing)
         for decoration in layout_result.decorations:
-            element = self._draw_decoration(
-                drawing,
-                decoration,
+            group.add(
+                self._draw_decoration(
+                    drawing,
+                    decoration,
+                )
             )
-            if element is not None:
-                group.add(element)
 
         for node in layout_result.nodes:
             group.add(
