@@ -128,13 +128,13 @@ class _Parser:
         self.index_in_strand += 1
         return nt
 
-    def parse_stem(self, current_stem: StemRegion) -> None:
+    def parse_stem(self) -> StemRegion:
         """Parse a stem region.
 
-        Parameters
-        ----------
-        current_stem : StemRegion
-            Object holding information about the stem region currently being parsed.
+        Returns
+        -------
+        StemRegion
+            The stem region just parsed, with the loop it encloses.
         """
         # Parse consecutive "(" characters
         pairing_stack = []
@@ -164,8 +164,9 @@ class _Parser:
                 )
                 self.parse_loop(child_loop)
             else:
-                current_stem.nucleotides = paired_stack
-                current_stem.child_loop  = child_loop
+                return StemRegion(nucleotides=paired_stack, child_loop=child_loop)
+
+        raise AssertionError("a stem always closes the pairs it opened")
 
     def parse_loop(self, current_loop: LoopRegion) -> None:
         """Parse a loop region.
@@ -195,9 +196,8 @@ class _Parser:
 
             if self.peek() == "(":
                 # Parse child stem region
-                child_stem = StemRegion()
+                child_stem = self.parse_stem()
                 current_loop.child_stems.append(child_stem)
-                self.parse_stem(child_stem)
                 current_loop.nucleotides.extend(
                     [child_stem.nucleotides[0], child_stem.nucleotides[-1]]
                 )

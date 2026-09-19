@@ -64,11 +64,11 @@ class StemRegion(Region):
 
     Attributes
     ----------
-    child_loop : LoopRegion | None
-        Loop region enclosed by this stem. None only while the parser is
-        still building the stem; every stem in a parsed structure has one.
+    child_loop : LoopRegion
+        Loop region enclosed by this stem. Every stem encloses one, so a
+        stem is built once the loop inside it is known.
     """
-    child_loop: LoopRegion | None = None
+    child_loop: LoopRegion
 
 @dataclass(kw_only=True)
 class LoopRegion(Region):
