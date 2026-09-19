@@ -163,7 +163,7 @@ class SVGRenderer:
         *,
         style: DrawingStyle | None = None,
     ) -> None:
-        self.style = style or DrawingStyle()
+        self.style = style if style is not None else DrawingStyle()
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     def _draw_node(
