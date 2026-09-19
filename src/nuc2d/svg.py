@@ -458,18 +458,20 @@ class SVGRenderer:
         bar_x = 30
         bar_y = (vb_height - bar_height) / 2
 
-        # Define the vertical color gradient.
-        stops = [
-            (
-                value,
-                mpl.colors.to_hex(
-                    self.style.cmap(
-                        self._color_norm(value)
-                    )
+        # Define the vertical color gradient. The colormap is asked for
+        # every stop in one call, because its cost is per call rather
+        # than per value: 101 separate calls took longer than the rest
+        # of the colorbar put together.
+        offsets = np.linspace(0.0, 1.0, 101)
+        stops = list(
+            zip(
+                offsets,
+                map(
+                    mpl.colors.to_hex,
+                    self.style.cmap(self._color_norm(offsets)),
                 ),
             )
-            for value in np.linspace(0.0, 1.0, 101)
-        ]
+        )
 
         gradient_id = _def_id(
             "colorbar-gradient", *(color for _, color in stops)
