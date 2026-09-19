@@ -42,8 +42,11 @@ class DrawingStyle:
         Vertical margin added around the drawing area.
     node_color : str
         Default node color.
-    edge_color : str
-        Default edge color.
+    backbone_color : str
+        Color of backbone edges. The arrow at each 3' terminus continues
+        the backbone, so it is drawn in this color too.
+    basepair_color : str
+        Color of base-pair edges.
     font_family : str
         Font family used for nucleotide labels.
         Arial is recommended for consistent rendering in PowerPoint.
@@ -75,7 +78,8 @@ class DrawingStyle:
     y_margin: float = 20.0
 
     node_color: str = "black"
-    edge_color: str = "black"
+    backbone_color: str = "black"
+    basepair_color: str = "black"
 
     font_family: str = "Arial"
     node_font_size: float = 6.5

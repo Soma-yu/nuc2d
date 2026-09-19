@@ -115,7 +115,8 @@ drawing = draw_svg(
     "(((..+...)))",
     style=DrawingStyle(
         node_color="steelblue",
-        edge_color="dimgray",
+        backbone_color="dimgray",
+        basepair_color="dimgray",
         node_radius=5.0,
         cmap=mpl.colormaps["viridis"],
     ),

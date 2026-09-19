@@ -54,8 +54,8 @@ def test_differing_styles_get_their_own_definitions():
     drawing = svgwrite.Drawing()
 
     for style in [
-        DrawingStyle(edge_color="black", cmap=mpl.colormaps["turbo"]),
-        DrawingStyle(edge_color="red", cmap=mpl.colormaps["viridis"]),
+        DrawingStyle(backbone_color="black", cmap=mpl.colormaps["turbo"]),
+        DrawingStyle(backbone_color="red", cmap=mpl.colormaps["viridis"]),
     ]:
         component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
         drawing.add(component.group)
@@ -85,8 +85,8 @@ def test_every_reference_resolves():
     drawing = svgwrite.Drawing()
 
     for style in [
-        DrawingStyle(edge_color="black"),
-        DrawingStyle(edge_color="red"),
+        DrawingStyle(backbone_color="black"),
+        DrawingStyle(backbone_color="red"),
     ]:
         component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
         drawing.add(component.group)
@@ -275,6 +275,39 @@ def test_the_three_prime_arrow_length_is_a_style_setting():
             "(((..+...)))", style=DrawingStyle(three_prime_arrow_length=15.0)
         ).tostring()
     ) == pytest.approx([15.0, 15.0])
+
+
+def test_the_backbone_and_the_base_pairs_take_their_own_colors():
+    """Color joins the width and the dash pattern in being per edge type.
+
+    The arrow at a 3' terminus continues the backbone, so it and its
+    arrowhead follow the backbone color rather than the base-pair one.
+    """
+    root = ET.fromstring(
+        draw_svg(
+            "(((...)))",
+            style=DrawingStyle(backbone_color="crimson", basepair_color="steelblue"),
+        ).tostring()
+    )
+
+    strokes = Counter(
+        element.attrib["stroke"] for element in root.iter() if "stroke" in element.attrib
+    )
+
+    assert set(strokes) == {"crimson", "steelblue"}
+    assert collect_arrow_lengths(
+        ET.tostring(root, encoding="unicode")
+    ), "expected an arrow to be drawn"
+
+    arrow = next(
+        element
+        for element in root.iter()
+        if element.tag.endswith("line") and "marker-end" in element.attrib
+    )
+    assert arrow.attrib["stroke"] == "crimson"
+
+    marker = root.find(".//{*}marker")
+    assert marker.find("{*}path").attrib["fill"] == "crimson"
 
 
 def test_arrowhead_marker_carries_its_own_coordinate_system():

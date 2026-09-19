@@ -261,9 +261,11 @@ class SVGRenderer:
         end = edge.end.pos
 
         if edge.edge_type == EdgeType.BACKBONE:
+            color = self.style.backbone_color
             width = self.style.backbone_width
             dasharray = self.style.backbone_dasharray
         elif edge.edge_type == EdgeType.BASE_PAIR:
+            color = self.style.basepair_color
             width = self.style.basepair_width
             dasharray = self.style.basepair_dasharray
         else:
@@ -272,7 +274,7 @@ class SVGRenderer:
         return drawing.line(
             start=start.to_tuple(),
             end=end.to_tuple(),
-            stroke=self.style.edge_color,
+            stroke=color,
             stroke_width=width,
             stroke_dasharray=dasharray,
         )
@@ -300,7 +302,7 @@ class SVGRenderer:
 
         return drawing.path(
             d=path,
-            stroke=self.style.edge_color,
+            stroke=self.style.backbone_color,
             fill="none",
             stroke_width=self.style.backbone_width,
         )
@@ -333,7 +335,7 @@ class SVGRenderer:
         line = drawing.line(
             start=start.to_tuple(),
             end=end.to_tuple(),
-            stroke=self.style.edge_color,
+            stroke=self.style.backbone_color,
             stroke_width=self.style.backbone_width,
         )
 
@@ -348,7 +350,7 @@ class SVGRenderer:
         renderers using the same style share one definition while
         renderers using different ones never collide.
         """
-        return _def_id("arrowhead", self.style.edge_color)
+        return _def_id("arrowhead", self.style.backbone_color)
 
     def _add_arrowhead_def(
         self,
@@ -373,7 +375,7 @@ class SVGRenderer:
             arrow.add(
                 drawing.path(
                     d="M 0,0 L 0.7,1.5 L 0,3 L 3,1.5 Z",
-                    fill=self.style.edge_color,
+                    fill=self.style.backbone_color,
                 )
             )
             return arrow
