@@ -30,6 +30,10 @@ class DrawingStyle:
     basepair_dasharray : str
         Dash pattern used for base-pair edges, specified as an SVG
         ``stroke-dasharray`` value.
+    three_prime_arrow_length : float
+        Length of the arrow drawn at each 3' terminus. The arrowhead is
+        measured in stroke widths, so its size follows
+        ``backbone_width`` rather than this.
     node_radius : float
         Radius of nucleotide nodes.
     x_margin : float
@@ -62,6 +66,8 @@ class DrawingStyle:
     basepair_width: float = 1.5
     backbone_dasharray: str = "1,0"
     basepair_dasharray: str = "1,1"
+
+    three_prime_arrow_length: float = 7.0
 
     node_radius: float = 4.2
 

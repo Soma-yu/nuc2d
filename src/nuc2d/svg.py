@@ -327,12 +327,8 @@ class SVGRenderer:
     ) -> svgwrite.shapes.Line:
         """Draw the arrow that marks a 3' terminus."""
 
-        if decoration.node_at_start:
-            start = decoration.node.pos
-            end = start + decoration.direction * decoration.length
-        else:
-            end = decoration.node.pos
-            start = end - decoration.direction * decoration.length
+        start = decoration.node.pos
+        end = start + decoration.direction * self.style.three_prime_arrow_length
 
         line = drawing.line(
             start=start.to_tuple(),

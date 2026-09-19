@@ -1,3 +1,4 @@
+import math
 import re
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -244,6 +245,36 @@ def test_layout_engine_is_configurable():
     )
 
     assert wider.bbox.height > default.bbox.height
+
+
+def collect_arrow_lengths(svg_string):
+    """Return the length of every line carrying an arrowhead, in order."""
+    return [
+        math.hypot(
+            float(element.attrib["x2"]) - float(element.attrib["x1"]),
+            float(element.attrib["y2"]) - float(element.attrib["y1"]),
+        )
+        for element in ET.fromstring(svg_string).iter()
+        if element.tag.endswith("line") and "marker-end" in element.attrib
+    ]
+
+
+def test_the_three_prime_arrow_length_is_a_style_setting():
+    """How far the 3' arrow reaches is drawn, not laid out.
+
+    The layout says where a terminus is and which way the strand runs.
+    How long an arrow to draw from there is a matter of appearance, so it
+    lives with the other style settings rather than on the decoration.
+    """
+    assert collect_arrow_lengths(
+        draw_svg("(((..+...)))").tostring()
+    ) == pytest.approx([7.0, 7.0])
+
+    assert collect_arrow_lengths(
+        draw_svg(
+            "(((..+...)))", style=DrawingStyle(three_prime_arrow_length=15.0)
+        ).tostring()
+    ) == pytest.approx([15.0, 15.0])
 
 
 def test_arrowhead_marker_carries_its_own_coordinate_system():

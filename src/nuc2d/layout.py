@@ -107,17 +107,11 @@ class ArrowDecoration(Decoration):
     Attributes
     ----------
     direction : Vec2
-        Unit vector the arrow points along.
-    length : float, default=7.0
-        Length of the arrow segment.
-    node_at_start : bool, default=True
-        Whether the node sits at the start of the arrow segment, so that
-        the arrow extends away from it. When False, the segment ends at
-        the node and the arrow points into it.
+        Unit vector the arrow points along, leading away from the node.
+        How far it reaches is a drawing decision, taken from
+        :attr:`~nuc2d.style.DrawingStyle.three_prime_arrow_length`.
     """
     direction: Vec2
-    length: float = 7.0
-    node_at_start: bool = True
 
 @dataclass(kw_only=True)
 class LayoutResult():
