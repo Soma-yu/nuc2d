@@ -62,7 +62,7 @@ def _ensure_def(
     drawing: svgwrite.Drawing,
     element_id: str,
     build: Callable[[], object],
-) -> str:
+) -> None:
     """Add a definition to a drawing's ``<defs>`` at most once.
 
     Parameters
@@ -70,21 +70,16 @@ def _ensure_def(
     drawing : svgwrite.Drawing
         Drawing whose definitions are being populated.
     element_id : str
-        Id the definition will be referenced by.
+        Id the definition will be referenced by. The caller already
+        holds it, so nothing is handed back.
     build : callable
         Builds the definition element. It is called only when no
         definition with this id is present yet.
-
-    Returns
-    -------
-    str
-        ``element_id``, so that callers can reference it inline.
     """
     for element in drawing.defs.elements:
         if element.attribs.get("id") == element_id:
-            return element_id
+            return
     drawing.defs.add(build())
-    return element_id
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -353,11 +348,11 @@ class SVGRenderer:
         """
         return _def_id("arrowhead", self.style.backbone_color)
 
-    def _add_arrowhead_def(
+    def _ensure_arrowhead_def(
         self,
         drawing: svgwrite.Drawing,
-    ) -> str:
-        """Ensure the arrowhead marker is defined and return its id."""
+    ) -> None:
+        """Add the arrowhead marker to the drawing unless it is there."""
 
         def build() -> svgwrite.container.Marker:
             # The viewBox matches the path's own extent, so the arrowhead is
@@ -381,7 +376,7 @@ class SVGRenderer:
             )
             return arrow
 
-        return _ensure_def(drawing, self._arrowhead_id(), build)
+        _ensure_def(drawing, self._arrowhead_id(), build)
 
     def render_structure(
         self,
@@ -417,7 +412,7 @@ class SVGRenderer:
                 )
             )
 
-        self._add_arrowhead_def(drawing)
+        self._ensure_arrowhead_def(drawing)
         for decoration in layout_result.decorations:
             group.add(
                 self._draw_decoration(
