@@ -181,10 +181,6 @@ class BBox:
             max(self.ymax, other.ymax),
         )
 
-    def __or__(self, other: BBox) -> BBox:
-        """Return ``self.union(other)``."""
-        return self.union(other)
-
     def expanded(self, dx: float, dy: float | None = None) -> BBox:
         """Return the box grown outwards on every side.
 

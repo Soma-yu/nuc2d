@@ -17,7 +17,6 @@ def test_union():
     b = BBox(5, -5, 20, 5)
 
     assert a.union(b) == BBox(0, -5, 20, 10)
-    assert a | b == a.union(b)
     assert a.union(b) == b.union(a)
 
 
