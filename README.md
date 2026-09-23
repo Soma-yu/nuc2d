@@ -13,6 +13,9 @@ by how likely each nucleotide is to be in the state the structure puts it in.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Soma-yu/nuc2d/blob/main/examples/nuc2d_intro.ipynb)
 
+An introductory notebook, written in Japanese, that runs in the browser with
+nothing to install.
+
 ## Installation
 
 ```bash
@@ -133,11 +136,16 @@ drawing = draw_svg(
 ## Output size
 
 ```python
+# One of the two: the other follows from the aspect ratio of the drawing.
 drawing = draw_svg(dot_bracket=CLOVERLEAF, width_px=600)
+
+# Both: used as written.
+drawing = draw_svg(dot_bracket=CLOVERLEAF, width_px=600, height_px=600)
 ```
 
-Giving `width_px` or `height_px` alone lets the other follow from the aspect
-ratio of the drawing. Giving neither defaults the height to 500 px.
+Giving neither defaults the height to 500 px. Giving both keeps the drawing's
+own proportions and centres it in the box, with space above and below or at
+the sides, rather than stretching it to fit.
 
 ## Style and layout
 
@@ -178,6 +186,8 @@ where it goes, so several structures can share a single drawing. Each component
 carries the bounding box it occupies, and `compose` collects placed components
 into one group whose bounding box encloses them all.
 
+This is how the picture at the top of this page is drawn:
+
 ```python
 import svgwrite
 
@@ -186,19 +196,21 @@ from nuc2d import Placement, compose, draw_component
 drawing = svgwrite.Drawing()
 
 components = [
-    draw_component(drawing, dot_bracket="(((...)))"),
-    draw_component(drawing, dot_bracket="((..((...))..))"),
-    draw_component(drawing, dot_bracket="((((....))))"),
+    draw_component(drawing, dot_bracket=CLOVERLEAF),
+    draw_component(drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES),
+    draw_component(
+        drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs
+    ),
 ]
 
-# Lay the structures out in a row, aligned on their tops, with a gap between.
+# Lay the components out in a row, aligned on their tops, with a gap between.
 placements, cursor_x = [], 0.0
 for component in components:
     box = component.bbox
     placements.append(
         Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
     )
-    cursor_x += box.width + 10.0
+    cursor_x += box.width + 40.0
 
 panel = compose(drawing.g(), placements)
 
@@ -210,7 +222,7 @@ drawing.saveas("panel.svg")
 ```
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="75%">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="100%">
 </p>
 
 `Placement.x` and `Placement.y` say how far to move a component after scaling

@@ -154,19 +154,6 @@ def styling() -> svgwrite.Drawing:
     )
 
 
-def composing() -> svgwrite.Drawing:
-    """The three-structure panel from the README."""
-    drawing = svgwrite.Drawing()
-
-    components = [
-        draw_component(drawing, dot_bracket="(((...)))"),
-        draw_component(drawing, dot_bracket="((..((...))..))"),
-        draw_component(drawing, dot_bracket="((((....))))"),
-    ]
-
-    return row(drawing, components, gap=10.0)
-
-
 def main() -> None:
     IMAGES.mkdir(parents=True, exist_ok=True)
     write(example(), "example")
@@ -174,7 +161,6 @@ def main() -> None:
     write(sequences(), "sequences")
     write(probabilities(), "probabilities")
     write(styling(), "styling")
-    write(composing(), "composing")
 
 
 if __name__ == "__main__":
