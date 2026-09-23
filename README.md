@@ -1,12 +1,17 @@
-# Nuc2D
+# Nuc2D: Visualize RNA and DNA secondary structures
 
-Nuc2D visualizes RNA and DNA secondary structures as publication-ready SVG
-images. The output stays sharp at any size and remains editable in tools such
-as Illustrator or Inkscape, so a figure can be adjusted without being redrawn.
+The output is SVG, so a figure stays sharp at any size and remains editable in
+tools such as Illustrator or Inkscape: it can be adjusted without being
+redrawn.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="80%">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="100%">
 </p>
+
+One structure, drawn three times: on its own, with its sequences, and coloured
+by how likely each nucleotide is to be in the state the structure puts it in.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Soma-yu/nuc2d/blob/main/examples/nuc2d_intro.ipynb)
 
 ## Installation
 
@@ -19,13 +24,21 @@ pip install nuc2d
 ```python
 from nuc2d import draw_svg
 
-drawing = draw_svg("(((..+...)))")
+# A tRNA cloverleaf, split into two strands.
+CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
+
+drawing = draw_svg(dot_bracket=CLOVERLEAF)
 
 drawing.saveas("output.svg")
 ```
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/structure.png" width="55%">
+</p>
+
 Structures are written with `(` and `)` for the two halves of a base pair,
-`.` for an unpaired nucleotide, and `+` for a break between strands.
+`.` for an unpaired nucleotide, and `+` for a break between strands. An arrow
+marks each 3' terminus.
 
 In Jupyter Notebook or JupyterLab the result can be displayed directly:
 
@@ -52,11 +65,17 @@ Nucleotide sequences can be provided through the `sequences` argument, one per
 strand, in the order the strands appear in the structure.
 
 ```python
-drawing = draw_svg(
-    "(((..+...)))",
-    sequences=["AUGCA", "UGCCAU"],
-)
+SEQUENCES = [
+    "GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGA",
+    "UCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA",
+]
+
+drawing = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
 ```
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/sequences.png" width="55%">
+</p>
 
 A wrong number of sequences, or a sequence that is not as long as its strand,
 raises `ValueError` rather than drawing something misleading.
@@ -66,26 +85,46 @@ raises `ValueError` rather than drawing something misleading.
 Base-pair probabilities are visualized by passing a symmetric probability
 matrix through the `probs` argument. A colorbar is placed beside the structure.
 
-```python
-# Base-pair probability matrix from a structure prediction tool.
-# probs[i][j] is how likely nucleotides i and j are to be paired with
-# each other, and probs[i][i] how likely nucleotide i is to be left unpaired.
-probs = ...
+`probs[i][j]` is how likely nucleotides `i` and `j` are to be paired with each
+other, and `probs[i][i]` how likely nucleotide `i` is to be left unpaired. A
+real matrix comes from a structure prediction tool; the one below is made up,
+which is enough to see what the drawing does.
 
-drawing = draw_svg(
-    "(((..+...)))",
-    probs=probs,
-)
+```python
+import numpy as np
+
+flat = CLOVERLEAF.replace("+", "")
+probs = np.zeros((len(flat), len(flat)))
+
+stack = []
+for i, char in enumerate(flat):
+    if char == "(":
+        stack.append(i)
+    elif char == ")":
+        left = stack.pop()
+        # Made up: the acceptor and anticodon stems are the certain ones.
+        probs[left][i] = probs[i][left] = 0.9 if left < 8 or 25 < left < 32 else 0.45
+
+# Whatever is left over is the probability of staying unpaired.
+probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
+
+drawing = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs)
 ```
 
-Each nucleotide is colored by the probability of the state the structure
-puts it in: of pairing with its partner if it is paired, and of being
-unpaired if it is not. The colorbar is labelled `Equilibrium probability`
-unless another label is given:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/probabilities.png" width="65%">
+</p>
+
+Each nucleotide is colored by the probability of the state the structure puts
+it in: of pairing with its partner if it is paired, and of being unpaired if it
+is not.
+
+The colorbar is labelled `Equilibrium probability` unless another label is
+given:
 
 ```python
 drawing = draw_svg(
-    "(((..+...)))",
+    dot_bracket=CLOVERLEAF,
     probs=probs,
     colorbar_label="Pairing probability",
 )
@@ -94,7 +133,7 @@ drawing = draw_svg(
 ## Output size
 
 ```python
-drawing = draw_svg("(((..+...)))", width_px=600)
+drawing = draw_svg(dot_bracket=CLOVERLEAF, width_px=600)
 ```
 
 Giving `width_px` or `height_px` alone lets the other follow from the aspect
@@ -109,28 +148,27 @@ geometry — how far apart nucleotides are placed.
 ```python
 import matplotlib as mpl
 
-from nuc2d import DrawingStyle, RadialLayoutEngine, draw_svg
+from nuc2d import DrawingStyle, RadialLayoutEngine
 
 drawing = draw_svg(
-    "(((..+...)))",
+    dot_bracket=CLOVERLEAF,
+    sequences=SEQUENCES,
+    probs=probs,
     style=DrawingStyle(
-        node_color="steelblue",
-        backbone_color="dimgray",
-        basepair_color="dimgray",
+        backbone_color="#333333",
+        basepair_color="crimson",
         node_radius=5.0,
         cmap=mpl.colormaps["viridis"],
     ),
     layout_engine=RadialLayoutEngine(
-        backbone_spacing=20.0,
-        loop_spacing=25.0,
+        backbone_spacing=18.0,
+        loop_spacing=24.0,
     ),
 )
 ```
 
-The defaults are on the left, the settings above on the right.
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="80%">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="65%">
 </p>
 
 ## Combining several structures
@@ -148,30 +186,35 @@ from nuc2d import Placement, compose, draw_component
 drawing = svgwrite.Drawing()
 
 components = [
-    draw_component(drawing, "(((...)))"),
-    draw_component(drawing, "((..((...))..))"),
-    draw_component(drawing, "((((....))))"),
+    draw_component(drawing, dot_bracket="(((...)))"),
+    draw_component(drawing, dot_bracket="((..((...))..))"),
+    draw_component(drawing, dot_bracket="((((....))))"),
 ]
 
-# Lay the structures out in a row, with a gap between them.
-placements = []
-x = 0.0
+# Lay the structures out in a row, aligned on their tops, with a gap between.
+placements, cursor_x = [], 0.0
 for component in components:
+    box = component.bbox
     placements.append(
-        Placement(component=component, x=x - component.bbox.xmin, y=0.0, scale=1.0)
+        Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
     )
-    x += component.bbox.width + 10.0
+    cursor_x += box.width + 10.0
 
 panel = compose(drawing.g(), placements)
 
 drawing.add(panel.group)
 drawing.viewbox(*panel.bbox.to_viewbox())
+drawing["width"] = f"{panel.bbox.width}px"
+drawing["height"] = f"{panel.bbox.height}px"
 drawing.saveas("panel.svg")
 ```
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="80%">
+  <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/composing.png" width="75%">
 </p>
+
+`Placement.x` and `Placement.y` say how far to move a component after scaling
+it, so aligning an edge means subtracting the scaled edge of its bounding box.
 
 ## Versioning
 

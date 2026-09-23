@@ -5,16 +5,16 @@ page keep matching the code they illustrate::
 
     uv run python docs/make_images.py
 
-Each image is written to ``docs/images/`` as both SVG and PNG. The
-structures and settings here are the ones the README's own examples use,
-so the two stay in step.
+Each image is written to ``docs/images/`` as both SVG and PNG. The structure,
+the sequences and the probability matrix here are the ones the README's own
+examples build, so the pictures are what its code produces.
 """
 
 from pathlib import Path
 
 import cairosvg
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 import svgwrite
 
 from nuc2d import (
@@ -31,10 +31,41 @@ DOCS = Path(__file__).parent
 IMAGES = DOCS / "images"
 
 # The PNG is what the README displays, so it is sized for a high-density
-# screen. The SVG carries only a default display size for anyone who opens
-# it directly; 500 px tall is what draw_svg itself defaults to.
+# screen. The SVG keeps whatever size the README's own code gives it.
 PNG_WIDTH = 1600
-SVG_HEIGHT = 500.0
+
+# A tRNA cloverleaf split into two strands, so that one example shows the
+# strand break as well. The sequence is yeast tRNA-Phe.
+CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
+SEQUENCES = [
+    "GCGGAUUUAGCUCAGUUGGGAGAGCGCCAGACUGAAGA",
+    "UCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA",
+]
+
+
+def demo_probs(dot_bracket: str) -> np.ndarray:
+    """Build a probability matrix from a structure.
+
+    A real matrix comes from a structure prediction tool. This one is made
+    up, and is the same construction the README shows, so that the pictures
+    written here are the ones its code produces.
+    """
+    flat = dot_bracket.replace("+", "")
+    probs = np.zeros((len(flat), len(flat)))
+
+    stack: list[int] = []
+    for i, char in enumerate(flat):
+        if char == "(":
+            stack.append(i)
+        elif char == ")":
+            left = stack.pop()
+            probs[left][i] = probs[i][left] = 0.9 if left < 8 or 25 < left < 32 else 0.45
+
+    probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
+    return probs
+
+
+PROBS = demo_probs(CLOVERLEAF)
 
 
 def row(
@@ -42,21 +73,22 @@ def row(
     components: list[SVGComponent],
     gap: float,
 ) -> svgwrite.Drawing:
-    """Lay components out left to right and frame the drawing on them."""
+    """Lay components out left to right, aligned on their tops."""
     placements = []
-    x = 0.0
+    cursor_x = 0.0
     for component in components:
+        box = component.bbox
         placements.append(
-            Placement(component=component, x=x - component.bbox.xmin, y=0.0, scale=1.0)
+            Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
         )
-        x += component.bbox.width + gap
+        cursor_x += box.width + gap
 
     panel = compose(drawing.g(), placements)
 
     drawing.add(panel.group)
     drawing.viewbox(*panel.bbox.to_viewbox())
-    drawing["height"] = f"{SVG_HEIGHT}px"
-    drawing["width"] = f"{SVG_HEIGHT * panel.bbox.width / panel.bbox.height}px"
+    drawing["width"] = f"{panel.bbox.width}px"
+    drawing["height"] = f"{panel.bbox.height}px"
     return drawing
 
 
@@ -74,53 +106,52 @@ def write(drawing: svgwrite.Drawing, name: str) -> None:
 
 
 def example() -> svgwrite.Drawing:
-    """The drawing at the top of the README: sequences and probabilities.
-
-    The probability matrix comes from a structure prediction tool rather
-    than from this package, so it is stored beside this script instead of
-    being recomputed. Regenerate it with np.save if the structure shown
-    here ever changes.
-    """
-    dot_bracket = (
-        ".....((((((((((..((("
-        "+(((((.....))))))))..(((((.(((((.....))))))))))..)))))"
-        "+.....)))))"
-    )
-    sequences = [
-        "TTTTTATATGAGCGTTTCCG",
-        "CGTGCTTTTTGCACGCGGTTACCACTGTGCCTTTTTGGCACGTGGTTTACGCT",
-        "TGCACCATAT",
-    ]
-    probs = np.load(DOCS / "example_probs.npy")
-
-    return draw_svg(dot_bracket, sequences=sequences, probs=probs)
-
-
-def styling() -> svgwrite.Drawing:
-    """The default drawing beside the styled one, as the README shows it."""
-    dot_bracket = "(((..+...)))"
+    """The drawing at the top of the README: the same structure three times."""
     drawing = svgwrite.Drawing()
 
     components = [
-        draw_component(drawing, dot_bracket),
+        draw_component(drawing, dot_bracket=CLOVERLEAF),
+        draw_component(drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES),
         draw_component(
-            drawing,
-            dot_bracket,
-            style=DrawingStyle(
-                node_color="steelblue",
-                backbone_color="dimgray",
-                basepair_color="dimgray",
-                node_radius=5.0,
-                cmap=mpl.colormaps["viridis"],
-            ),
-            layout_engine=RadialLayoutEngine(
-                backbone_spacing=20.0,
-                loop_spacing=25.0,
-            ),
+            drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS
         ),
     ]
 
-    return row(drawing, components, gap=30.0)
+    return row(drawing, components, gap=40.0)
+
+
+def structure() -> svgwrite.Drawing:
+    """The quick start: a structure on its own."""
+    return draw_svg(dot_bracket=CLOVERLEAF)
+
+
+def sequences() -> svgwrite.Drawing:
+    """Sequence annotation: the same structure with its bases."""
+    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
+
+
+def probabilities() -> svgwrite.Drawing:
+    """Equilibrium probabilities: the same structure, coloured."""
+    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS)
+
+
+def styling() -> svgwrite.Drawing:
+    """The settings the README's style example uses."""
+    return draw_svg(
+        dot_bracket=CLOVERLEAF,
+        sequences=SEQUENCES,
+        probs=PROBS,
+        style=DrawingStyle(
+            backbone_color="#333333",
+            basepair_color="crimson",
+            node_radius=5.0,
+            cmap=mpl.colormaps["viridis"],
+        ),
+        layout_engine=RadialLayoutEngine(
+            backbone_spacing=18.0,
+            loop_spacing=24.0,
+        ),
+    )
 
 
 def composing() -> svgwrite.Drawing:
@@ -128,9 +159,9 @@ def composing() -> svgwrite.Drawing:
     drawing = svgwrite.Drawing()
 
     components = [
-        draw_component(drawing, "(((...)))"),
-        draw_component(drawing, "((..((...))..))"),
-        draw_component(drawing, "((((....))))"),
+        draw_component(drawing, dot_bracket="(((...)))"),
+        draw_component(drawing, dot_bracket="((..((...))..))"),
+        draw_component(drawing, dot_bracket="((((....))))"),
     ]
 
     return row(drawing, components, gap=10.0)
@@ -139,6 +170,9 @@ def composing() -> svgwrite.Drawing:
 def main() -> None:
     IMAGES.mkdir(parents=True, exist_ok=True)
     write(example(), "example")
+    write(structure(), "structure")
+    write(sequences(), "sequences")
+    write(probabilities(), "probabilities")
     write(styling(), "styling")
     write(composing(), "composing")
 
