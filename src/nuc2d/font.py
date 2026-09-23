@@ -35,7 +35,7 @@ def find_font_path(font_family: str) -> str:
     -----
     Results are cached per font family.
     """
-    return font_manager.findfont(font_family)
+    return str(font_manager.findfont(font_family))
 
 
 @cache
@@ -68,7 +68,7 @@ def _vertical_center_ratio(font_path: str) -> float:
 
     center = (ascender + descender) / 2
 
-    return center / units_per_em
+    return float(center / units_per_em)
 
 
 def vertical_center_offset(

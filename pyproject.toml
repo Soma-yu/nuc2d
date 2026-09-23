@@ -50,6 +50,7 @@ dependencies = [
 dev = [
   "cairosvg>=2.9.1",
   "ipykernel>=7.3.0",
+  "mypy>=2.3.1",
   "pytest>=8",
 ]
 
@@ -62,3 +63,16 @@ nuc2d = ["py.typed"]
 [project.urls]
 Repository = "https://github.com/Soma-yu/nuc2d"
 Changelog = "https://github.com/Soma-yu/nuc2d/releases"
+
+[tool.mypy]
+files = ["src"]
+python_version = "3.10"
+strict = true
+# numpy is generic only in recent releases, so requiring type arguments
+# would check the installed numpy rather than this code. Every generic
+# written here already carries them.
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+module = ["svgwrite.*", "fontTools.*", "matplotlib.*"]
+ignore_missing_imports = true
