@@ -8,8 +8,8 @@ redrawn.
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="100%">
 </p>
 
-One structure, drawn three times: on its own, with its sequences, and coloured
-by how likely each nucleotide is to be in the state the structure puts it in.
+One structure, drawn twice: on its own, and with its sequences and the
+probability of each nucleotide being in the state the structure puts it in.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Soma-yu/nuc2d/blob/main/examples/nuc2d_intro.ipynb)
 
@@ -197,7 +197,6 @@ drawing = svgwrite.Drawing()
 
 components = [
     draw_component(drawing, dot_bracket=CLOVERLEAF),
-    draw_component(drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES),
     draw_component(
         drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs
     ),
@@ -210,7 +209,7 @@ for component in components:
     placements.append(
         Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
     )
-    cursor_x += box.width + 40.0
+    cursor_x += box.width + 20.0
 
 panel = compose(drawing.g(), placements)
 

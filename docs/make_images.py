@@ -32,7 +32,7 @@ IMAGES = DOCS / "images"
 
 # The PNG is what the README displays, so it is sized for a high-density
 # screen. The SVG keeps whatever size the README's own code gives it.
-PNG_WIDTH = 1600
+PNG_WIDTH = 2400
 
 # A tRNA cloverleaf split into two strands, so that one example shows the
 # strand break as well. The sequence is yeast tRNA-Phe.
@@ -106,18 +106,21 @@ def write(drawing: svgwrite.Drawing, name: str) -> None:
 
 
 def example() -> svgwrite.Drawing:
-    """The drawing at the top of the README: the same structure three times."""
+    """The drawing at the top of the README: the same structure twice.
+
+    Two rather than three, because a third would shrink each of them by
+    almost half and the bases would stop being legible.
+    """
     drawing = svgwrite.Drawing()
 
     components = [
         draw_component(drawing, dot_bracket=CLOVERLEAF),
-        draw_component(drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES),
         draw_component(
             drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS
         ),
     ]
 
-    return row(drawing, components, gap=40.0)
+    return row(drawing, components, gap=20.0)
 
 
 def structure() -> svgwrite.Drawing:
