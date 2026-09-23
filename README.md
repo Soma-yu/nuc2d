@@ -13,8 +13,8 @@ probability of each nucleotide being in the state the structure puts it in.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Soma-yu/nuc2d/blob/main/examples/nuc2d_intro.ipynb)
 
-An introductory notebook, written in Japanese, that runs in the browser with
-nothing to install.
+An introductory notebook, written in Japanese. It runs in Google Colab, so
+there is nothing to set up on your own machine.
 
 ## Installation
 
