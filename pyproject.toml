@@ -36,12 +36,14 @@ keywords = [
 ]
 
 dependencies = [
-  "numpy>=2.2",
-  "matplotlib>=3.10",
+  # Each floor is the oldest version the test suite has been run against,
+  # not the oldest that might work.
+  "numpy>=1.23.2",
+  "matplotlib>=3.6.0",
   # svgwrite types are part of the public API, so a major release of it
   # would be a major release here.
   "svgwrite>=1.4,<2",
-  "fonttools>=4.65",
+  "fonttools>=4.40.0",
 ]
 
 [dependency-groups]
