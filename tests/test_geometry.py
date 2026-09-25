@@ -74,6 +74,24 @@ def test_empty_box_is_unchanged_by_transforms():
     assert empty.scaled(3).is_empty
 
 
+def test_center_x_and_center_y_are_the_midpoints_of_the_corners():
+    assert (BBox(0, 0, 10, 20).center_x, BBox(0, 0, 10, 20).center_y) == (5.0, 10.0)
+    assert (BBox(-6, -8, -2, -2).center_x, BBox(-6, -8, -2, -2).center_y) == (-4.0, -5.0)
+
+    point = BBox(3, 4, 3, 4)
+
+    assert (point.center_x, point.center_y) == (3.0, 4.0)
+
+
+def test_an_empty_box_has_no_center():
+    empty = BBox.empty()
+
+    with pytest.raises(ValueError):
+        empty.center_x
+    with pytest.raises(ValueError):
+        empty.center_y
+
+
 def test_to_viewbox():
     assert BBox(-2, -3, 8, 7).to_viewbox() == (-2, -3, 10, 10)
 

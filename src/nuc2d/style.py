@@ -41,14 +41,18 @@ class DrawingStyle:
     y_margin : float
         Vertical margin added around the drawing area.
     node_color : str
-        Default node color.
+        Color a node is drawn in when no probabilities are given. With
+        ``probs``, a node takes its color from ``cmap`` instead.
     backbone_color : str
         Color of backbone edges. The arrow at each 3' terminus continues
         the backbone, so it is drawn in this color too.
     basepair_color : str
         Color of base-pair edges.
     font_family : str
-        Font family used for nucleotide labels.
+        Font family used for nucleotide labels. One family name, not a CSS
+        list: ``"Arial"``, not ``"Arial, sans-serif"``. The font is looked
+        up on the machine doing the drawing, and its metrics decide where
+        the letters sit, so a drawing can differ between machines.
         Arial is recommended for consistent rendering in PowerPoint.
     node_font_size : float
         Font size of the base letter drawn inside a node.

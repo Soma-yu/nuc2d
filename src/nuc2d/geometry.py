@@ -126,10 +126,11 @@ class BBox:
 
     Notes
     -----
-    A box is stored as its two corners, and ``width`` and ``height`` are
-    derived from them. A box whose lower corner exceeds its upper corner
-    is empty: :meth:`empty` returns one, its width and height are zero,
-    and it is the identity element of :meth:`union`.
+    A box is stored as its two corners, and ``width``, ``height``,
+    ``center_x`` and ``center_y`` are derived from them. A box whose lower
+    corner exceeds its upper corner is empty: :meth:`empty` returns one,
+    its width and height are zero, its centre raises, and it is the
+    identity element of :meth:`union`.
     """
 
     xmin: float
@@ -156,6 +157,34 @@ class BBox:
     def height(self) -> float:
         """Extent of the box along the y-axis, or 0 when it is empty."""
         return 0.0 if self.is_empty else self.ymax - self.ymin
+
+    @property
+    def center_x(self) -> float:
+        """Midpoint of the box along the x-axis.
+
+        Raises
+        ------
+        ValueError
+            If the box is empty. ``width`` and ``height`` are zero for such
+            a box, that being the extent of nothing, but a midpoint has no
+            answer of the same kind.
+        """
+        if self.is_empty:
+            raise ValueError("An empty box has no centre.")
+        return (self.xmin + self.xmax) / 2
+
+    @property
+    def center_y(self) -> float:
+        """Midpoint of the box along the y-axis.
+
+        Raises
+        ------
+        ValueError
+            If the box is empty. See :attr:`center_x`.
+        """
+        if self.is_empty:
+            raise ValueError("An empty box has no centre.")
+        return (self.ymin + self.ymax) / 2
 
     def union(self, other: BBox) -> BBox:
         """Return the smallest box containing both boxes.

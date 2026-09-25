@@ -114,9 +114,13 @@ class Placement:
     component : SVGComponent
         Component being placed.
     x : float, default=0.0
-        X-coordinate of the component origin in the composed drawing.
+        Where the component's own ``(0, 0)`` lands along the x-axis, after
+        scaling. To put a known edge of the component in a known place,
+        subtract the scaled edge:
+        ``x = target - component.bbox.xmin * scale``.
     y : float, default=0.0
-        Y-coordinate of the component origin in the composed drawing.
+        Where the component's own ``(0, 0)`` lands along the y-axis, after
+        scaling. See ``x``.
     scale : float, default=1.0
         Uniform scaling factor applied to the component.
     z_index : int, default=0
@@ -151,7 +155,18 @@ class Placement:
 
 
 class SVGRenderer:
-    """Renderer converting LayoutResult objects into SVG drawings."""
+    """Renderer converting LayoutResult objects into SVG drawings.
+
+    Parameters
+    ----------
+    style : DrawingStyle, optional
+        Appearance settings. Defaults to ``DrawingStyle()``.
+
+    Notes
+    -----
+    A renderer holds only its settings, nothing about a drawing in
+    progress, so one can be reused for any number of drawings.
+    """
 
     def __init__(
         self,

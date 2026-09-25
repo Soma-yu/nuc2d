@@ -360,4 +360,25 @@ def _check_strands_are_connected(root_loop: LoopRegion) -> None:
 
 
 def parse(dot_bracket: str) -> LoopRegion:
+    """Parse a structure into the tree of regions it describes.
+
+    Parameters
+    ----------
+    dot_bracket : str
+        Structure written with ``(`` and ``)`` for the two halves of a base
+        pair, ``.`` for an unpaired nucleotide, and ``+`` for a break
+        between strands.
+
+    Returns
+    -------
+    LoopRegion
+        The outermost region, holding the whole structure.
+
+    Raises
+    ------
+    ParseError
+        If the brackets are unbalanced, a character is not one of the four
+        above, a hairpin loop holds fewer than three nucleotides, or the
+        structure is empty.
+    """
     return _Parser(dot_bracket).parse()
