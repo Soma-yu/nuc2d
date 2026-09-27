@@ -651,9 +651,10 @@ def compose(
     """
     if not isinstance(drawing, svgwrite.Drawing):
         raise TypeError(
-            f"compose() takes a Drawing, not {type(drawing).__name__}. "
-            "Up to 1.1.0 it took the group instead, so write "
-            "compose(drawing, ...) where you wrote compose(drawing.g(), ...)."
+            "Write compose(drawing, placements), where drawing is the "
+            "svgwrite.Drawing the components were drawn into; got "
+            f"{type(drawing).__name__}. From 2.0.0 compose takes the "
+            "drawing itself, where up to 1.1.0 it took a group made from it."
         )
 
     group = drawing.g()

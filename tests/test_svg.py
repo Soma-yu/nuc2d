@@ -217,7 +217,7 @@ def test_compose_says_what_to_do_when_given_a_group():
     with pytest.raises(TypeError) as excinfo:
         compose(drawing.g(), [Placement(component=component)])
 
-    assert "compose(drawing, ...)" in str(excinfo.value)
+    assert "compose(drawing, placements)" in str(excinfo.value)
 
 
 def test_every_group_compose_makes_follows_the_drawing():
