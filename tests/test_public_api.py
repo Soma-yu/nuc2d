@@ -1,3 +1,4 @@
+import dataclasses
 import inspect
 
 import nuc2d
@@ -62,6 +63,21 @@ def test_optional_arguments_are_keyword_only():
         assert all(
             kind is inspect.Parameter.KEYWORD_ONLY for kind in kinds[positional:]
         ), f"{target.__name__} takes an argument that is not keyword-only"
+
+
+def test_the_values_a_caller_holds_cannot_be_changed_in_place():
+    """These four describe a drawing; they are not part of one.
+
+    A box, a point, a component and a placement are each read by whatever
+    consumes them and never read again, so an assignment after the fact
+    reaches nothing. Frozen, it raises where it is written instead of
+    leaving the value and the drawing disagreeing.
+    """
+    for target in (nuc2d.BBox, nuc2d.Vec2, nuc2d.SVGComponent, nuc2d.Placement):
+        assert dataclasses.is_dataclass(target), f"{target.__name__} is not a dataclass"
+        assert target.__dataclass_params__.frozen, (
+            f"{target.__name__} should be frozen"
+        )
 
 
 def test_the_coordinate_types_are_built_by_position():
