@@ -83,7 +83,7 @@ def row(
         )
         cursor_x += box.width + gap
 
-    panel = compose(drawing.g(), placements)
+    panel = compose(drawing, placements)
 
     drawing.add(panel.group)
     drawing.viewbox(*panel.bbox.to_viewbox())

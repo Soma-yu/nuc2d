@@ -129,7 +129,7 @@ def draw_component(
         )
 
     # Compose all positioned components into a single SVG group.
-    return compose(drawing.g(), placements)
+    return compose(drawing, placements)
 
 
 def draw_svg(

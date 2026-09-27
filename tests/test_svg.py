@@ -183,7 +183,7 @@ def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     structure = draw_component(drawing, "(((...)))", probs=PROBS, add_colorbar=False)
     colorbar = render_colorbar(drawing)
 
-    panel = compose(drawing.g(), [
+    panel = compose(drawing, [
         Placement(component=structure, x=0.0, y=0.0, scale=1.0),
         Placement(component=colorbar, x=structure.bbox.xmax, y=0.0, scale=0.5),
     ])
@@ -191,6 +191,47 @@ def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     assert panel.bbox.width == pytest.approx(
         structure.bbox.width + colorbar.bbox.width * 0.5
     )
+
+
+def test_compose_takes_the_drawing_and_makes_the_group_itself():
+    """The group is compose's to make, so the caller cannot get it wrong."""
+    from nuc2d import Placement, compose
+
+    drawing = svgwrite.Drawing()
+    component = draw_component(drawing, "(((...)))")
+
+    panel = compose(drawing, [Placement(component=component)])
+
+    assert isinstance(panel.group, svgwrite.container.Group)
+    assert panel.group is not drawing
+    assert panel.bbox == component.bbox
+
+
+def test_compose_says_what_to_do_when_given_a_group():
+    """Up to 1.1.0 it took the group, so the old call has to be caught."""
+    from nuc2d import Placement, compose
+
+    drawing = svgwrite.Drawing()
+    component = draw_component(drawing, "(((...)))")
+
+    with pytest.raises(TypeError) as excinfo:
+        compose(drawing.g(), [Placement(component=component)])
+
+    assert "compose(drawing, ...)" in str(excinfo.value)
+
+
+def test_every_group_compose_makes_follows_the_drawing():
+    """A tree with two settings in it is a tree with a seam in it."""
+    from nuc2d import Placement, compose
+
+    drawing = svgwrite.Drawing(debug=False)
+    component = draw_component(drawing, "(((...)))")
+
+    panel = compose(drawing, [Placement(component=component)])
+    wrapper = panel.group.elements[0]
+
+    assert (panel.group.debug, panel.group.profile) == (False, drawing.profile)
+    assert (wrapper.debug, wrapper.profile) == (False, drawing.profile)
 
 
 def test_a_size_is_read_from_a_bounding_box():

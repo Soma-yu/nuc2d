@@ -614,23 +614,34 @@ def render_colorbar(
 
 
 def compose(
-    group: svgwrite.container.Group,
+    drawing: svgwrite.Drawing,
     placements: Sequence[Placement],
 ) -> SVGComponent:
     """Compose positioned SVG components into a single group.
 
     Parameters
     ----------
-    group : svgwrite.container.Group
-        Group that receives the composed SVG elements.
+    drawing : svgwrite.Drawing
+        The drawing the components were drawn into. Every group made here
+        comes from it, so the composed tree carries the drawing's own
+        settings throughout, and the components keep reaching the
+        ``<defs>`` they registered there.
     placements : Sequence[Placement]
         Components to insert, each with the placement to apply to it.
 
     Returns
     -------
     SVGComponent
-        The container together with the extent enclosing every component.
-        An empty sequence yields a component with an empty bounding box.
+        A new group holding every component, together with the extent
+        enclosing them. An empty sequence yields a component with an empty
+        bounding box. The group is not added to the drawing; the caller
+        decides where it goes.
+
+    Raises
+    ------
+    TypeError
+        If given anything other than a drawing. Up to 1.1.0 this took the
+        group itself, so a call written then has to drop the ``.g()``.
 
     Notes
     -----
@@ -638,8 +649,17 @@ def compose(
     wrapped in a group carrying its SVG ``translate`` and ``scale``. No
     padding or layout adjustment is applied.
     """
+    if not isinstance(drawing, svgwrite.Drawing):
+        raise TypeError(
+            f"compose() takes a Drawing, not {type(drawing).__name__}. "
+            "Up to 1.1.0 it took the group instead, so write "
+            "compose(drawing, ...) where you wrote compose(drawing.g(), ...)."
+        )
+
+    group = drawing.g()
+
     for placement in sorted(placements, key=lambda p: p.z_index):
-        wrapper = svgwrite.container.Group(
+        wrapper = drawing.g(
             transform=(
                 f"translate({placement.x},{placement.y}) "
                 f"scale({placement.scale},{placement.scale})"

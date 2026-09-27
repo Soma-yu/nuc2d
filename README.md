@@ -211,7 +211,7 @@ for component in components:
     )
     cursor_x += box.width + 20.0
 
-panel = compose(drawing.g(), placements)
+panel = compose(drawing, placements)
 
 drawing.add(panel.group)
 drawing.viewbox(*panel.bbox.to_viewbox())
