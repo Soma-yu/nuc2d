@@ -5,8 +5,8 @@ rendered secondary structure diagrams. Style parameters control
 the appearance of graphical elements such as nucleotide nodes,
 backbone and base-pair edges, labels, margins, and color mappings.
 
-The main class, DrawingStyle, stores rendering parameters used by
-SVGRenderer and other rendering backends.
+The main class, DrawingStyle, stores the parameters the renderer draws
+with.
 """
 
 import re

@@ -10,6 +10,9 @@ Each part is drawn into a drawing of its own, and handed back together
 with the definitions it registered there, such as an arrowhead or a
 gradient, so that whoever writes the document can write each of them
 once.
+
+What other modules use is this module's functions. The renderer class
+inside it is private to it.
 """
 
 import hashlib
@@ -108,8 +111,13 @@ class Rendered(NamedTuple):
     definitions: tuple[Any, ...]
 
 
-class SVGRenderer:
-    """Renderer converting LayoutResult objects into SVG drawings.
+class _Renderer:
+    """Draws a laid-out structure or a colorbar into the drawing it is handed.
+
+    Only this module's ``render_*`` functions use it: they hand it a
+    drawing of their own, and hand back what it drew together with the
+    definitions it registered there. The class is what lets the steps of
+    drawing one part share a style.
 
     Parameters
     ----------
@@ -527,7 +535,7 @@ def render_structure(
         The drawn structure, its extent, and its definitions.
     """
     drawing = svgwrite.Drawing()
-    content, bbox = SVGRenderer(style=style).render_structure(drawing, layout_result)
+    content, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
     return Rendered(content, bbox, definitions(drawing))
 
 
@@ -553,7 +561,7 @@ def render_colorbar(
         The drawn colorbar, its extent, and its definitions.
     """
     drawing = svgwrite.Drawing()
-    content, bbox = SVGRenderer(style=style).render_colorbar(drawing, label=label)
+    content, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
     return Rendered(content, bbox, definitions(drawing))
 
 

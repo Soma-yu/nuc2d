@@ -309,9 +309,9 @@ def test_something_the_renderer_cannot_draw_says_so():
 
     from nuc2d._layout import Decoration, Edge, EdgeType
     from nuc2d._parser import parse
-    from nuc2d._svg import SVGRenderer
+    from nuc2d._svg import _Renderer
 
-    renderer = SVGRenderer()
+    renderer = _Renderer()
     drawing = svgwrite.Drawing()
     node = RadialLayoutEngine().layout(parse("(((...)))")).nodes[0]
 
