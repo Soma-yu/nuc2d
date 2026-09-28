@@ -40,7 +40,7 @@ def test_every_svg_way_of_writing_a_color_is_accepted_and_drawn(field, value):
 
     # The renderer checks the value again as it writes it, so accepting one
     # that it would refuse would only move the error to the drawing.
-    draw_svg("((...))", style=style).tostring()
+    draw_svg("((...))", style=style).to_svg()
 
 
 @pytest.mark.parametrize("field", COLOR_FIELDS)
@@ -53,7 +53,7 @@ def test_anything_else_is_refused_where_it_is_written(field, value):
 @pytest.mark.parametrize("field", DASHARRAY_FIELDS)
 @pytest.mark.parametrize("value", GOOD_DASHARRAYS)
 def test_dash_patterns_are_accepted_and_drawn(field, value):
-    draw_svg("((...))", style=DrawingStyle(**{field: value})).tostring()
+    draw_svg("((...))", style=DrawingStyle(**{field: value})).to_svg()
 
 
 @pytest.mark.parametrize("field", DASHARRAY_FIELDS)

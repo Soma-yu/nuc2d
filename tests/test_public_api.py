@@ -11,16 +11,17 @@ import nuc2d
 # the edit belongs in the same commit as the change that caused it.
 PUBLIC_NAMES = {
     "BBox",
+    "Component",
     "DrawingStyle",
     "ParseError",
     "Placement",
     "RadialLayoutEngine",
-    "SVGComponent",
+    "Scene",
     "__version__",
     "compose",
-    "draw_component",
+    "draw_colorbar",
+    "draw_structure",
     "draw_svg",
-    "render_colorbar",
 }
 
 
@@ -61,11 +62,13 @@ def test_every_public_name_reports_nuc2d_as_its_module():
 # where it belongs instead of appending it to keep the order intact.
 POSITIONAL_COUNT = {
     nuc2d.draw_svg: 1,  # dot_bracket
-    nuc2d.draw_component: 2,  # drawing, dot_bracket
-    nuc2d.render_colorbar: 1,  # drawing
+    nuc2d.draw_structure: 1,  # dot_bracket
+    nuc2d.draw_colorbar: 0,
+    nuc2d.compose: 1,  # placements
+    nuc2d.Scene: 1,  # component
+    nuc2d.Placement: 0,
     nuc2d.RadialLayoutEngine: 0,
     nuc2d.DrawingStyle: 0,
-    nuc2d.Placement: 0,
 }
 
 
@@ -94,7 +97,7 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     reaches nothing. Frozen, it raises where it is written instead of
     leaving the value and the drawing disagreeing.
     """
-    for target in (nuc2d.BBox, nuc2d.SVGComponent, nuc2d.Placement):
+    for target in (nuc2d.BBox, nuc2d.Component, nuc2d.Placement):
         assert dataclasses.is_dataclass(target), f"{target.__name__} is not a dataclass"
         assert target.__dataclass_params__.frozen, (
             f"{target.__name__} should be frozen"
@@ -125,3 +128,29 @@ def test_a_malformed_structure_is_a_value_error():
 
     with pytest.raises(ValueError):
         nuc2d.draw_svg("(((")
+
+
+def public_callables():
+    for name in sorted(PUBLIC_NAMES - {"__version__"}):
+        target = getattr(nuc2d, name)
+        if inspect.isclass(target):
+            yield name, target.__init__
+            for attr, member in vars(target).items():
+                if callable(member) and not attr.startswith("_"):
+                    yield f"{name}.{attr}", member
+        elif callable(target):
+            yield name, target
+
+
+def test_no_public_signature_mentions_svgwrite():
+    """svgwrite is how nuc2d writes SVG today, not part of what it promises.
+
+    Nothing a caller passes or receives is an svgwrite object, so writing
+    SVG another way is not a breaking change.
+    """
+    for name, target in public_callables():
+        signature = inspect.signature(target)
+        annotations = [p.annotation for p in signature.parameters.values()]
+        annotations.append(signature.return_annotation)
+
+        assert not any("svgwrite" in repr(a) for a in annotations), name

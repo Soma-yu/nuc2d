@@ -1,10 +1,12 @@
 """Nuc2D visualizes RNA and DNA secondary structures as SVG images.
 
-The two entry points are :func:`draw_svg`, which produces a complete SVG
-drawing, and :func:`draw_component`, which produces a single component
-that the caller can place into a drawing of its own. :class:`Placement`
-and :func:`compose` position such components relative to one another, and
-:func:`render_colorbar` supplies a colorbar to place among them.
+:func:`draw_svg` draws a structure and returns a :class:`Scene`, ready to
+save with :meth:`Scene.save_svg` or to show in Jupyter.
+
+To put several parts together, draw each as a :class:`Component` with
+:func:`draw_structure` or :func:`draw_colorbar`, say where each goes with
+a :class:`Placement`, gather them with :func:`compose`, and frame the
+result as a :class:`Scene`.
 
 Everything public is imported from ``nuc2d`` itself. The modules inside the
 package all begin with an underscore: they are where the code lives, not
@@ -13,12 +15,12 @@ part of what a version promises.
 
 from importlib.metadata import PackageNotFoundError, version
 
-from ._draw import draw_component, draw_svg
+from ._compose import Component, Placement, Scene, compose
+from ._draw import draw_colorbar, draw_structure, draw_svg
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parser import ParseError
 from ._style import DrawingStyle
-from ._svg import Placement, SVGComponent, compose, render_colorbar
 
 try:
     __version__ = version("nuc2d")
@@ -27,16 +29,17 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree
 
 __all__ = [
     "BBox",
+    "Component",
     "DrawingStyle",
     "ParseError",
     "Placement",
     "RadialLayoutEngine",
-    "SVGComponent",
+    "Scene",
     "__version__",
     "compose",
-    "draw_component",
+    "draw_colorbar",
+    "draw_structure",
     "draw_svg",
-    "render_colorbar",
 ]
 
 # Each public name is defined in a private module, which would otherwise show

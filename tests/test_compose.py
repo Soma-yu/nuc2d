@@ -1,45 +1,32 @@
 import ast
 import dataclasses
+import importlib
 import inspect
+import pkgutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
 import pytest
-import svgwrite
 
-import nuc2d._compose
-from nuc2d import BBox, draw_component, draw_svg, render_colorbar
-from nuc2d._compose import (
-    Component,
-    Scene,
+import nuc2d
+from nuc2d import (
+    BBox,
     Placement,
-    _ANCHOR_FRACTIONS,
-    _anchor_point,
-    _fit,
+    Scene,
     compose,
+    draw_colorbar,
+    draw_structure,
+    draw_svg,
 )
-from nuc2d._svg import definitions
+from nuc2d._compose import _ANCHOR_FRACTIONS, _anchor_point, fit
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
 PROBS = np.eye(9) * 0.4 + 0.3
 
 
-def as_component(make):
-    """Turn what the 1.x renderer draws into a component of the new layer.
-
-    ``make`` draws into the drawing it is given; the definitions it
-    registers there travel with the component.
-    """
-    drawing = svgwrite.Drawing()
-    part = make(drawing)
-    return Component(
-        bbox=part.bbox, _content=part.group, _definitions=definitions(drawing)
-    )
-
-
 def structure(dot_bracket="(((...)))", **kwargs):
-    return as_component(lambda d: draw_component(d, dot_bracket, **kwargs))
+    return draw_structure(dot_bracket, **kwargs)
 
 
 def count(svg_string, tag):
@@ -146,7 +133,7 @@ def first_tag(svg_string, tags):
 
 
 def test_compose_draws_in_order_of_z_index():
-    colorbar = as_component(lambda d: render_colorbar(d))  # draws a rect
+    colorbar = draw_colorbar()  # draws a rect
     plain = structure()  # draws circles, no rect
 
     def drawn_first(placements):
@@ -194,7 +181,7 @@ def test_a_composed_component_can_be_placed_again():
 def test_fit_occupies_exactly_the_slot(anchor):
     slot = BBox(-500.0, 0.0, 0.0, 500.0)
 
-    placement = _fit(structure(CLOVERLEAF), slot, anchor=anchor)
+    placement = fit(structure(CLOVERLEAF), slot, anchor=anchor)
 
     for got, want in zip(
         (placement.bbox.xmin, placement.bbox.ymin, placement.bbox.xmax, placement.bbox.ymax),
@@ -207,7 +194,7 @@ def test_fit_uses_the_largest_scale_that_fits():
     component = structure(CLOVERLEAF)
     slot = BBox(0.0, 0.0, 300.0, 1000.0)
 
-    placement = _fit(component, slot)
+    placement = fit(component, slot)
 
     assert placement.scale == pytest.approx(
         min(300.0 / component.bbox.width, 1000.0 / component.bbox.height)
@@ -219,7 +206,7 @@ def test_fit_aligns_the_component_by_its_anchor():
     component = structure(CLOVERLEAF)
     slot = BBox(0.0, 0.0, 2000.0, 500.0)  # much wider than the component
 
-    placement = _fit(component, slot, anchor="center right")
+    placement = fit(component, slot, anchor="center right")
 
     # The padded box is placed by its upper left corner, so the component's
     # own box lands at that corner plus its offset inside the padding.
@@ -235,21 +222,30 @@ def test_fit_aligns_the_component_by_its_anchor():
 
 def test_fit_refuses_what_has_no_area():
     with pytest.raises(ValueError):
-        _fit(compose([]), BBox(0.0, 0.0, 1.0, 1.0))
+        fit(compose([]), BBox(0.0, 0.0, 1.0, 1.0))
     with pytest.raises(ValueError):
-        _fit(structure(), BBox(0.0, 0.0, 0.0, 1.0))
+        fit(structure(), BBox(0.0, 0.0, 0.0, 1.0))
 
 
 # ---------------------------------------------------------------- Scene
 
 
-def test_a_scene_reproduces_draw_svg_byte_for_byte():
-    """The new layer writes exactly what the 1.x path writes."""
-    for kwargs in ({}, {"probs": PROBS}, {"probs": PROBS, "colorbar_label": None}):
-        expected = draw_svg("(((...)))", **kwargs).tostring()  # 1.x draw_svg
-        component = structure("(((...)))", **kwargs)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"probs": PROBS},
+        {"probs": PROBS, "colorbar_label": None},
+        {"probs": PROBS, "add_colorbar": False},
+        {"sequences": ["AUGCAUGCA"]},
+    ],
+)
+@pytest.mark.parametrize("size", [{}, {"width_px": 300.0}, {"height_px": 120.0}])
+def test_draw_svg_is_a_scene_of_draw_structure(kwargs, size):
+    """draw_svg(...) is Scene(draw_structure(...)), byte for byte."""
+    expected = Scene(draw_structure("(((...)))", **kwargs), **size).to_svg()
 
-        assert Scene(component).to_svg() == expected
+    assert draw_svg("(((...)))", **kwargs, **size).to_svg() == expected
 
 
 def test_a_scene_is_framed_on_the_component():
@@ -329,16 +325,15 @@ def test_a_scene_can_be_written_more_than_once():
 
 
 def test_the_colorbar_travels_with_its_gradient():
-    colorbar = as_component(lambda d: render_colorbar(d))
+    colorbar = draw_colorbar()
 
     assert count(Scene(colorbar).to_svg(), "linearGradient") == 1
 
 
-def test_the_composition_layer_does_not_know_how_svg_is_written():
-    """Only nuc2d._svg writes SVG, so that another way of writing it
-    changes that module alone."""
-    tree = ast.parse(inspect.getsource(nuc2d._compose))
-    imported = {
+def imports_of(module):
+    """Return the top-level names of every package a module imports."""
+    tree = ast.parse(inspect.getsource(module))
+    return {
         alias.name.split(".")[0]
         for node in ast.walk(tree)
         if isinstance(node, ast.Import)
@@ -346,7 +341,16 @@ def test_the_composition_layer_does_not_know_how_svg_is_written():
     } | {
         node.module.split(".")[0]
         for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom) and node.module
+        if isinstance(node, ast.ImportFrom) and node.module and node.level == 0
     }
 
-    assert "svgwrite" not in imported
+
+def test_only_the_svg_module_knows_how_svg_is_written():
+    """Writing SVG another way changes nuc2d._svg and no other module."""
+    importers = {
+        info.name
+        for info in pkgutil.iter_modules(nuc2d.__path__)
+        if "svgwrite" in imports_of(importlib.import_module(f"nuc2d.{info.name}"))
+    }
+
+    assert importers == {"_svg"}

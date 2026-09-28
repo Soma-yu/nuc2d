@@ -30,9 +30,9 @@ from nuc2d import draw_svg
 # A tRNA cloverleaf, split into two strands.
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
 
-drawing = draw_svg(dot_bracket=CLOVERLEAF)
+scene = draw_svg(dot_bracket=CLOVERLEAF)
 
-drawing.saveas("output.svg")
+scene.save_svg("output.svg")
 ```
 
 <p align="center">
@@ -43,13 +43,13 @@ Structures are written with `(` and `)` for the two halves of a base pair,
 `.` for an unpaired nucleotide, and `+` for a break between strands. An arrow
 marks each 3' terminus.
 
-In Jupyter Notebook or JupyterLab the result can be displayed directly:
+In Jupyter, a scene that ends a cell is displayed as it is:
 
 ```python
-from IPython.display import SVG, display
-
-display(SVG(drawing.tostring()))
+scene
 ```
+
+Anywhere else in a cell, `display(scene)` from `IPython.display` shows it.
 
 An input that is not a well-formed structure raises `ParseError`:
 
@@ -76,7 +76,7 @@ SEQUENCES = [
     "UCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA",
 ]
 
-drawing = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
+scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
 ```
 
 <p align="center">
@@ -89,7 +89,9 @@ raises `ValueError` rather than drawing something misleading.
 ## Equilibrium probability visualization
 
 Base-pair probabilities are visualized by passing a symmetric probability
-matrix through the `probs` argument. A colorbar is placed beside the structure.
+matrix through the `probs` argument. A colorbar is placed beside the structure,
+which is fitted into a square as tall as the colorbar, so that the colorbar
+keeps its size whatever the shape of the structure.
 
 `probs[i][j]` is how likely nucleotides `i` and `j` are to be paired with each
 other, and `probs[i][i]` how likely nucleotide `i` is to be left unpaired. A
@@ -114,7 +116,7 @@ for i, char in enumerate(flat):
 # Whatever is left over is the probability of staying unpaired.
 probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
 
-drawing = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs)
+scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs)
 ```
 
 <p align="center">
@@ -129,7 +131,7 @@ The colorbar is labelled `Equilibrium probability` unless another label is
 given:
 
 ```python
-drawing = draw_svg(
+scene = draw_svg(
     dot_bracket=CLOVERLEAF,
     probs=probs,
     colorbar_label="Pairing probability",
@@ -141,14 +143,14 @@ drawing = draw_svg(
 ## Output size
 
 ```python
-# One of the two: the other follows from the aspect ratio of the drawing.
-drawing = draw_svg(dot_bracket=CLOVERLEAF, width_px=600)
+# One of the two: the other follows from the aspect ratio of the structure.
+scene = draw_svg(dot_bracket=CLOVERLEAF, width_px=600)
 
 # Both: used as written.
-drawing = draw_svg(dot_bracket=CLOVERLEAF, width_px=600, height_px=600)
+scene = draw_svg(dot_bracket=CLOVERLEAF, width_px=600, height_px=600)
 ```
 
-Giving neither defaults the height to 500 px. Giving both keeps the drawing's
+Giving neither defaults the height to 500 px. Giving both keeps the structure's
 own proportions and centres it in the box, with space above and below or at
 the sides, rather than stretching it to fit.
 
@@ -163,7 +165,7 @@ import matplotlib as mpl
 
 from nuc2d import DrawingStyle, RadialLayoutEngine
 
-drawing = draw_svg(
+scene = draw_svg(
     dot_bracket=CLOVERLEAF,
     sequences=SEQUENCES,
     probs=probs,
@@ -187,55 +189,57 @@ drawing = draw_svg(
 Colors are written as SVG writes them: a name such as `crimson`, `#rgb` or
 `#rrggbb`, `rgb(r, g, b)`, or `none`. Dash patterns are `none` or lengths such
 as `4,2`. Anything else raises `ValueError` as soon as it is set, rather than
-when a drawing is made from the style.
+when something is drawn with the style.
 
 ## Combining several structures
 
-`draw_component` renders one structure into an SVG component without deciding
-where it goes, so several structures can share a single drawing. Each component
-carries the bounding box it occupies, and `compose` collects placed components
-into one group whose bounding box encloses them all.
+`draw_svg` draws one structure and frames it as a `Scene`. To put several
+parts in one picture, draw each as a component instead, place the components,
+and frame the result:
+
+- `draw_structure` takes the same arguments as `draw_svg`, less the size, and
+  returns the structure, with its colorbar if it has one, as a `Component`.
+  `draw_svg(...)` is `Scene(draw_structure(...))`.
+- `draw_colorbar` draws a colorbar on its own, for a structure drawn with
+  `add_colorbar=False`.
+- `Placement` says where a component goes and at what size, and `compose`
+  gathers placed components into a new one.
+- `Scene` frames a component, and is what is saved or shown.
 
 This is how the picture at the top of this page is drawn:
 
 ```python
-import svgwrite
-
-from nuc2d import Placement, compose, draw_component
-
-drawing = svgwrite.Drawing()
+from nuc2d import Placement, Scene, compose, draw_structure
 
 components = [
-    draw_component(drawing, dot_bracket=CLOVERLEAF),
-    draw_component(
-        drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs
-    ),
+    draw_structure(CLOVERLEAF),
+    draw_structure(CLOVERLEAF, sequences=SEQUENCES, probs=probs),
 ]
 
-# Lay the components out in a row, aligned on their tops, with a gap between.
+# Lay the components out in a row, all as tall as the first, with a gap between.
+height = components[0].bbox.height
 placements, cursor_x = [], 0.0
 for component in components:
-    box = component.bbox
-    placements.append(
-        Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
+    placement = Placement(
+        component=component, x=cursor_x, scale=height / component.bbox.height
     )
-    cursor_x += box.width + 20.0
+    placements.append(placement)
+    cursor_x = placement.bbox.xmax + 20.0
 
-panel = compose(drawing, placements)
-
-drawing.add(panel.group)
-drawing.viewbox(*panel.bbox.to_viewbox())
-drawing["width"] = f"{panel.bbox.width}px"
-drawing["height"] = f"{panel.bbox.height}px"
-drawing.saveas("panel.svg")
+Scene(compose(placements)).save_svg("panel.svg")
 ```
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="100%">
 </p>
 
-`Placement.x` and `Placement.y` say how far to move a component after scaling
-it, so aligning an edge means subtracting the scaled edge of its bounding box.
+`Placement` puts one point of a component at `x` and `y`, and scales the
+component about that point. The point is the upper left corner of the
+component's box unless `anchor` names another: one of `"upper left"`,
+`"upper center"`, `"upper right"`, `"center left"`, `"center"`,
+`"center right"`, `"lower left"`, `"lower center"` and `"lower right"`, or a
+pair of fractions of the box's width and height, such as `(0.5, 0.0)` for the
+middle of its top edge.
 
 ## Versioning
 

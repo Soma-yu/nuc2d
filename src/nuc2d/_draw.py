@@ -1,31 +1,61 @@
-"""High-level drawing interface for nucleic acid secondary structures.
+"""Drawing secondary structures, from a dot-bracket string to a scene.
 
-This module provides convenience functions for generating SVG drawings
-directly from secondary structure strings. Parsing, annotation,
-layout generation, and rendering are performed automatically.
+:func:`draw_structure` and :func:`draw_colorbar` each draw one component,
+for a caller to place with others. :func:`draw_svg` draws a structure and
+frames it as a scene in one call: ``draw_svg(...)`` is
+``Scene(draw_structure(...))``, with the same arguments.
 """
 
 import numpy as np
-import svgwrite
 
-from ._parser import parse
-from ._annotation import (
-    attach_sequences,
-    attach_equilibrium_probabilities,
-)
+from ._annotation import attach_equilibrium_probabilities, attach_sequences
+from ._compose import Component, Placement, Scene, fit, compose
+from ._geometry import BBox
 from ._layout import RadialLayoutEngine
+from ._parser import parse
 from ._style import DrawingStyle
-from ._svg import (
-    Placement,
-    SVGComponent,
-    render_structure,
-    render_colorbar,
-    compose,
-)
+from ._svg import Rendered, render_colorbar, render_structure
 
 
-def draw_component(
-    drawing: svgwrite.Drawing,
+# The structure beside a colorbar is fitted into a square as tall as the
+# colorbar, so that the colorbar keeps its own size whatever the shape of
+# the structure, and a very wide structure does not shrink it to a sliver.
+_STRUCTURE_SLOT_ASPECT_RATIO = 1.0
+
+
+def _component(rendered: Rendered) -> Component:
+    return Component(
+        bbox=rendered.bbox,
+        _content=rendered.content,
+        _definitions=rendered.definitions,
+    )
+
+
+def draw_colorbar(
+    *,
+    label: str | None = "Equilibrium probability",
+    style: DrawingStyle | None = None,
+) -> Component:
+    """Draw a colorbar for the probabilities a structure is colored by.
+
+    Parameters
+    ----------
+    label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, or None to leave it without
+        one. The colorbar occupies the same box either way, so colorbars
+        with and without a label line up.
+    style : DrawingStyle, optional
+        Drawing style. Its colormap and colorbar settings apply.
+
+    Returns
+    -------
+    Component
+        The colorbar, to be placed with :class:`Placement`.
+    """
+    return _component(render_colorbar(label=label, style=style))
+
+
+def draw_structure(
     dot_bracket: str,
     *,
     sequences: list[str] | None = None,
@@ -34,28 +64,26 @@ def draw_component(
     layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = "Equilibrium probability",
     add_colorbar: bool = True,
-) -> SVGComponent:
-    """Generate an SVG component from a secondary structure string.
+) -> Component:
+    """Draw a secondary structure as a component.
 
     Parameters
     ----------
-    drawing : svgwrite.Drawing
-        The target SVG drawing instance used for element factory and defs
-        registration. The component is not added to the drawing; the
-        caller decides where it goes.
     dot_bracket : str
         A secondary structure written with ``(`` and ``)`` for the two
         halves of a base pair, ``.`` for an unpaired nucleotide, and ``+``
         for a break between strands.
     sequences : list[str], optional
-        A list of sequences corresponding to the structure.
+        Nucleotide sequences, one per strand, in the order the strands
+        appear in the structure.
     probs : ndarray, optional
         Base-pair probability matrix: ``probs[i][j]`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
         ``probs[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
-        When given, a colorbar is placed beside the structure.
+        When given, each nucleotide is colored by it, and a colorbar is
+        set beside the structure.
     style : DrawingStyle, optional
-        Drawing style configuration.
+        Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
@@ -64,72 +92,52 @@ def draw_component(
         one. Has no effect unless ``probs`` is given, since the colorbar is
         drawn only then.
     add_colorbar : bool, default=True
-        Whether to place a colorbar beside the structure. Passing False
-        colors the nucleotides from ``probs`` but leaves the colorbar out,
-        for a caller placing one of its own with
-        :func:`~nuc2d.render_colorbar`. The colorbar placed here is as
-        tall as the structure, which is a poor fit for a structure much
-        wider than it is tall.
+        Whether to set a colorbar beside the structure when ``probs`` is
+        given. Passing False colors the nucleotides but leaves the
+        colorbar out, for a caller placing one of its own from
+        :func:`~nuc2d.draw_colorbar`.
 
     Returns
     -------
-    SVGComponent
-        The generated SVG group together with the bounding box it
-        occupies, in the coordinate system the component was drawn in.
+    Component
+        The structure, with its colorbar if one is drawn, to be placed
+        with :class:`Placement` or shown with :class:`Scene`.
 
     Raises
     ------
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
-    """
-    # Parse the secondary structure string.
-    root_loop = parse(dot_bracket)
+    ValueError
+        If ``sequences`` or ``probs`` does not match the structure.
 
-    # Attach sequence and probability annotations.
+    Notes
+    -----
+    With a colorbar, the structure is fitted into a square as tall as the
+    colorbar and centred in it. The colorbar keeps its own size, so that
+    it stays legible beside a structure of any shape, and every structure
+    drawn this way takes the same room.
+    """
+    root_loop = parse(dot_bracket)
     if sequences is not None:
         attach_sequences(root_loop, sequences)
     if probs is not None:
         attach_equilibrium_probabilities(root_loop, probs)
 
-    # Compute nucleotide positions and drawing geometry.
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
-    layout_result = engine.layout(root_loop)
+    structure = _component(render_structure(engine.layout(root_loop), style=style))
 
-    # Render the secondary structure as an independent SVG component.
-    structure = render_structure(
-        drawing,
-        layout_result,
-        style=style,
+    if probs is None or not add_colorbar:
+        return structure
+
+    colorbar = draw_colorbar(label=colorbar_label, style=style)
+    bar = colorbar.bbox
+    slot = BBox(
+        bar.xmin - bar.height * _STRUCTURE_SLOT_ASPECT_RATIO,
+        bar.ymin,
+        bar.xmin,
+        bar.ymax,
     )
-    placements = [
-        Placement(
-            component=structure,
-            x=0.0,
-            y=0.0,
-            scale=1.0,
-        )
-    ]
-
-    # Add a colorbar when the nucleotides are colored by probability.
-    if probs is not None and add_colorbar:
-        colorbar = render_colorbar(
-            drawing,
-            label=colorbar_label,
-            style=style,
-        )
-        # Match colorbar height to the structure height, and set it beside
-        # the structure's right edge.
-        placements.append(
-            Placement(
-                component=colorbar,
-                x=structure.bbox.xmax,
-                y=structure.bbox.ymin,
-                scale=structure.bbox.height / colorbar.bbox.height,
-            )
-        )
-
-    # Compose all positioned components into a single SVG group.
-    return compose(drawing, placements)
+    return compose([fit(structure, slot), Placement(component=colorbar)])
 
 
 def draw_svg(
@@ -143,8 +151,12 @@ def draw_svg(
     add_colorbar: bool = True,
     width_px: float | None = None,
     height_px: float | None = None,
-) -> svgwrite.Drawing:
-    """Generate an SVG drawing from a secondary structure string.
+) -> Scene:
+    """Draw a secondary structure as a scene, ready to save or show.
+
+    ``draw_svg(...)`` is ``Scene(draw_structure(...))``: the arguments up
+    to ``add_colorbar`` are those of :func:`draw_structure`, and the last
+    two those of :class:`Scene`.
 
     Parameters
     ----------
@@ -153,48 +165,47 @@ def draw_svg(
         halves of a base pair, ``.`` for an unpaired nucleotide, and ``+``
         for a break between strands.
     sequences : list[str], optional
-        A list of sequences corresponding to the structure.
+        Nucleotide sequences, one per strand, in the order the strands
+        appear in the structure.
     probs : ndarray, optional
         Base-pair probability matrix: ``probs[i][j]`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
-        ``probs[i][i]`` how likely nucleotide ``i`` is to be left
-        unpaired.
+        ``probs[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
     style : DrawingStyle, optional
-        Drawing style configuration.
+        Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, or None to leave it without
-        one. Has no effect unless ``probs`` is given, since the colorbar is
-        drawn only then.
+        one. Has no effect unless ``probs`` is given.
     add_colorbar : bool, default=True
-        Whether to place a colorbar beside the structure.
+        Whether to set a colorbar beside the structure when ``probs`` is
+        given.
     width_px : float, optional
-        Width of the final SVG output (in pixels).
-        If specified without height_px, height is calculated automatically to maintain aspect ratio.
+        Width of the scene in pixels. Given alone, the height follows
+        from the proportions of the structure.
     height_px : float, optional
-        Height of the final SVG output (in pixels).
-        If specified without width_px, width is calculated automatically to maintain aspect ratio.
-        If both width_px and height_px are None, height_px defaults to 500.0.
+        Height of the scene in pixels. Given alone, the width follows.
+        Giving neither sets the height to 500.
 
     Returns
     -------
-    svgwrite.Drawing
-        Generated SVG drawing.
+    Scene
+        The structure, framed and sized. Save it with
+        :meth:`Scene.save_svg`; in Jupyter, a scene that ends a cell is
+        displayed as it is.
 
     Raises
     ------
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
+    ValueError
+        If ``sequences`` or ``probs`` does not match the structure, or a
+        size is not a positive number.
     """
-    # Create the root SVG drawing container.
-    drawing = svgwrite.Drawing()
-
-    # Generate the component and add it to the drawing.
-    component = draw_component(
-        drawing=drawing,
-        dot_bracket=dot_bracket,
+    component = draw_structure(
+        dot_bracket,
         sequences=sequences,
         probs=probs,
         style=style,
@@ -202,25 +213,4 @@ def draw_svg(
         colorbar_label=colorbar_label,
         add_colorbar=add_colorbar,
     )
-    drawing.add(component.group)
-
-    # Frame the drawing on exactly the area the component occupies.
-    bbox = component.bbox
-    drawing.viewbox(*bbox.to_viewbox())
-
-    # Calculate missing dimension to maintain aspect ratio
-    aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
-
-    # Both dimensions are None -> Fallback to default height (500.0px)
-    if width_px is None and height_px is None:
-        height_px = 500.0
-
-    if width_px is not None and height_px is None:
-        height_px = width_px / aspect_ratio
-    elif width_px is None and height_px is not None:
-        width_px = height_px * aspect_ratio
-
-    drawing["width"] = f"{width_px}px"
-    drawing["height"] = f"{height_px}px"
-
-    return drawing
+    return Scene(component, width_px=width_px, height_px=height_px)

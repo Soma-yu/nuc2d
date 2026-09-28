@@ -15,15 +15,15 @@ from pathlib import Path
 import cairosvg
 import matplotlib as mpl
 import numpy as np
-import svgwrite
 
 from nuc2d import (
+    Component,
     DrawingStyle,
     Placement,
     RadialLayoutEngine,
-    SVGComponent,
+    Scene,
     compose,
-    draw_component,
+    draw_structure,
     draw_svg,
 )
 
@@ -68,34 +68,25 @@ def demo_probs(dot_bracket: str) -> np.ndarray:
 PROBS = demo_probs(CLOVERLEAF)
 
 
-def row(
-    drawing: svgwrite.Drawing,
-    components: list[SVGComponent],
-    gap: float,
-) -> svgwrite.Drawing:
-    """Lay components out left to right, aligned on their tops."""
+def row(components: list[Component], gap: float) -> Scene:
+    """Lay components out left to right, all as tall as the first."""
+    height = components[0].bbox.height
     placements = []
     cursor_x = 0.0
     for component in components:
-        box = component.bbox
-        placements.append(
-            Placement(component=component, x=cursor_x - box.xmin, y=-box.ymin)
+        placement = Placement(
+            component=component, x=cursor_x, scale=height / component.bbox.height
         )
-        cursor_x += box.width + gap
+        placements.append(placement)
+        cursor_x = placement.bbox.xmax + gap
 
-    panel = compose(drawing, placements)
-
-    drawing.add(panel.group)
-    drawing.viewbox(*panel.bbox.to_viewbox())
-    drawing["width"] = f"{panel.bbox.width}px"
-    drawing["height"] = f"{panel.bbox.height}px"
-    return drawing
+    return Scene(compose(placements))
 
 
-def write(drawing: svgwrite.Drawing, name: str) -> None:
-    """Write one drawing as both SVG and PNG."""
+def write(scene: Scene, name: str) -> None:
+    """Write one scene as both SVG and PNG."""
     svg_path = IMAGES / f"{name}.svg"
-    drawing.saveas(str(svg_path))
+    scene.save_svg(svg_path)
     cairosvg.svg2png(
         url=str(svg_path),
         write_to=str(IMAGES / f"{name}.png"),
@@ -105,40 +96,37 @@ def write(drawing: svgwrite.Drawing, name: str) -> None:
     print(f"wrote {name}.svg and {name}.png")
 
 
-def example() -> svgwrite.Drawing:
-    """The drawing at the top of the README: the same structure twice.
+def example() -> Scene:
+    """The picture at the top of the README: the same structure twice.
 
     Two rather than three, because a third would shrink each of them by
     almost half and the bases would stop being legible.
     """
-    drawing = svgwrite.Drawing()
-
-    components = [
-        draw_component(drawing, dot_bracket=CLOVERLEAF),
-        draw_component(
-            drawing, dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS
-        ),
-    ]
-
-    return row(drawing, components, gap=20.0)
+    return row(
+        [
+            draw_structure(CLOVERLEAF),
+            draw_structure(CLOVERLEAF, sequences=SEQUENCES, probs=PROBS),
+        ],
+        gap=20.0,
+    )
 
 
-def structure() -> svgwrite.Drawing:
+def structure() -> Scene:
     """The quick start: a structure on its own."""
     return draw_svg(dot_bracket=CLOVERLEAF)
 
 
-def sequences() -> svgwrite.Drawing:
+def sequences() -> Scene:
     """Sequence annotation: the same structure with its bases."""
     return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
 
 
-def probabilities() -> svgwrite.Drawing:
+def probabilities() -> Scene:
     """Equilibrium probabilities: the same structure, coloured."""
     return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS)
 
 
-def styling() -> svgwrite.Drawing:
+def styling() -> Scene:
     """The settings the README's style example uses."""
     return draw_svg(
         dot_bracket=CLOVERLEAF,

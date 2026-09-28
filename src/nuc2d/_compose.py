@@ -192,7 +192,7 @@ class Placement:
         )
 
 
-def _fit(
+def fit(
     component: Component,
     slot: BBox,
     *,

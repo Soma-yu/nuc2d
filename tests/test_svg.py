@@ -8,8 +8,26 @@ import numpy as np
 import pytest
 import svgwrite
 
-from nuc2d import draw_component, draw_svg
-from nuc2d._style import DrawingStyle
+from nuc2d import (
+    DrawingStyle,
+    Placement,
+    RadialLayoutEngine,
+    Scene,
+    compose,
+    draw_colorbar,
+    draw_structure,
+    draw_svg,
+)
+
+
+def side_by_side(components):
+    """Place components in a row, each to the right of the last."""
+    placements, cursor_x = [], 0.0
+    for component in components:
+        placement = Placement(component=component, x=cursor_x)
+        placements.append(placement)
+        cursor_x = placement.bbox.xmax
+    return Scene(compose(placements))
 
 
 def collect_ids(svg_string):
@@ -30,7 +48,7 @@ PROBS = np.eye(9) * 0.4 + 0.3
 
 
 def test_ids_are_unique_within_one_drawing():
-    svg = draw_svg("(((...)))", probs=PROBS).tostring()
+    svg = draw_svg("(((...)))", probs=PROBS).to_svg()
 
     ids = collect_ids(svg)
 
@@ -38,30 +56,24 @@ def test_ids_are_unique_within_one_drawing():
     assert [i for i, n in Counter(ids).items() if n > 1] == []
 
 
-def test_ids_stay_unique_across_several_groups_in_one_drawing():
-    drawing = svgwrite.Drawing()
+def test_ids_stay_unique_across_several_components_in_one_scene():
+    scene = side_by_side([draw_structure("(((...)))", probs=PROBS) for _ in range(3)])
 
-    for _ in range(3):
-        component = draw_component(drawing, "(((...)))", probs=PROBS)
-        drawing.add(component.group)
-
-    ids = collect_ids(drawing.tostring())
+    ids = collect_ids(scene.to_svg())
 
     assert [i for i, n in Counter(ids).items() if n > 1] == []
 
 
 def test_differing_styles_get_their_own_definitions():
-    drawing = svgwrite.Drawing()
+    scene = side_by_side([
+        draw_structure("(((...)))", probs=PROBS, style=style)
+        for style in [
+            DrawingStyle(backbone_color="black", cmap=mpl.colormaps["turbo"]),
+            DrawingStyle(backbone_color="red", cmap=mpl.colormaps["viridis"]),
+        ]
+    ])
 
-    for style in [
-        DrawingStyle(backbone_color="black", cmap=mpl.colormaps["turbo"]),
-        DrawingStyle(backbone_color="red", cmap=mpl.colormaps["viridis"]),
-    ]:
-        component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
-        drawing.add(component.group)
-
-    svg = drawing.tostring()
-    ids = collect_ids(svg)
+    ids = collect_ids(scene.to_svg())
 
     assert [i for i, n in Counter(ids).items() if n > 1] == []
     assert len([i for i in ids if i.startswith("arrowhead-")]) == 2
@@ -69,29 +81,21 @@ def test_differing_styles_get_their_own_definitions():
 
 
 def test_identical_styles_share_one_definition():
-    drawing = svgwrite.Drawing()
+    scene = side_by_side([draw_structure("(((...)))", probs=PROBS) for _ in range(3)])
 
-    for _ in range(3):
-        component = draw_component(drawing, "(((...)))", probs=PROBS)
-        drawing.add(component.group)
-
-    ids = collect_ids(drawing.tostring())
+    ids = collect_ids(scene.to_svg())
 
     assert len([i for i in ids if i.startswith("arrowhead-")]) == 1
     assert len([i for i in ids if i.startswith("colorbar-gradient-")]) == 1
 
 
 def test_every_reference_resolves():
-    drawing = svgwrite.Drawing()
+    scene = side_by_side([
+        draw_structure("(((...)))", probs=PROBS, style=DrawingStyle(backbone_color=color))
+        for color in ["black", "red"]
+    ])
 
-    for style in [
-        DrawingStyle(backbone_color="black"),
-        DrawingStyle(backbone_color="red"),
-    ]:
-        component = draw_component(drawing, "(((...)))", probs=PROBS, style=style)
-        drawing.add(component.group)
-
-    svg = drawing.tostring()
+    svg = scene.to_svg()
 
     assert set(collect_references(svg)) <= set(collect_ids(svg))
 
@@ -101,14 +105,13 @@ def test_every_reference_resolves():
     ["(((...)))", "(((..+...)))", ".....", "((..((...))..))"],
 )
 def test_output_is_well_formed_xml(dot_bracket):
-    ET.fromstring(draw_svg(dot_bracket).tostring())
+    ET.fromstring(draw_svg(dot_bracket).to_svg())
 
 
 def test_viewbox_frames_exactly_the_component():
-    drawing = svgwrite.Drawing()
-    component = draw_component(drawing, "..(((...)))..", probs=None)
+    component = draw_structure("..(((...)))..")
 
-    svg = draw_svg("..(((...)))..").tostring()
+    svg = draw_svg("..(((...)))..").to_svg()
     viewbox = ET.fromstring(svg).attrib["viewBox"]
 
     assert [float(v) for v in viewbox.replace(",", " ").split()] == list(
@@ -116,14 +119,22 @@ def test_viewbox_frames_exactly_the_component():
     )
 
 
-def test_colorbar_sits_beside_the_structure():
-    drawing = svgwrite.Drawing()
+def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
+    """The structure is fitted to the colorbar, not the colorbar to it.
 
-    without = draw_component(drawing, "(((...)))")
-    with_bar = draw_component(svgwrite.Drawing(), "(((...)))", probs=PROBS)
+    A colorbar scaled to the structure shrank to a sliver beside a wide
+    one. Fitted into a square as tall as the colorbar, a structure of any
+    shape leaves the colorbar its own size.
+    """
+    colorbar = draw_colorbar().bbox
 
-    assert with_bar.bbox.width > without.bbox.width
-    assert with_bar.bbox.height == pytest.approx(without.bbox.height)
+    for dot_bracket in ["(((...)))", "." * 40, "((((....))))" * 3]:
+        with_bar = draw_structure(
+            dot_bracket, probs=np.eye(len(dot_bracket)) * 0.5
+        ).bbox
+
+        assert with_bar.height == pytest.approx(colorbar.height)
+        assert with_bar.width == pytest.approx(colorbar.height + colorbar.width)
 
 
 def collect_texts(svg_string):
@@ -136,7 +147,7 @@ def collect_texts(svg_string):
 
 
 def test_colorbar_carries_a_default_label():
-    svg = draw_svg("(((...)))", probs=PROBS).tostring()
+    svg = draw_svg("(((...)))", probs=PROBS).to_svg()
 
     assert "Equilibrium probability" in collect_texts(svg)
 
@@ -144,7 +155,7 @@ def test_colorbar_carries_a_default_label():
 def test_colorbar_label_is_configurable():
     svg = draw_svg(
         "(((...)))", probs=PROBS, colorbar_label="Unpaired probability"
-    ).tostring()
+    ).to_svg()
 
     texts = collect_texts(svg)
 
@@ -153,8 +164,8 @@ def test_colorbar_label_is_configurable():
 
 
 def test_colorbar_label_none_leaves_the_label_out():
-    labelled = draw_svg("(((...)))", probs=PROBS).tostring()
-    unlabelled = draw_svg("(((...)))", probs=PROBS, colorbar_label=None).tostring()
+    labelled = draw_svg("(((...)))", probs=PROBS).to_svg()
+    unlabelled = draw_svg("(((...)))", probs=PROBS, colorbar_label=None).to_svg()
 
     assert "Equilibrium probability" not in collect_texts(unlabelled)
     assert len(collect_texts(unlabelled)) == len(collect_texts(labelled)) - 1
@@ -162,94 +173,49 @@ def test_colorbar_label_none_leaves_the_label_out():
 
 def test_colorbar_keeps_its_box_without_a_label():
     """So colorbars with and without a label line up when placed."""
-    from nuc2d import render_colorbar
-
-    labelled = render_colorbar(svgwrite.Drawing())
-    unlabelled = render_colorbar(svgwrite.Drawing(), label=None)
-
-    assert unlabelled.bbox == labelled.bbox
+    assert draw_colorbar(label=None).bbox == draw_colorbar().bbox
 
 
 def test_colorbar_label_is_ignored_without_probabilities():
     with_label = draw_svg("(((...)))", colorbar_label="Unpaired probability")
 
-    assert with_label.tostring() == draw_svg("(((...)))").tostring()
+    assert with_label.to_svg() == draw_svg("(((...)))").to_svg()
 
 
 def test_the_colorbar_can_be_left_out():
     """probs colors the nucleotides; the colorbar beside them is optional."""
-    drawing = svgwrite.Drawing()
-
-    with_bar = draw_component(drawing, "(((...)))", probs=PROBS)
-    without_bar = draw_component(svgwrite.Drawing(), "(((...)))", probs=PROBS,
-                                 add_colorbar=False)
-    plain = draw_component(svgwrite.Drawing(), "(((...)))")
+    with_bar = draw_structure("(((...)))", probs=PROBS)
+    without_bar = draw_structure("(((...)))", probs=PROBS, add_colorbar=False)
+    plain = draw_structure("(((...)))")
 
     # The structure itself is unchanged; only the colorbar beside it is gone.
-    assert without_bar.bbox.width == pytest.approx(plain.bbox.width)
+    assert without_bar.bbox == plain.bbox
     assert without_bar.bbox.width < with_bar.bbox.width
     assert "Equilibrium probability" not in collect_texts(
-        draw_svg("(((...)))", probs=PROBS, add_colorbar=False).tostring()
+        draw_svg("(((...)))", probs=PROBS, add_colorbar=False).to_svg()
     )
 
 
 def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     """The point of leaving it out: size it against something else."""
-    from nuc2d import Placement, compose, render_colorbar
+    structure = draw_structure("(((...)))", probs=PROBS, add_colorbar=False)
+    colorbar = draw_colorbar()
 
-    drawing = svgwrite.Drawing()
-    structure = draw_component(drawing, "(((...)))", probs=PROBS, add_colorbar=False)
-    colorbar = render_colorbar(drawing)
-
-    panel = compose(drawing, [
-        Placement(component=structure, x=0.0, y=0.0, scale=1.0),
-        Placement(component=colorbar, x=structure.bbox.xmax, y=0.0, scale=0.5),
+    placed = Placement(component=structure)
+    panel = compose([
+        placed,
+        Placement(
+            component=colorbar,
+            x=placed.bbox.xmax,
+            y=placed.bbox.center_y,
+            anchor="center left",
+            scale=0.5,
+        ),
     ])
 
     assert panel.bbox.width == pytest.approx(
         structure.bbox.width + colorbar.bbox.width * 0.5
     )
-
-
-def test_compose_takes_the_drawing_and_makes_the_group_itself():
-    """The group is compose's to make, so the caller cannot get it wrong."""
-    from nuc2d import Placement, compose
-
-    drawing = svgwrite.Drawing()
-    component = draw_component(drawing, "(((...)))")
-
-    panel = compose(drawing, [Placement(component=component)])
-
-    assert isinstance(panel.group, svgwrite.container.Group)
-    assert panel.group is not drawing
-    assert panel.bbox == component.bbox
-
-
-def test_compose_says_what_to_do_when_given_a_group():
-    """Up to 1.1.0 it took the group, so the old call has to be caught."""
-    from nuc2d import Placement, compose
-
-    drawing = svgwrite.Drawing()
-    component = draw_component(drawing, "(((...)))")
-
-    with pytest.raises(TypeError) as excinfo:
-        compose(drawing.g(), [Placement(component=component)])
-
-    assert "compose(drawing, placements)" in str(excinfo.value)
-
-
-def test_every_group_compose_makes_follows_the_drawing():
-    """A tree with two settings in it is a tree with a seam in it."""
-    from nuc2d import Placement, compose
-
-    drawing = svgwrite.Drawing(debug=False)
-    component = draw_component(drawing, "(((...)))")
-
-    panel = compose(drawing, [Placement(component=component)])
-    wrapper = panel.group.elements[0]
-
-    assert (panel.group.debug, panel.group.profile) == (False, drawing.profile)
-    assert (wrapper.debug, wrapper.profile) == (False, drawing.profile)
 
 
 def test_a_size_is_read_from_a_bounding_box():
@@ -259,12 +225,11 @@ def test_a_size_is_read_from_a_bounding_box():
     how tall follows from that. Repeating the two on the objects gave the
     same numbers a second spelling, which callers then mixed.
     """
-    from nuc2d import Placement
-
-    component = draw_component(svgwrite.Drawing(), "(((...)))")
+    component = draw_structure("(((...)))")
     placement = Placement(component=component, x=3.0, y=4.0, scale=2.0)
+    scene = Scene(component)
 
-    for obj in (component, placement):
+    for obj in (component, placement, scene):
         assert not hasattr(obj, "width")
         assert not hasattr(obj, "height")
 
@@ -278,7 +243,7 @@ def test_the_sequence_reaches_the_drawing():
     Each base is written twice, once outlined and once filled, so that the
     letter stays readable over any node color.
     """
-    svg = draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"]).tostring()
+    svg = draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"]).to_svg()
 
     letters = [text for text in collect_texts(svg) if text in set("ACGU")]
 
@@ -294,11 +259,8 @@ def test_the_sequence_reaches_the_drawing():
 
 
 def test_layout_engine_is_configurable():
-    from nuc2d._layout import RadialLayoutEngine
-
-    default = draw_component(svgwrite.Drawing(), "(((...)))")
-    wider = draw_component(
-        svgwrite.Drawing(),
+    default = draw_structure("(((...)))")
+    wider = draw_structure(
         "(((...)))",
         layout_engine=RadialLayoutEngine(backbone_spacing=30),
     )
@@ -326,13 +288,13 @@ def test_the_three_prime_arrow_length_is_a_style_setting():
     lives with the other style settings rather than on the decoration.
     """
     assert collect_arrow_lengths(
-        draw_svg("(((..+...)))").tostring()
+        draw_svg("(((..+...)))").to_svg()
     ) == pytest.approx([7.0, 7.0])
 
     assert collect_arrow_lengths(
         draw_svg(
             "(((..+...)))", style=DrawingStyle(three_prime_arrow_length=15.0)
-        ).tostring()
+        ).to_svg()
     ) == pytest.approx([15.0, 15.0])
 
 
@@ -345,7 +307,7 @@ def test_something_the_renderer_cannot_draw_says_so():
     """
     from dataclasses import dataclass
 
-    from nuc2d._layout import Decoration, Edge, EdgeType, RadialLayoutEngine
+    from nuc2d._layout import Decoration, Edge, EdgeType
     from nuc2d._parser import parse
     from nuc2d._svg import SVGRenderer
 
@@ -376,7 +338,7 @@ def test_the_dash_pattern_reaches_the_whole_backbone():
         draw_svg(
             "((..((...))..))",
             style=DrawingStyle(backbone_dasharray="6,3", basepair_dasharray="1,4"),
-        ).tostring()
+        ).to_svg()
     )
 
     dashes = Counter()
@@ -409,7 +371,7 @@ def test_the_backbone_and_the_base_pairs_take_their_own_colors():
         draw_svg(
             "(((...)))",
             style=DrawingStyle(backbone_color="crimson", basepair_color="steelblue"),
-        ).tostring()
+        ).to_svg()
     )
 
     strokes = Counter(
@@ -440,7 +402,7 @@ def test_arrowhead_marker_carries_its_own_coordinate_system():
     cairosvg stretches it to fill the viewport. Declaring a viewBox as
     large as the viewport settles it at a scale of one.
     """
-    svg = draw_svg("(((...)))").tostring()
+    svg = draw_svg("(((...)))").to_svg()
 
     marker = ET.fromstring(svg).find(".//{*}marker")
 
@@ -456,7 +418,7 @@ def test_arrowhead_marker_carries_its_own_coordinate_system():
 
 
 def test_output_is_reproducible():
-    first = draw_svg("(((...)))", probs=PROBS).tostring()
-    second = draw_svg("(((...)))", probs=PROBS).tostring()
+    first = draw_svg("(((...)))", probs=PROBS).to_svg()
+    second = draw_svg("(((...)))", probs=PROBS).to_svg()
 
     assert first == second

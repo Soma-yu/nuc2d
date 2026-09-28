@@ -1,17 +1,22 @@
-"""SVG rendering utilities for secondary structure visualization.
+"""Everything nuc2d writes as SVG.
 
-This module provides functions for rendering secondary structures
-and related graphical elements as reusable SVG components. Individual
-components can be positioned, scaled, and combined into a complete SVG
-drawing using the composition utilities defined in this module.
+This module draws a laid-out structure and a colorbar as SVG, and does
+the few things composition needs done in SVG: moving and scaling a part,
+gathering parts, and writing the finished document. It is the only
+module that knows how SVG is written, so that writing it another way
+changes this module and no other.
+
+Each part is drawn into a drawing of its own, and handed back together
+with the definitions it registered there, such as an arrowhead or a
+gradient, so that whoever writes the document can write each of them
+once.
 """
 
 import hashlib
 import os
-from dataclasses import dataclass
 from functools import reduce
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import matplotlib as mpl
@@ -84,76 +89,23 @@ def _ensure_def(
     drawing.defs.add(build())
 
 
-@dataclass(frozen=True, kw_only=True)
-class SVGComponent:
-    """SVG component defined in its own local coordinate system.
-
-    Parameters
-    ----------
-    group : svgwrite.container.Group
-        SVG group containing the graphical elements of the component.
-    bbox : BBox
-        Extent of the component in its own local coordinate system. Its
-        ``width`` and ``height`` give the size of the component.
-
-    Notes
-    -----
-    The component itself does not store placement information.
-    Positioning and scaling are handled by :class:`Placement` and
-    applied during composition.
-    """
-
-    group: svgwrite.container.Group
-    bbox: BBox
-
-
-@dataclass(frozen=True, kw_only=True)
-class Placement:
-    """Where a component goes in a composed drawing.
-
-    Parameters
-    ----------
-    component : SVGComponent
-        Component being placed.
-    x : float, default=0.0
-        Where the component's own ``(0, 0)`` lands along the x-axis, after
-        scaling. To put a known edge of the component in a known place,
-        subtract the scaled edge:
-        ``x = target - component.bbox.xmin * scale``.
-    y : float, default=0.0
-        Where the component's own ``(0, 0)`` lands along the y-axis, after
-        scaling. See ``x``.
-    scale : float, default=1.0
-        Uniform scaling factor applied to the component.
-    z_index : int, default=0
-        Drawing order of the component. Components with smaller values
-        are rendered first.
+class Rendered(NamedTuple):
+    """What a renderer made: a part, its extent, and its definitions.
 
     Attributes
     ----------
+    content : svgwrite.container.Group
+        The drawn part.
     bbox : BBox
-        Extent of the component in the composed drawing, after placement.
-        Its ``width`` and ``height`` give the size of the component once
-        scaled.
-
-    Notes
-    -----
-    The placement corresponds to the SVG transform
-    ``translate(x, y) scale(scale)``, which scales about the origin of the
-    component's own coordinate system and then moves the result, so
-    :attr:`bbox` applies the two in that order.
+        Extent of the part in its own coordinate system.
+    definitions : tuple
+        The definitions the part refers to, such as an arrowhead marker
+        or a gradient, which the document has to contain.
     """
 
-    component: SVGComponent
-    x: float = 0.0
-    y: float = 0.0
-    scale: float = 1.0
-    z_index: int = 0
-
-    @property
-    def bbox(self) -> BBox:
-        """Extent of the component in the composed drawing."""
-        return self.component.bbox.scaled(self.scale).translated(self.x, self.y)
+    content: Any
+    bbox: BBox
+    definitions: tuple[Any, ...]
 
 
 class SVGRenderer:
@@ -406,13 +358,12 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         layout_result: LayoutResult,
-    ) -> SVGComponent:
-        """Render a secondary structure as an SVG component.
+    ) -> tuple[Any, BBox]:
+        """Render a secondary structure as an SVG group and its extent.
 
         The elements are drawn at the coordinates the layout produced,
-        without being moved to the origin first. The component's bounding
-        box records where they actually are, and composition places the
-        component from there.
+        without being moved to the origin first. The bounding box records
+        where they actually are, and placement works from there.
         """
 
         group = drawing.g()
@@ -452,15 +403,15 @@ class SVGRenderer:
                 )
             )
 
-        return SVGComponent(group=group, bbox=bbox)
+        return group, bbox
 
     def render_colorbar(
         self,
         drawing: svgwrite.Drawing,
         *,
         label: str | None = "Equilibrium probability",
-    ) -> SVGComponent:
-        """Render a colorbar as an SVG component.
+    ) -> tuple[Any, BBox]:
+        """Render a colorbar as an SVG group and its extent.
 
         With ``label=None`` the label is left out. The box keeps the space
         it would have taken, so colorbars with and without one line up.
@@ -553,129 +504,57 @@ class SVGRenderer:
                 )
             )
 
-        return SVGComponent(
-            group=group,
-            bbox=BBox(0.0, 0.0, vb_width, vb_height),
-        )
+        return group, BBox(0.0, 0.0, vb_width, vb_height)
 
 
 def render_structure(
-    drawing: svgwrite.Drawing,
     layout_result: LayoutResult,
     *,
     style: DrawingStyle | None = None,
-) -> SVGComponent:
-    """Render a secondary structure as an SVG component.
+) -> Rendered:
+    """Render a laid-out secondary structure.
 
     Parameters
     ----------
-    drawing : svgwrite.Drawing
-        Drawing object used to create SVG elements and definitions.
     layout_result : LayoutResult
-        Layout result describing the geometry of the secondary
-        structure.
+        Geometry of the structure.
     style : DrawingStyle, optional
-        Drawing style controlling colors, sizes, and line widths.
+        Appearance settings. Defaults to ``DrawingStyle()``.
 
     Returns
     -------
-    SVGComponent
-        SVG component containing the rendered secondary structure.
+    Rendered
+        The drawn structure, its extent, and its definitions.
     """
-    renderer = SVGRenderer(style=style)
-    return renderer.render_structure(
-        drawing, layout_result,
-    )
+    drawing = svgwrite.Drawing()
+    content, bbox = SVGRenderer(style=style).render_structure(drawing, layout_result)
+    return Rendered(content, bbox, definitions(drawing))
 
 
 def render_colorbar(
-    drawing: svgwrite.Drawing,
     *,
     label: str | None = "Equilibrium probability",
     style: DrawingStyle | None = None,
-) -> SVGComponent:
-    """Render a colorbar as an SVG component.
+) -> Rendered:
+    """Render a colorbar.
 
     Parameters
     ----------
-    drawing : svgwrite.Drawing
-        Drawing object used to create SVG elements and definitions.
     label : str or None, default="Equilibrium probability"
-        Label displayed alongside the colorbar, or None to leave it
-        without one. The colorbar occupies the same box either way.
+        Label written alongside the colorbar, or None to leave it without
+        one. The colorbar occupies the same box either way.
     style : DrawingStyle, optional
-        Drawing style providing the colormap used for rendering.
+        Appearance settings, including the colormap. Defaults to
+        ``DrawingStyle()``.
 
     Returns
     -------
-    SVGComponent
-        SVG component containing the rendered colorbar.
+    Rendered
+        The drawn colorbar, its extent, and its definitions.
     """
-    renderer = SVGRenderer(style=style)
-    return renderer.render_colorbar(
-        drawing, label=label,
-    )
-
-
-def compose(
-    drawing: svgwrite.Drawing,
-    placements: Sequence[Placement],
-) -> SVGComponent:
-    """Compose positioned SVG components into a single group.
-
-    Parameters
-    ----------
-    drawing : svgwrite.Drawing
-        The drawing the components were drawn into. Every group made here
-        comes from it, so the composed tree carries the drawing's own
-        settings throughout, and the components keep reaching the
-        ``<defs>`` they registered there.
-    placements : Sequence[Placement]
-        Components to insert, each with the placement to apply to it.
-
-    Returns
-    -------
-    SVGComponent
-        A new group holding every component, together with the extent
-        enclosing them. An empty sequence yields a component with an empty
-        bounding box. The group is not added to the drawing; the caller
-        decides where it goes.
-
-    Raises
-    ------
-    TypeError
-        If given anything other than a drawing. Up to 1.1.0 this took the
-        group itself, so a call written then has to drop the ``.g()``.
-
-    Notes
-    -----
-    Components are inserted in ascending order of ``z_index``. Each one is
-    wrapped in a group carrying its SVG ``translate`` and ``scale``. No
-    padding or layout adjustment is applied.
-    """
-    if not isinstance(drawing, svgwrite.Drawing):
-        raise TypeError(
-            "Write compose(drawing, placements), where drawing is the "
-            "svgwrite.Drawing the components were drawn into; got "
-            f"{type(drawing).__name__}. From 2.0.0 compose takes the "
-            "drawing itself, where up to 1.1.0 it took a group made from it."
-        )
-
-    group = drawing.g()
-
-    for placement in sorted(placements, key=lambda p: p.z_index):
-        wrapper = drawing.g(
-            transform=(
-                f"translate({placement.x},{placement.y}) "
-                f"scale({placement.scale},{placement.scale})"
-            )
-        )
-        wrapper.add(placement.component.group)
-        group.add(wrapper)
-
-    bbox = reduce(BBox.union, (p.bbox for p in placements), BBox.empty())
-
-    return SVGComponent(group=group, bbox=bbox)
+    drawing = svgwrite.Drawing()
+    content, bbox = SVGRenderer(style=style).render_colorbar(drawing, label=label)
+    return Rendered(content, bbox, definitions(drawing))
 
 
 # What composition needs from SVG. The composition layer places parts and
