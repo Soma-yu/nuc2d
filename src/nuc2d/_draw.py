@@ -1,10 +1,12 @@
 """Drawing secondary structures, from a dot-bracket string to a scene.
 
-:func:`draw_structure` and :func:`draw_colorbar` each draw one component,
-for a caller to place with others. :func:`draw_svg` draws a structure and
+:func:`draw_structure`, :func:`draw_colorbar` and :func:`draw_text` each
+draw one component, for a caller to place with others. :func:`draw_svg` draws a structure and
 frames it as a scene in one call: ``draw_svg(...)`` is
 ``Scene(draw_structure(...))``, with the same arguments.
 """
+
+import math
 
 import numpy as np
 
@@ -14,7 +16,7 @@ from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parser import parse
 from ._style import DrawingStyle
-from ._svg import Rendered, render_colorbar, render_structure
+from ._svg import Rendered, render_colorbar, render_structure, render_text
 
 
 # The structure beside a colorbar is fitted into a square as tall as the
@@ -53,6 +55,66 @@ def draw_colorbar(
         The colorbar, to be placed with :class:`Placement`.
     """
     return _component(render_colorbar(label=label, style=style))
+
+
+def draw_text(
+    text: str,
+    *,
+    font_family: str = "Arial",
+    font_size: float = 12.0,
+) -> Component:
+    """Draw one line of text, such as a title, as a component.
+
+    Parameters
+    ----------
+    text : str
+        The text to draw, on one line.
+    font_family : str, default="Arial"
+        One font family name, not a CSS list. The font is looked up on the
+        machine doing the drawing, and its metrics decide how large the
+        component's box is.
+    font_size : float, default=12.0
+        Font size, in the same units as everything the text is placed
+        with.
+
+    Returns
+    -------
+    Component
+        The text, in a box that runs from the font's ascender to its
+        descender and from the start of the first character to the end of
+        the last, so that it can be placed by any point of that box.
+
+    Raises
+    ------
+    ValueError
+        If ``text`` is empty or holds a line break, or ``font_size`` is
+        not a positive finite number.
+    TypeError
+        If ``text`` or ``font_family`` is not a string.
+
+    Notes
+    -----
+    The box is measured from the font's own widths, without kerning, and
+    from the font found on this machine. Shown with a different font, the
+    text can run a little longer or shorter than its box.
+    """
+    for name, value in (("text", text), ("font_family", font_family)):
+        if not isinstance(value, str):
+            raise TypeError(f"{name} must be a string; got {type(value).__name__}.")
+    if not text:
+        raise ValueError("text is empty, so there is nothing to draw.")
+    if "\n" in text or "\r" in text:
+        raise ValueError(
+            "draw_text draws one line; place one text per line instead. "
+            f"Got {text!r}."
+        )
+    if not (math.isfinite(font_size) and font_size > 0):
+        raise ValueError(
+            f"font_size must be a positive finite number; got {font_size!r}."
+        )
+    return _component(
+        render_text(text, font_family=font_family, font_size=font_size)
+    )
 
 
 def draw_structure(

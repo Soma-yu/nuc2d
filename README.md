@@ -202,6 +202,8 @@ and frame the result:
   `draw_svg(...)` is `Scene(draw_structure(...))`.
 - `draw_colorbar` draws a colorbar on its own, for a structure drawn with
   `add_colorbar=False`.
+- `draw_text` draws a line of text, such as a title, in a box measured from
+  the font, so that it can be placed like anything else.
 - `Placement` says where a component goes and at what size, and `compose`
   gathers placed components into a new one.
 - `Scene` frames a component, and is what is saved or shown.

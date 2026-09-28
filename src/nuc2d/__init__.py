@@ -4,9 +4,9 @@
 save with :meth:`Scene.save_svg` or to show in Jupyter.
 
 To put several parts together, draw each as a :class:`Component` with
-:func:`draw_structure` or :func:`draw_colorbar`, say where each goes with
-a :class:`Placement`, gather them with :func:`compose`, and frame the
-result as a :class:`Scene`.
+:func:`draw_structure`, :func:`draw_colorbar` or :func:`draw_text`, say
+where each goes with a :class:`Placement`, gather them with
+:func:`compose`, and frame the result as a :class:`Scene`.
 
 Everything public is imported from ``nuc2d`` itself. The modules inside the
 package all begin with an underscore: they are where the code lives, not
@@ -16,7 +16,7 @@ part of what a version promises.
 from importlib.metadata import PackageNotFoundError, version
 
 from ._compose import Component, Placement, Scene, compose
-from ._draw import draw_colorbar, draw_structure, draw_svg
+from ._draw import draw_colorbar, draw_structure, draw_svg, draw_text
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parser import ParseError
@@ -40,6 +40,7 @@ __all__ = [
     "draw_colorbar",
     "draw_structure",
     "draw_svg",
+    "draw_text",
 ]
 
 # Each public name is defined in a private module, which would otherwise show

@@ -34,7 +34,7 @@ from ._layout import (
 )
 from ._style import DrawingStyle
 from ._geometry import BBox, Vec2
-from ._font import find_font_path, vertical_center_offset
+from ._font import find_font_path, text_width, vertical_center_offset, vertical_extent
 
 
 def _def_id(prefix: str, *parts: object) -> str:
@@ -555,6 +555,47 @@ def render_colorbar(
     drawing = svgwrite.Drawing()
     content, bbox = SVGRenderer(style=style).render_colorbar(drawing, label=label)
     return Rendered(content, bbox, definitions(drawing))
+
+
+def render_text(text: str, *, font_family: str, font_size: float) -> Rendered:
+    """Render one line of text.
+
+    The text is set on a baseline as far below the top of its box as the
+    font's ascender reaches, so that the box runs from the ascender to the
+    descender, and from the start of the first character to the end of
+    the last.
+
+    Parameters
+    ----------
+    text : str
+        The text, on one line.
+    font_family : str
+        One font family name, looked up on this machine to measure the
+        text.
+    font_size : float
+        Font size of the text.
+
+    Returns
+    -------
+    Rendered
+        The drawn text and its extent. Text refers to no definitions.
+    """
+    font_path = find_font_path(font_family)
+    above, below = vertical_extent(font_path, font_size)
+    width = text_width(font_path, text, font_size)
+
+    drawing = svgwrite.Drawing()
+    group = drawing.g()
+    group.add(
+        drawing.text(
+            text,
+            insert=(0.0, above),
+            font_family=font_family,
+            font_size=font_size,
+            fill="black",
+        )
+    )
+    return Rendered(group, BBox(0.0, 0.0, width, above + below), definitions(drawing))
 
 
 # What composition needs from SVG. The composition layer places parts and

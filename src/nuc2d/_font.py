@@ -38,6 +38,17 @@ def find_font_path(font_family: str) -> str:
     return str(font_manager.findfont(font_family))
 
 
+def _open(font_path: str) -> TTFont:
+    """Open a font file, taking the first font of a collection.
+
+    A font collection (``.ttc``, as macOS ships many system fonts) holds
+    several fonts, and fontTools refuses to open one without being told
+    which; the first is the regular face. A file holding a single font
+    ignores the number.
+    """
+    return TTFont(font_path, fontNumber=0)
+
+
 @cache
 def _vertical_center_ratio(font_path: str) -> float:
     """Return the vertical center offset as a fraction of the font size.
@@ -60,7 +71,7 @@ def _vertical_center_ratio(font_path: str) -> float:
     rather than on the finished offset means a drawing that mixes font
     sizes still reads each font file only once.
     """
-    font = TTFont(font_path)
+    font = _open(font_path)
 
     units_per_em = font["head"].unitsPerEm
     ascender = font["hhea"].ascent
@@ -92,3 +103,86 @@ def vertical_center_offset(
         descender metrics.
     """
     return _vertical_center_ratio(font_path) * font_size
+
+
+@cache
+def _vertical_extent_ratios(font_path: str) -> tuple[float, float]:
+    """Return how far a line of text reaches above and below its baseline.
+
+    Both are fractions of the font size, taken from the same ascender and
+    descender :func:`vertical_center_offset` centres on, and both are
+    positive.
+    """
+    font = _open(font_path)
+    units_per_em = font["head"].unitsPerEm
+    return (
+        float(font["hhea"].ascent / units_per_em),
+        float(-font["hhea"].descent / units_per_em),
+    )
+
+
+def vertical_extent(font_path: str, font_size: float) -> tuple[float, float]:
+    """Return how far a line of text reaches above and below its baseline.
+
+    Parameters
+    ----------
+    font_path : str
+        Path to the font file used for rendering the text.
+    font_size : float
+        Font size of the text.
+
+    Returns
+    -------
+    tuple of float
+        ``(above, below)``, both positive, in the units of ``font_size``.
+    """
+    above, below = _vertical_extent_ratios(font_path)
+    return above * font_size, below * font_size
+
+
+@cache
+def _advance_ratios(font_path: str) -> tuple[dict[int, float], float]:
+    """Return each character's advance width, as a fraction of the size.
+
+    Returns
+    -------
+    tuple
+        A mapping from code point to advance width, and the advance width
+        of the glyph a font draws for a character it does not have.
+    """
+    font = _open(font_path)
+    units_per_em = font["head"].unitsPerEm
+    metrics = font["hmtx"]
+    advances = {
+        code_point: float(metrics[glyph][0] / units_per_em)
+        for code_point, glyph in font.getBestCmap().items()
+    }
+    missing = float(metrics[font.getGlyphOrder()[0]][0] / units_per_em)
+    return advances, missing
+
+
+def text_width(font_path: str, text: str, font_size: float) -> float:
+    """Return how wide a line of text is set in a font.
+
+    Parameters
+    ----------
+    font_path : str
+        Path to the font file used for rendering the text.
+    text : str
+        The text, on one line.
+    font_size : float
+        Font size of the text.
+
+    Returns
+    -------
+    float
+        The sum of the characters' advance widths, in the units of
+        ``font_size``.
+
+    Notes
+    -----
+    Kerning is not applied, so a pair such as "AV", which a renderer sets
+    slightly closer, is measured a little wide.
+    """
+    advances, missing = _advance_ratios(font_path)
+    return sum(advances.get(ord(char), missing) for char in text) * font_size

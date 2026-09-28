@@ -22,6 +22,7 @@ PUBLIC_NAMES = {
     "draw_colorbar",
     "draw_structure",
     "draw_svg",
+    "draw_text",
 }
 
 
@@ -64,6 +65,7 @@ POSITIONAL_COUNT = {
     nuc2d.draw_svg: 1,  # dot_bracket
     nuc2d.draw_structure: 1,  # dot_bracket
     nuc2d.draw_colorbar: 0,
+    nuc2d.draw_text: 1,  # text
     nuc2d.compose: 1,  # placements
     nuc2d.Scene: 1,  # component
     nuc2d.Placement: 0,
