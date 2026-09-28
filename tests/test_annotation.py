@@ -5,7 +5,7 @@ from nuc2d._annotation import (
     attach_sequences,
     attach_equilibrium_probabilities,
 )
-from nuc2d._parser import parse
+from nuc2d._parse import parse
 from nuc2d._structure import iter_nucleotides
 
 

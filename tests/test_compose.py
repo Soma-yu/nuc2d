@@ -65,17 +65,17 @@ def test_the_anchor_stays_put_while_the_component_is_scaled():
 
 def test_the_placed_box_is_the_component_box_scaled():
     component = structure(CLOVERLEAF)
-    box = Placement(component=component, scale=2.5).bbox
+    bbox = Placement(component=component, scale=2.5).bbox
 
-    assert box.width == pytest.approx(component.bbox.width * 2.5)
-    assert box.height == pytest.approx(component.bbox.height * 2.5)
+    assert bbox.width == pytest.approx(component.bbox.width * 2.5)
+    assert bbox.height == pytest.approx(component.bbox.height * 2.5)
 
 
 def test_upper_left_is_the_default_anchor():
     """So x and y read the way an SVG rect's do."""
-    box = Placement(component=structure(CLOVERLEAF), x=10.0, y=20.0).bbox
+    bbox = Placement(component=structure(CLOVERLEAF), x=10.0, y=20.0).bbox
 
-    assert (box.xmin, box.ymin) == pytest.approx((10.0, 20.0))
+    assert (bbox.xmin, bbox.ymin) == pytest.approx((10.0, 20.0))
 
 
 @pytest.mark.parametrize(
@@ -211,10 +211,10 @@ def test_fit_aligns_the_component_by_its_anchor():
     # The padded box is placed by its upper left corner, so the component's
     # own box lands at that corner plus its offset inside the padding.
     padded, s = placement.component.bbox, placement.scale
-    box = component.bbox
-    right = placement.x + s * (box.xmax - padded.xmin)
-    top = placement.y + s * (box.ymin - padded.ymin)
-    bottom = placement.y + s * (box.ymax - padded.ymin)
+    bbox = component.bbox
+    right = placement.x + s * (bbox.xmax - padded.xmin)
+    top = placement.y + s * (bbox.ymin - padded.ymin)
+    bottom = placement.y + s * (bbox.ymax - padded.ymin)
 
     assert right == pytest.approx(slot.xmax)
     assert (top, bottom) == pytest.approx((slot.ymin, slot.ymax))

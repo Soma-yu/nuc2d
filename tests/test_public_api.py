@@ -53,7 +53,7 @@ def test_every_module_inside_the_package_is_private():
 
 
 def test_every_public_name_reports_nuc2d_as_its_module():
-    """A caller sees nuc2d.ParseError in a traceback, not nuc2d._parser."""
+    """A caller sees nuc2d.ParseError in a traceback, not nuc2d._parse."""
     for name in PUBLIC_NAMES - {"__version__"}:
         assert getattr(nuc2d, name).__module__ == "nuc2d", name
 

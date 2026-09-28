@@ -308,7 +308,7 @@ def test_something_the_renderer_cannot_draw_says_so():
     from dataclasses import dataclass
 
     from nuc2d._layout import Decoration, Edge, EdgeType
-    from nuc2d._parser import parse
+    from nuc2d._parse import parse
     from nuc2d._svg import _Renderer
 
     renderer = _Renderer()

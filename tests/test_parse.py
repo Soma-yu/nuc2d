@@ -1,6 +1,6 @@
 import pytest
 
-from nuc2d._parser import parse, ParseError, _StrandGroups
+from nuc2d._parse import parse, ParseError, _StrandGroups
 from nuc2d._structure import StemRegion, LoopRegion
 
 def collect_boundary_nucleotide_locations(root_loop):

@@ -19,7 +19,7 @@ from ._compose import Component, Placement, Scene, compose
 from ._draw import draw_colorbar, draw_structure, draw_svg, draw_text
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
-from ._parser import ParseError
+from ._parse import ParseError
 from ._style import DrawingStyle
 
 try:
@@ -45,7 +45,7 @@ __all__ = [
 
 # Each public name is defined in a private module, which would otherwise show
 # through wherever Python reports where a name comes from: a traceback reads
-# nuc2d._parser.ParseError, and repr() and help() name nuc2d._svg. Report
+# nuc2d._parse.ParseError, and repr() and help() name nuc2d._svg. Report
 # them as nuc2d's own, the address a caller imports them from.
 for _name in __all__:
     if _name != "__version__":

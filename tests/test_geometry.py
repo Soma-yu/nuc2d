@@ -6,10 +6,10 @@ from nuc2d._geometry import BBox
 
 
 def test_a_single_point_encloses_an_empty_area_but_is_not_the_empty_box():
-    box = BBox(3, 4, 3, 4)
+    bbox = BBox(3, 4, 3, 4)
 
-    assert not box.is_empty
-    assert (box.width, box.height) == (0.0, 0.0)
+    assert not bbox.is_empty
+    assert (bbox.width, bbox.height) == (0.0, 0.0)
 
 
 def test_union():
@@ -37,10 +37,10 @@ def test_union_reduces_over_a_sequence():
 
 
 def test_expanded():
-    box = BBox(0, 0, 10, 20)
+    bbox = BBox(0, 0, 10, 20)
 
-    assert box.expanded(5) == BBox(-5, -5, 15, 25)
-    assert box.expanded(1, 2) == BBox(-1, -2, 11, 22)
+    assert bbox.expanded(5) == BBox(-5, -5, 15, 25)
+    assert bbox.expanded(1, 2) == BBox(-1, -2, 11, 22)
 
 
 def test_expanded_past_itself_is_empty():
@@ -48,22 +48,22 @@ def test_expanded_past_itself_is_empty():
 
 
 def test_translated():
-    box = BBox(0, 0, 10, 20).translated(3, -4)
+    bbox = BBox(0, 0, 10, 20).translated(3, -4)
 
-    assert box == BBox(3, -4, 13, 16)
+    assert bbox == BBox(3, -4, 13, 16)
 
 
 def test_scaled_is_about_the_origin():
-    box = BBox(2, 2, 4, 4).scaled(2)
+    bbox = BBox(2, 2, 4, 4).scaled(2)
 
-    assert box == BBox(4, 4, 8, 8)
+    assert bbox == BBox(4, 4, 8, 8)
 
 
 def test_scaled_by_a_negative_factor_keeps_corners_ordered():
-    box = BBox(1, 1, 3, 3).scaled(-1)
+    bbox = BBox(1, 1, 3, 3).scaled(-1)
 
-    assert box == BBox(-3, -3, -1, -1)
-    assert not box.is_empty
+    assert bbox == BBox(-3, -3, -1, -1)
+    assert not bbox.is_empty
 
 
 def test_empty_box_is_unchanged_by_transforms():
@@ -105,7 +105,7 @@ def test_to_viewbox():
     ],
 )
 def test_transforms_return_a_new_box(method, args):
-    box = BBox(0, 0, 10, 10)
+    bbox = BBox(0, 0, 10, 10)
 
-    assert getattr(box, method)(*args) is not box
-    assert box == BBox(0, 0, 10, 10)
+    assert getattr(bbox, method)(*args) is not bbox
+    assert bbox == BBox(0, 0, 10, 10)

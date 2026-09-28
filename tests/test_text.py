@@ -30,10 +30,10 @@ def test_markup_in_the_text_is_written_as_text():
 def test_the_box_runs_from_the_ascender_to_the_descender():
     above, below = vertical_extent(find_font_path("Arial"), 20.0)
 
-    box = draw_text("Wg", font_size=20.0).bbox
+    bbox = draw_text("Wg", font_size=20.0).bbox
 
-    assert (box.xmin, box.ymin) == (0.0, 0.0)
-    assert box.height == pytest.approx(above + below)
+    assert (bbox.xmin, bbox.ymin) == (0.0, 0.0)
+    assert bbox.height == pytest.approx(above + below)
 
 
 def test_the_box_grows_with_the_text_and_the_size():

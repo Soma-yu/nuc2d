@@ -76,10 +76,10 @@ def _fractions(anchor: object) -> tuple[float, float]:
     )
 
 
-def _anchor_point(box: BBox, anchor: Anchor) -> tuple[float, float]:
+def _anchor_point(bbox: BBox, anchor: Anchor) -> tuple[float, float]:
     """Return the point of a non-empty box that ``anchor`` names."""
     fx, fy = _fractions(anchor)
-    return (box.xmin + fx * box.width, box.ymin + fy * box.height)
+    return (bbox.xmin + fx * bbox.width, bbox.ymin + fy * bbox.height)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -169,23 +169,25 @@ class Placement:
     @property
     def bbox(self) -> BBox:
         """Extent of the component once placed."""
-        box = self.component.bbox
-        if box.is_empty:
-            return box
+        # The component's own box, as distinct from the placed one returned.
+        component_bbox = self.component.bbox
+        if component_bbox.is_empty:
+            return component_bbox
         fx, fy = _fractions(self.anchor)
-        width, height = box.width * self.scale, box.height * self.scale
+        width = component_bbox.width * self.scale
+        height = component_bbox.height * self.scale
         left, top = self.x - fx * width, self.y - fy * height
         return BBox(left, top, left + width, top + height)
 
     def _placed_content(self) -> Any:
         """The component's content, scaled and moved to where it goes."""
-        box = self.component.bbox
-        if box.is_empty:
+        component_bbox = self.component.bbox
+        if component_bbox.is_empty:
             dx, dy = self.x, self.y
         else:
             # Scaling about the anchor and then moving the anchor to (x, y)
             # is one scaling about the origin followed by this translation.
-            ax, ay = _anchor_point(box, self.anchor)
+            ax, ay = _anchor_point(component_bbox, self.anchor)
             dx, dy = self.x - self.scale * ax, self.y - self.scale * ay
         return _svg.transformed(
             self.component._content, dx=dx, dy=dy, scale=self.scale
@@ -206,23 +208,23 @@ def fit(
     component's own, so that a row of slots stays a row of equal cells
     whatever shape each component is.
     """
-    box = component.bbox
-    if box.is_empty or box.width <= 0 or box.height <= 0:
+    bbox = component.bbox
+    if bbox.is_empty or bbox.width <= 0 or bbox.height <= 0:
         raise ValueError("Cannot fit a component that has no area.")
     if slot.is_empty or slot.width <= 0 or slot.height <= 0:
         raise ValueError("Cannot fit a component into a slot that has no area.")
 
-    scale = min(slot.width / box.width, slot.height / box.height)
+    scale = min(slot.width / bbox.width, slot.height / bbox.height)
     fx, fy = _fractions(anchor)
     # The space the slot leaves over, in the component's own units, goes
     # before and after the component in the proportions anchor gives.
-    spare_x = slot.width / scale - box.width
-    spare_y = slot.height / scale - box.height
+    spare_x = slot.width / scale - bbox.width
+    spare_y = slot.height / scale - bbox.height
     padded = BBox(
-        box.xmin - fx * spare_x,
-        box.ymin - fy * spare_y,
-        box.xmax + (1 - fx) * spare_x,
-        box.ymax + (1 - fy) * spare_y,
+        bbox.xmin - fx * spare_x,
+        bbox.ymin - fy * spare_y,
+        bbox.xmax + (1 - fx) * spare_x,
+        bbox.ymax + (1 - fy) * spare_y,
     )
     return Placement(
         component=replace(component, bbox=padded),
@@ -312,8 +314,8 @@ class Scene:
         width_px: float | None = None,
         height_px: float | None = None,
     ) -> None:
-        box = component.bbox
-        if box.is_empty:
+        bbox = component.bbox
+        if bbox.is_empty:
             raise ValueError("Nothing to draw: the component is empty.")
         for name, size in (("width_px", width_px), ("height_px", height_px)):
             if size is not None and not (math.isfinite(size) and size > 0):
@@ -321,7 +323,7 @@ class Scene:
                     f"{name} must be a positive finite number; got {size!r}."
                 )
 
-        aspect_ratio = box.width / box.height if box.height > 0 else 1.0
+        aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
         if width_px is None and height_px is None:
             height_px = 500.0
         if width_px is None:

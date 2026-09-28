@@ -14,7 +14,7 @@ from ._annotation import attach_equilibrium_probabilities, attach_sequences
 from ._compose import Component, Placement, Scene, fit, compose
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
-from ._parser import parse
+from ._parse import parse
 from ._style import DrawingStyle
 from ._svg import Rendered, render_colorbar, render_structure, render_text
 
@@ -192,12 +192,12 @@ def draw_structure(
         return structure
 
     colorbar = draw_colorbar(label=colorbar_label, style=style)
-    bar = colorbar.bbox
+    colorbar_bbox = colorbar.bbox
     slot = BBox(
-        bar.xmin - bar.height * _STRUCTURE_SLOT_ASPECT_RATIO,
-        bar.ymin,
-        bar.xmin,
-        bar.ymax,
+        colorbar_bbox.xmin - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
+        colorbar_bbox.ymin,
+        colorbar_bbox.xmin,
+        colorbar_bbox.ymax,
     )
     return compose([fit(structure, slot), Placement(component=colorbar)])
 
