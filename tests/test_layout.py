@@ -1,5 +1,5 @@
-from nuc2d.parser import parse
-from nuc2d.layout import (
+from nuc2d._parser import parse
+from nuc2d._layout import (
     RadialLayoutEngine,
     EdgeType,
 )

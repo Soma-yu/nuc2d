@@ -1,8 +1,8 @@
 import dataclasses
 import inspect
+import pkgutil
 
 import nuc2d
-from nuc2d.svg import SVGRenderer, render_colorbar, render_structure
 
 
 # The names the package promises. Changing this set changes the promise, so
@@ -10,12 +10,10 @@ from nuc2d.svg import SVGRenderer, render_colorbar, render_structure
 PUBLIC_NAMES = {
     "BBox",
     "DrawingStyle",
-    "LayoutEngine",
     "ParseError",
     "Placement",
     "RadialLayoutEngine",
     "SVGComponent",
-    "Vec2",
     "__version__",
     "compose",
     "draw_component",
@@ -35,16 +33,37 @@ def test_star_import_provides_every_listed_name():
     assert PUBLIC_NAMES <= set(namespace)
 
 
+def test_every_module_inside_the_package_is_private():
+    """A module without an underscore reads as public, whatever __all__ says.
+
+    Everything public is imported from nuc2d itself, so each module inside
+    it is marked as the place the code lives rather than an address to
+    import from. A new module added without the underscore fails here.
+    """
+    names = [module.name for module in pkgutil.iter_modules(nuc2d.__path__)]
+
+    assert names, "no modules found inside the package"
+    assert all(name.startswith("_") for name in names), (
+        f"public modules: {[name for name in names if not name.startswith('_')]}"
+    )
+
+
+def test_every_public_name_reports_nuc2d_as_its_module():
+    """A caller sees nuc2d.ParseError in a traceback, not nuc2d._parser."""
+    for name in PUBLIC_NAMES - {"__version__"}:
+        assert getattr(nuc2d, name).__module__ == "nuc2d", name
+
+
 # How many leading arguments each callable takes positionally. Everything
 # after them is keyword-only, so a later release can insert an argument
 # where it belongs instead of appending it to keep the order intact.
 POSITIONAL_COUNT = {
     nuc2d.draw_svg: 1,  # dot_bracket
     nuc2d.draw_component: 2,  # drawing, dot_bracket
+    nuc2d.render_colorbar: 1,  # drawing
     nuc2d.RadialLayoutEngine: 0,
-    render_colorbar: 1,  # drawing
-    render_structure: 2,  # drawing, layout_result
-    SVGRenderer: 0,
+    nuc2d.DrawingStyle: 0,
+    nuc2d.Placement: 0,
 }
 
 
@@ -66,31 +85,28 @@ def test_optional_arguments_are_keyword_only():
 
 
 def test_the_values_a_caller_holds_cannot_be_changed_in_place():
-    """These four describe a drawing; they are not part of one.
+    """These three describe a drawing; they are not part of one.
 
-    A box, a point, a component and a placement are each read by whatever
+    A box, a component and a placement are each read by whatever
     consumes them and never read again, so an assignment after the fact
     reaches nothing. Frozen, it raises where it is written instead of
     leaving the value and the drawing disagreeing.
     """
-    for target in (nuc2d.BBox, nuc2d.Vec2, nuc2d.SVGComponent, nuc2d.Placement):
+    for target in (nuc2d.BBox, nuc2d.SVGComponent, nuc2d.Placement):
         assert dataclasses.is_dataclass(target), f"{target.__name__} is not a dataclass"
         assert target.__dataclass_params__.frozen, (
             f"{target.__name__} should be frozen"
         )
 
 
-def test_the_coordinate_types_are_built_by_position():
-    """Every other type in the package is built by keyword; these two are not.
+def test_the_box_is_built_by_position():
+    """Every other type in the package is built by keyword; the box is not.
 
-    Their field sets are closed — a point has two numbers and a box has four
-    — and their names are the ones every geometry library uses, so neither an
-    insertion nor a rename is coming. Callers write them out in order, which
-    is the promise this pins.
+    Its field set is closed — a box has four numbers — and their names are
+    the ones every geometry library uses, so neither an insertion nor a
+    rename is coming. Callers write them out in order, which is the promise
+    this pins.
     """
-    for target in (nuc2d.Vec2, nuc2d.BBox):
-        kinds = {p.kind for p in inspect.signature(target).parameters.values()}
+    kinds = {p.kind for p in inspect.signature(nuc2d.BBox).parameters.values()}
 
-        assert kinds == {inspect.Parameter.POSITIONAL_OR_KEYWORD}, (
-            f"{target.__name__} should stay positional"
-        )
+    assert kinds == {inspect.Parameter.POSITIONAL_OR_KEYWORD}

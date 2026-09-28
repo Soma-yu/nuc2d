@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from nuc2d.geometry import BBox
+from nuc2d._geometry import BBox
 
 
 def test_a_single_point_encloses_an_empty_area_but_is_not_the_empty_box():

@@ -9,7 +9,7 @@ import pytest
 import svgwrite
 
 from nuc2d import draw_component, draw_svg
-from nuc2d.style import DrawingStyle
+from nuc2d._style import DrawingStyle
 
 
 def collect_ids(svg_string):
@@ -276,7 +276,7 @@ def test_the_sequence_reaches_the_drawing():
 
 
 def test_layout_engine_is_configurable():
-    from nuc2d.layout import RadialLayoutEngine
+    from nuc2d._layout import RadialLayoutEngine
 
     default = draw_component(svgwrite.Drawing(), "(((...)))")
     wider = draw_component(
@@ -327,9 +327,9 @@ def test_something_the_renderer_cannot_draw_says_so():
     """
     from dataclasses import dataclass
 
-    from nuc2d.layout import Decoration, Edge, EdgeType, RadialLayoutEngine
-    from nuc2d.parser import parse
-    from nuc2d.svg import SVGRenderer
+    from nuc2d._layout import Decoration, Edge, EdgeType, RadialLayoutEngine
+    from nuc2d._parser import parse
+    from nuc2d._svg import SVGRenderer
 
     renderer = SVGRenderer()
     drawing = svgwrite.Drawing()

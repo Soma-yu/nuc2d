@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from .structure import (
+from ._structure import (
     Nucleotide, StemRegion, LoopRegion, iter_nucleotides, iter_stems
 )
 

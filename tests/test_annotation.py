@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from nuc2d.annotation import (
+from nuc2d._annotation import (
     attach_sequences,
     attach_equilibrium_probabilities,
 )
-from nuc2d.parser import parse
-from nuc2d.structure import iter_nucleotides
+from nuc2d._parser import parse
+from nuc2d._structure import iter_nucleotides
 
 
 def collect_nucleotides(root_loop):

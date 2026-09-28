@@ -233,6 +233,10 @@ Nuc2D follows [Semantic Versioning](https://semver.org/). What a version
 promises is the public API: the names the package exports, the arguments they
 take, and the exceptions they raise. Those change only in a major release.
 
+Everything public is imported from `nuc2d` itself. The modules inside the
+package all begin with an underscore, such as `nuc2d._svg`: they are where the
+code lives, and they can change in any release.
+
 The drawing is not part of that promise. A minor release may place a
 nucleotide differently, enclose a structure more tightly, or write the same
 shape as different SVG, so a figure regenerated under a newer version can

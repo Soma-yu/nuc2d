@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib as mpl
 import svgwrite
 
-from .layout import (
+from ._layout import (
     EdgeType,
     Node,
     Edge,
@@ -25,9 +25,9 @@ from .layout import (
     ArrowDecoration,
     LayoutResult,
 )
-from .style import DrawingStyle
-from .geometry import BBox, Vec2
-from .font import find_font_path, vertical_center_offset
+from ._style import DrawingStyle
+from ._geometry import BBox, Vec2
+from ._font import find_font_path, vertical_center_offset
 
 
 def _def_id(prefix: str, *parts: object) -> str:

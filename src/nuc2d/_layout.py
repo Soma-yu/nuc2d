@@ -17,8 +17,8 @@ from enum import Enum, auto
 from abc import ABC, abstractmethod
 import math
 
-from .structure import Nucleotide, LoopRegion, StemRegion
-from .geometry import Vec2
+from ._structure import Nucleotide, LoopRegion, StemRegion
+from ._geometry import Vec2
 
 
 class EdgeType(Enum):
@@ -109,7 +109,7 @@ class ArrowDecoration(Decoration):
     direction : Vec2
         Unit vector the arrow points along, leading away from the node.
         How far it reaches is a drawing decision, taken from
-        :attr:`~nuc2d.style.DrawingStyle.three_prime_arrow_length`.
+        :attr:`~nuc2d.DrawingStyle.three_prime_arrow_length`.
     """
     direction: Vec2
 

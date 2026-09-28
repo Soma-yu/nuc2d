@@ -14,7 +14,7 @@ from collections import Counter
 
 import numpy as np
 
-from .structure import (
+from ._structure import (
     LoopRegion,
     StemRegion,
     iter_nucleotides,
@@ -36,7 +36,7 @@ def _strand_lengths(root_loop: LoopRegion) -> list[int]:
 
     Notes
     -----
-    Counting is enough because :func:`~nuc2d.structure.iter_nucleotides`
+    Counting is enough because :func:`~nuc2d._structure.iter_nucleotides`
     yields each nucleotide exactly once, and the parser numbers both the
     strands and the positions within them consecutively from zero. Both
     invariants are pinned by the tests.

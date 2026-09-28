@@ -8,14 +8,14 @@ layout generation, and rendering are performed automatically.
 import numpy as np
 import svgwrite
 
-from .parser import parse
-from .annotation import (
+from ._parser import parse
+from ._annotation import (
     attach_sequences,
     attach_equilibrium_probabilities,
 )
-from .layout import LayoutEngine, RadialLayoutEngine
-from .style import DrawingStyle
-from .svg import (
+from ._layout import RadialLayoutEngine
+from ._style import DrawingStyle
+from ._svg import (
     Placement,
     SVGComponent,
     render_structure,
@@ -31,7 +31,7 @@ def draw_component(
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
-    layout_engine: LayoutEngine | None = None,
+    layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = None,
     add_colorbar: bool = True,
 ) -> SVGComponent:
@@ -56,9 +56,9 @@ def draw_component(
         When given, a colorbar is placed beside the structure.
     style : DrawingStyle, optional
         Drawing style configuration.
-    layout_engine : LayoutEngine, optional
+    layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
-        :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
+        :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str, optional
         Text written alongside the colorbar. Defaults to
         ``"Equilibrium probability"``. Has no effect unless ``probs`` is
@@ -67,7 +67,7 @@ def draw_component(
         Whether to place a colorbar beside the structure. Passing False
         colors the nucleotides from ``probs`` but leaves the colorbar out,
         for a caller placing one of its own with
-        :func:`~nuc2d.svg.render_colorbar`. The colorbar placed here is as
+        :func:`~nuc2d.render_colorbar`. The colorbar placed here is as
         tall as the structure, which is a poor fit for a structure much
         wider than it is tall.
 
@@ -138,7 +138,7 @@ def draw_svg(
     sequences: list[str] | None = None,
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
-    layout_engine: LayoutEngine | None = None,
+    layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = None,
     add_colorbar: bool = True,
     width_px: float | None = None,
@@ -161,9 +161,9 @@ def draw_svg(
         unpaired.
     style : DrawingStyle, optional
         Drawing style configuration.
-    layout_engine : LayoutEngine, optional
+    layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
-        :class:`~nuc2d.layout.RadialLayoutEngine` with its own defaults.
+        :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str, optional
         Text written alongside the colorbar. Defaults to
         ``"Equilibrium probability"``. Has no effect unless ``probs`` is
