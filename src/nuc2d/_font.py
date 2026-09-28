@@ -43,8 +43,10 @@ def _open(font_path: str) -> TTFont:
 
     A font collection (``.ttc``, as macOS ships many system fonts) holds
     several fonts, and fontTools refuses to open one without being told
-    which; the first is the regular face. A file holding a single font
-    ignores the number.
+    which. The first is the one to measure: Matplotlib, which chose the
+    file in :func:`find_font_path`, reads only the first font of a
+    collection, so that is the font whose family name matched. A file
+    holding a single font ignores the number.
     """
     return TTFont(font_path, fontNumber=0)
 

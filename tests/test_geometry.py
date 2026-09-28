@@ -36,44 +36,6 @@ def test_union_reduces_over_a_sequence():
     assert reduce(BBox.union, boxes, BBox.empty()) == BBox(-3, 0, 6, 6)
 
 
-def test_expanded():
-    bbox = BBox(0, 0, 10, 20)
-
-    assert bbox.expanded(5) == BBox(-5, -5, 15, 25)
-    assert bbox.expanded(1, 2) == BBox(-1, -2, 11, 22)
-
-
-def test_expanded_past_itself_is_empty():
-    assert BBox(0, 0, 10, 10).expanded(-100).is_empty
-
-
-def test_translated():
-    bbox = BBox(0, 0, 10, 20).translated(3, -4)
-
-    assert bbox == BBox(3, -4, 13, 16)
-
-
-def test_scaled_is_about_the_origin():
-    bbox = BBox(2, 2, 4, 4).scaled(2)
-
-    assert bbox == BBox(4, 4, 8, 8)
-
-
-def test_scaled_by_a_negative_factor_keeps_corners_ordered():
-    bbox = BBox(1, 1, 3, 3).scaled(-1)
-
-    assert bbox == BBox(-3, -3, -1, -1)
-    assert not bbox.is_empty
-
-
-def test_empty_box_is_unchanged_by_transforms():
-    empty = BBox.empty()
-
-    assert empty.expanded(10).is_empty
-    assert empty.translated(5, 5).is_empty
-    assert empty.scaled(3).is_empty
-
-
 def test_center_x_and_center_y_are_the_midpoints_of_the_corners():
     assert (BBox(0, 0, 10, 20).center_x, BBox(0, 0, 10, 20).center_y) == (5.0, 10.0)
     assert (BBox(-6, -8, -2, -2).center_x, BBox(-6, -8, -2, -2).center_y) == (-4.0, -5.0)
@@ -90,22 +52,3 @@ def test_an_empty_box_has_no_center():
         empty.center_x
     with pytest.raises(ValueError):
         empty.center_y
-
-
-def test_to_viewbox():
-    assert BBox(-2, -3, 8, 7).to_viewbox() == (-2, -3, 10, 10)
-
-
-@pytest.mark.parametrize(
-    "method, args",
-    [
-        ("expanded", (5,)),
-        ("translated", (1, 1)),
-        ("scaled", (2,)),
-    ],
-)
-def test_transforms_return_a_new_box(method, args):
-    bbox = BBox(0, 0, 10, 10)
-
-    assert getattr(bbox, method)(*args) is not bbox
-    assert bbox == BBox(0, 0, 10, 10)

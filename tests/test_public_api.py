@@ -106,6 +106,34 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
         )
 
 
+# What a caller can reach on each of these, beyond the constructor. A member
+# is as much a promise as a name in __all__, so this is edited in the same
+# commit as a change to it, like PUBLIC_NAMES.
+PUBLIC_MEMBERS = {
+    "BBox": {
+        "xmin", "ymin", "xmax", "ymax",
+        "width", "height", "center_x", "center_y",
+        "is_empty", "empty", "union",
+    },
+    "Component": {"bbox"},
+    "Placement": {"component", "x", "y", "anchor", "scale", "z_index", "bbox"},
+    "Scene": {"to_svg", "save_svg"},
+}
+
+
+@pytest.mark.parametrize("name, members", sorted(PUBLIC_MEMBERS.items()))
+def test_each_value_type_offers_only_what_it_promises(name, members):
+    target = getattr(nuc2d, name)
+    fields = (
+        {f.name for f in dataclasses.fields(target)}
+        if dataclasses.is_dataclass(target)
+        else set()
+    )
+    offered = {m for m in fields | set(dir(target)) if not m.startswith("_")}
+
+    assert offered == members
+
+
 def test_the_box_is_built_by_position():
     """Every other type in the package is built by keyword; the box is not.
 

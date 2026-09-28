@@ -378,14 +378,21 @@ class _Renderer:
 
         # Each node contributes the point it sits at. What the node draws
         # around that point is not enclosed yet; the margin covers it.
-        bbox = reduce(
+        points = reduce(
             BBox.union,
             (
                 BBox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
                 for node in layout_result.nodes
             ),
             BBox.empty(),
-        ).expanded(self.style.x_margin, self.style.y_margin)
+        )
+        x_margin, y_margin = self.style.x_margin, self.style.y_margin
+        bbox = BBox(
+            points.xmin - x_margin,
+            points.ymin - y_margin,
+            points.xmax + x_margin,
+            points.ymax + y_margin,
+        )
 
         for edge in layout_result.edges:
             group.add(
@@ -621,8 +628,8 @@ def definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
     return tuple(drawing.defs.elements)
 
 
-def merged_definitions(groups: Iterable[tuple[Any, ...]]) -> tuple[Any, ...]:
-    """Return the definitions of several parts, each id once.
+def merge_definitions(groups: Iterable[tuple[Any, ...]]) -> tuple[Any, ...]:
+    """Merge the definitions of several parts, keeping each id once.
 
     An id is derived from the definition's content, so two definitions
     with one id are the same definition, and either can stand for both.
@@ -643,8 +650,8 @@ def transformed(content: Any, *, dx: float, dy: float, scale: float) -> Any:
     return wrapper
 
 
-def gathered(contents: Sequence[Any]) -> Any:
-    """Return one part holding ``contents``, drawn in the order given."""
+def gather(contents: Sequence[Any]) -> Any:
+    """Gather ``contents`` into one part, drawn in the order given."""
     group = svgwrite.container.Group()
     for content in contents:
         group.add(content)
@@ -655,7 +662,7 @@ def _document(
     content: Any,
     defs: tuple[Any, ...],
     *,
-    viewbox: tuple[float, float, float, float],
+    viewbox: BBox,
     width_px: float,
     height_px: float,
 ) -> svgwrite.Drawing:
@@ -663,7 +670,7 @@ def _document(
     for element in defs:
         drawing.defs.add(element)
     drawing.add(content)
-    drawing.viewbox(*viewbox)
+    drawing.viewbox(viewbox.xmin, viewbox.ymin, viewbox.width, viewbox.height)
     drawing["width"] = f"{width_px}px"
     drawing["height"] = f"{height_px}px"
     return drawing
@@ -673,11 +680,15 @@ def document_string(
     content: Any,
     defs: tuple[Any, ...],
     *,
-    viewbox: tuple[float, float, float, float],
+    viewbox: BBox,
     width_px: float,
     height_px: float,
 ) -> str:
-    """Return a complete SVG document showing ``content``."""
+    """Return a complete SVG document showing ``content``.
+
+    The document is framed on ``viewbox`` and sized ``width_px`` by
+    ``height_px``.
+    """
     return str(
         _document(
             content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
@@ -690,11 +701,14 @@ def save_document(
     content: Any,
     defs: tuple[Any, ...],
     *,
-    viewbox: tuple[float, float, float, float],
+    viewbox: BBox,
     width_px: float,
     height_px: float,
 ) -> None:
-    """Write a complete SVG document showing ``content`` to ``filename``."""
+    """Write a complete SVG document showing ``content`` to ``filename``.
+
+    The document is the one :func:`document_string` returns.
+    """
     _document(
         content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
     ).saveas(filename)

@@ -120,17 +120,19 @@ class BBox:
     Parameters
     ----------
     xmin, ymin : float
-        Lower corner of the box.
+        Corner with the smallest coordinates. The y-axis points down, as
+        in SVG, so this is the upper left corner.
     xmax, ymax : float
-        Upper corner of the box.
+        Corner with the largest coordinates, the lower right.
 
     Notes
     -----
     A box is stored as its two corners, and ``width``, ``height``,
-    ``center_x`` and ``center_y`` are derived from them. A box whose lower
-    corner exceeds its upper corner is empty: :meth:`empty` returns one,
-    its width and height are zero, its centre raises, and it is the
-    identity element of :meth:`union`.
+    ``center_x`` and ``center_y`` are derived from them. A box whose
+    minimum exceeds its maximum along either axis is empty: :meth:`empty`
+    returns one, its width and height are zero, its centre raises, and it
+    is the identity element of :meth:`union`. A box around a single point
+    is not empty, although its width and height are zero.
     """
 
     xmin: float
@@ -209,80 +211,3 @@ class BBox:
             max(self.xmax, other.xmax),
             max(self.ymax, other.ymax),
         )
-
-    def expanded(self, dx: float, dy: float | None = None) -> BBox:
-        """Return the box grown outwards on every side.
-
-        Parameters
-        ----------
-        dx : float
-            Amount to grow by along the x-axis, on each side.
-        dy : float, optional
-            Amount to grow by along the y-axis, on each side. Defaults to
-            ``dx``.
-
-        Returns
-        -------
-        BBox
-            The grown box. Negative amounts shrink it, and shrinking a box
-            past itself yields an empty box.
-        """
-        if self.is_empty:
-            return self
-        dy = dx if dy is None else dy
-        return BBox(self.xmin - dx, self.ymin - dy, self.xmax + dx, self.ymax + dy)
-
-    def translated(self, dx: float, dy: float) -> BBox:
-        """Return the box moved by the given offset.
-
-        Parameters
-        ----------
-        dx : float
-            Distance to move along the x-axis.
-        dy : float
-            Distance to move along the y-axis.
-
-        Returns
-        -------
-        BBox
-            The translated box.
-        """
-        if self.is_empty:
-            return self
-        return BBox(
-            self.xmin + dx,
-            self.ymin + dy,
-            self.xmax + dx,
-            self.ymax + dy,
-        )
-
-    def scaled(self, scale: float) -> BBox:
-        """Return the box scaled about the origin.
-
-        Parameters
-        ----------
-        scale : float
-            Uniform scaling factor. This scales about the coordinate
-            origin, not about the centre of the box, to match the order of
-            an SVG ``translate`` followed by ``scale``.
-
-        Returns
-        -------
-        BBox
-            The scaled box.
-        """
-        if self.is_empty:
-            return self
-        xs = (self.xmin * scale, self.xmax * scale)
-        ys = (self.ymin * scale, self.ymax * scale)
-        return BBox(min(xs), min(ys), max(xs), max(ys))
-
-    def to_viewbox(self) -> tuple[float, float, float, float]:
-        """Return the box as an SVG ``viewBox`` tuple.
-
-        Returns
-        -------
-        tuple of float
-            ``(min-x, min-y, width, height)``.
-        """
-        return (self.xmin, self.ymin, self.width, self.height)

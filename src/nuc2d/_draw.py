@@ -199,7 +199,9 @@ def draw_structure(
         colorbar_bbox.xmin,
         colorbar_bbox.ymax,
     )
-    return compose([fit(structure, slot), Placement(component=colorbar)])
+    return compose(
+        [fit(structure, slot, anchor="center"), Placement(component=colorbar)]
+    )
 
 
 def draw_svg(

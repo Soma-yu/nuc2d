@@ -114,9 +114,10 @@ def test_viewbox_frames_exactly_the_component():
     svg = draw_svg("..(((...)))..").to_svg()
     viewbox = ET.fromstring(svg).attrib["viewBox"]
 
-    assert [float(v) for v in viewbox.replace(",", " ").split()] == list(
-        component.bbox.to_viewbox()
-    )
+    bbox = component.bbox
+    assert [float(v) for v in viewbox.replace(",", " ").split()] == [
+        bbox.xmin, bbox.ymin, bbox.width, bbox.height
+    ]
 
 
 def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
@@ -135,6 +136,31 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
 
         assert with_bar.height == pytest.approx(colorbar.height)
         assert with_bar.width == pytest.approx(colorbar.height + colorbar.width)
+
+
+def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
+    """A structure wider than it is tall sits midway up the colorbar."""
+    colorbar = draw_colorbar().bbox
+    square_centre = (colorbar.xmin - colorbar.height / 2, colorbar.center_y)
+
+    for dot_bracket in ["." * 40, "((((....))))" * 3]:
+        alone = draw_structure(dot_bracket).bbox
+        assert alone.width > alone.height
+        svg = Scene(
+            draw_structure(dot_bracket, probs=np.eye(len(dot_bracket)) * 0.5)
+        ).to_svg()
+
+        # The structure is placed first, so its transform is the first one.
+        transform = next(
+            element.attrib["transform"]
+            for element in ET.fromstring(svg).iter()
+            if "transform" in element.attrib
+        )
+        dx, dy, scale, _ = map(float, re.findall(r"-?[\d.]+(?:e-?\d+)?", transform))
+
+        assert (dx + scale * alone.center_x, dy + scale * alone.center_y) == (
+            pytest.approx(square_centre)
+        )
 
 
 def collect_texts(svg_string):

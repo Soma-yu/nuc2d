@@ -194,7 +194,7 @@ def test_fit_uses_the_largest_scale_that_fits():
     component = structure(CLOVERLEAF)
     slot = BBox(0.0, 0.0, 300.0, 1000.0)
 
-    placement = fit(component, slot)
+    placement = fit(component, slot, anchor="center")
 
     assert placement.scale == pytest.approx(
         min(300.0 / component.bbox.width, 1000.0 / component.bbox.height)
@@ -222,9 +222,9 @@ def test_fit_aligns_the_component_by_its_anchor():
 
 def test_fit_refuses_what_has_no_area():
     with pytest.raises(ValueError):
-        fit(compose([]), BBox(0.0, 0.0, 1.0, 1.0))
+        fit(compose([]), BBox(0.0, 0.0, 1.0, 1.0), anchor="center")
     with pytest.raises(ValueError):
-        fit(structure(), BBox(0.0, 0.0, 0.0, 1.0))
+        fit(structure(), BBox(0.0, 0.0, 0.0, 1.0), anchor="center")
 
 
 # ---------------------------------------------------------------- Scene
@@ -252,8 +252,9 @@ def test_a_scene_is_framed_on_the_component():
     component = structure(CLOVERLEAF)
     root = ET.fromstring(Scene(component).to_svg())
 
+    bbox = component.bbox
     assert [float(v) for v in root.attrib["viewBox"].split(",")] == pytest.approx(
-        list(component.bbox.to_viewbox())
+        [bbox.xmin, bbox.ymin, bbox.width, bbox.height]
     )
 
 

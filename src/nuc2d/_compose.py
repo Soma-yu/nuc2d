@@ -198,15 +198,20 @@ def fit(
     component: Component,
     slot: BBox,
     *,
-    anchor: Anchor = "center",
+    anchor: Anchor,
     z_index: int = 0,
 ) -> Placement:
     """Place a component at the largest size that fits inside ``slot``.
 
     The component keeps its proportions and is aligned inside the slot by
-    ``anchor``. The placement's box is the slot itself rather than the
-    component's own, so that a row of slots stays a row of equal cells
-    whatever shape each component is.
+    ``anchor``: the point of the component that it names lands on the
+    point of the slot that it names. The placement's box is the slot
+    itself rather than the component's own, so that a row of slots stays
+    a row of equal cells whatever shape each component is.
+
+    ``anchor`` has no default. Placing a component at a point is done by
+    a corner, as ``Placement`` does, while aligning one inside a box is
+    usually done by its centre, so neither default is obvious here.
     """
     bbox = component.bbox
     if bbox.is_empty or bbox.width <= 0 or bbox.height <= 0:
@@ -270,8 +275,8 @@ def compose(placements: Sequence[Placement]) -> Component:
     in_order = sorted(placements, key=lambda p: p.z_index)
     return Component(
         bbox=reduce(BBox.union, (p.bbox for p in placements), BBox.empty()),
-        _content=_svg.gathered([p._placed_content() for p in in_order]),
-        _definitions=_svg.merged_definitions(
+        _content=_svg.gather([p._placed_content() for p in in_order]),
+        _definitions=_svg.merge_definitions(
             p.component._definitions for p in in_order
         ),
     )
@@ -324,13 +329,10 @@ class Scene:
                 )
 
         aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
-        if width_px is None and height_px is None:
-            height_px = 500.0
+        if height_px is None:
+            height_px = 500.0 if width_px is None else width_px / aspect_ratio
         if width_px is None:
-            assert height_px is not None
             width_px = height_px * aspect_ratio
-        elif height_px is None:
-            height_px = width_px / aspect_ratio
 
         self._component = component
         self._width_px = width_px
@@ -341,7 +343,7 @@ class Scene:
         return _svg.document_string(
             self._component._content,
             self._component._definitions,
-            viewbox=self._component.bbox.to_viewbox(),
+            viewbox=self._component.bbox,
             width_px=self._width_px,
             height_px=self._height_px,
         )
@@ -352,7 +354,7 @@ class Scene:
             filename,
             self._component._content,
             self._component._definitions,
-            viewbox=self._component.bbox.to_viewbox(),
+            viewbox=self._component.bbox,
             width_px=self._width_px,
             height_px=self._height_px,
         )
