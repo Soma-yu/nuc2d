@@ -184,6 +184,11 @@ drawing = draw_svg(
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="65%">
 </p>
 
+Colors are written as SVG writes them: a name such as `crimson`, `#rgb` or
+`#rrggbb`, `rgb(r, g, b)`, or `none`. Dash patterns are `none` or lengths such
+as `4,2`. Anything else raises `ValueError` as soon as it is set, rather than
+when a drawing is made from the style.
+
 ## Combining several structures
 
 `draw_component` renders one structure into an SVG component without deciding
