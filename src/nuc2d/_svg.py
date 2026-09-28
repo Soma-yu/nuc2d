@@ -7,9 +7,11 @@ drawing using the composition utilities defined in this module.
 """
 
 import hashlib
+import os
 from dataclasses import dataclass
 from functools import reduce
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import numpy as np
 import matplotlib as mpl
@@ -674,3 +676,97 @@ def compose(
     bbox = reduce(BBox.union, (p.bbox for p in placements), BBox.empty())
 
     return SVGComponent(group=group, bbox=bbox)
+
+
+# What composition needs from SVG. The composition layer places parts and
+# frames the result without knowing how either is written; these are the
+# only places it reaches into SVG, so that a different way of writing it
+# changes this module and no other.
+
+
+def definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
+    """Return the definitions a renderer registered in ``drawing``.
+
+    A renderer draws into a drawing of its own, and what it put in that
+    drawing's ``<defs>`` has to travel with what it drew.
+    """
+    return tuple(drawing.defs.elements)
+
+
+def merged_definitions(groups: Iterable[tuple[Any, ...]]) -> tuple[Any, ...]:
+    """Return the definitions of several parts, each id once.
+
+    An id is derived from the definition's content, so two definitions
+    with one id are the same definition, and either can stand for both.
+    """
+    merged: dict[str, Any] = {}
+    for group in groups:
+        for element in group:
+            merged.setdefault(element.attribs["id"], element)
+    return tuple(merged.values())
+
+
+def transformed(content: Any, *, dx: float, dy: float, scale: float) -> Any:
+    """Return ``content`` scaled about the origin, then moved by (dx, dy)."""
+    wrapper = svgwrite.container.Group(
+        transform=f"translate({dx},{dy}) scale({scale},{scale})"
+    )
+    wrapper.add(content)
+    return wrapper
+
+
+def gathered(contents: Sequence[Any]) -> Any:
+    """Return one part holding ``contents``, drawn in the order given."""
+    group = svgwrite.container.Group()
+    for content in contents:
+        group.add(content)
+    return group
+
+
+def _document(
+    content: Any,
+    defs: tuple[Any, ...],
+    *,
+    viewbox: tuple[float, float, float, float],
+    width_px: float,
+    height_px: float,
+) -> svgwrite.Drawing:
+    drawing = svgwrite.Drawing()
+    for element in defs:
+        drawing.defs.add(element)
+    drawing.add(content)
+    drawing.viewbox(*viewbox)
+    drawing["width"] = f"{width_px}px"
+    drawing["height"] = f"{height_px}px"
+    return drawing
+
+
+def document_string(
+    content: Any,
+    defs: tuple[Any, ...],
+    *,
+    viewbox: tuple[float, float, float, float],
+    width_px: float,
+    height_px: float,
+) -> str:
+    """Return a complete SVG document showing ``content``."""
+    return str(
+        _document(
+            content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
+        ).tostring()
+    )
+
+
+def save_document(
+    filename: str | os.PathLike[str],
+    content: Any,
+    defs: tuple[Any, ...],
+    *,
+    viewbox: tuple[float, float, float, float],
+    width_px: float,
+    height_px: float,
+) -> None:
+    """Write a complete SVG document showing ``content`` to ``filename``."""
+    _document(
+        content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
+    ).saveas(filename)
