@@ -5,8 +5,9 @@ save with :meth:`Scene.save_svg` or to show in Jupyter.
 
 To put several parts together, draw each as a :class:`Component` with
 :func:`draw_structure`, :func:`draw_colorbar` or :func:`draw_text`, say
-where each goes with a :class:`Placement`, gather them with
-:func:`compose`, and frame the result as a :class:`Scene`.
+where each goes with a :class:`Placement`, make one component of them
+with :meth:`Component.from_placements`, and frame the result as a
+:class:`Scene`.
 
 Everything public is imported from ``nuc2d`` itself. The modules inside the
 package all begin with an underscore: they are where the code lives, not
@@ -15,11 +16,12 @@ part of what a version promises.
 
 from importlib.metadata import PackageNotFoundError, version
 
-from ._compose import Component, Placement, Scene, compose
+from ._component import Component, Placement
 from ._draw import draw_colorbar, draw_structure, draw_svg, draw_text
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parse import ParseError
+from ._scene import Scene
 from ._style import DrawingStyle
 
 try:
@@ -36,7 +38,6 @@ __all__ = [
     "RadialLayoutEngine",
     "Scene",
     "__version__",
-    "compose",
     "draw_colorbar",
     "draw_structure",
     "draw_svg",

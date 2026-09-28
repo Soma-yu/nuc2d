@@ -11,26 +11,19 @@ import math
 import numpy as np
 
 from ._annotation import attach_equilibrium_probabilities, attach_sequences
-from ._compose import Component, Placement, Scene, fit, compose
+from ._component import Component, Placement, fit
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parse import parse
+from ._scene import Scene
 from ._style import DrawingStyle
-from ._svg import Rendered, render_colorbar, render_structure, render_text
+from ._svg import render_colorbar, render_structure, render_text
 
 
 # The structure beside a colorbar is fitted into a square as tall as the
 # colorbar, so that the colorbar keeps its own size whatever the shape of
 # the structure, and a very wide structure does not shrink it to a sliver.
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
-
-
-def _component(rendered: Rendered) -> Component:
-    return Component(
-        bbox=rendered.bbox,
-        _content=rendered.content,
-        _definitions=rendered.definitions,
-    )
 
 
 def draw_colorbar(
@@ -54,7 +47,7 @@ def draw_colorbar(
     Component
         The colorbar, to be placed with :class:`Placement`.
     """
-    return _component(render_colorbar(label=label, style=style))
+    return render_colorbar(label=label, style=style)
 
 
 def draw_text(
@@ -112,9 +105,7 @@ def draw_text(
         raise ValueError(
             f"font_size must be a positive finite number; got {font_size!r}."
         )
-    return _component(
-        render_text(text, font_family=font_family, font_size=font_size)
-    )
+    return render_text(text, font_family=font_family, font_size=font_size)
 
 
 def draw_structure(
@@ -186,7 +177,7 @@ def draw_structure(
         attach_equilibrium_probabilities(root_loop, probs)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
-    structure = _component(render_structure(engine.layout(root_loop), style=style))
+    structure = render_structure(engine.layout(root_loop), style=style)
 
     if probs is None or not add_colorbar:
         return structure
@@ -199,7 +190,7 @@ def draw_structure(
         colorbar_bbox.xmin,
         colorbar_bbox.ymax,
     )
-    return compose(
+    return Component.from_placements(
         [fit(structure, slot, anchor="center"), Placement(component=colorbar)]
     )
 

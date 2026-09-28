@@ -18,7 +18,6 @@ PUBLIC_NAMES = {
     "RadialLayoutEngine",
     "Scene",
     "__version__",
-    "compose",
     "draw_colorbar",
     "draw_structure",
     "draw_svg",
@@ -66,7 +65,7 @@ POSITIONAL_COUNT = {
     nuc2d.draw_structure: 1,  # dot_bracket
     nuc2d.draw_colorbar: 0,
     nuc2d.draw_text: 1,  # text
-    nuc2d.compose: 1,  # placements
+    nuc2d.Component.from_placements: 1,  # placements
     nuc2d.Scene: 1,  # component
     nuc2d.Placement: 0,
     nuc2d.RadialLayoutEngine: 0,
@@ -115,7 +114,7 @@ PUBLIC_MEMBERS = {
         "width", "height", "center_x", "center_y",
         "is_empty", "empty", "union",
     },
-    "Component": {"bbox"},
+    "Component": {"bbox", "from_placements"},
     "Placement": {"component", "x", "y", "anchor", "scale", "z_index", "bbox"},
     "Scene": {"to_svg", "save_svg"},
 }
@@ -165,7 +164,10 @@ def public_callables():
         target = getattr(nuc2d, name)
         if inspect.isclass(target):
             yield name, target.__init__
-            for attr, member in vars(target).items():
+            for attr in vars(target):
+                # Through getattr, so that a classmethod comes back bound
+                # and callable, as a caller sees it.
+                member = getattr(target, attr)
                 if callable(member) and not attr.startswith("_"):
                     yield f"{name}.{attr}", member
         elif callable(target):

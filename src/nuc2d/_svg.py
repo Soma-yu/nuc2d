@@ -1,25 +1,26 @@
 """Everything nuc2d writes as SVG.
 
-This module draws a laid-out structure and a colorbar as SVG, and does
-the few things composition needs done in SVG: moving and scaling a part,
-gathering parts, and writing the finished document. It is the only
-module that knows how SVG is written, so that writing it another way
-changes this module and no other.
+This module draws a laid-out structure, a colorbar and a line of text as
+SVG, each as a component, and writes a component and everything placed
+in it as a finished document. It is the only module that knows how SVG
+is written, so that writing it another way changes this module and no
+other.
 
 Each part is drawn into a drawing of its own, and handed back together
 with the definitions it registered there, such as an arrowhead or a
-gradient, so that whoever writes the document can write each of them
-once.
+gradient, so that the document can write each of them once however many
+parts refer to it.
 
-What other modules use is this module's functions. The renderer class
-inside it is private to it.
+What other modules use is the three ``render_`` functions,
+:func:`document_string` and :func:`save_document`. Everything else here,
+the renderer class included, is private to this module.
 """
 
 import hashlib
 import os
 from functools import reduce
-from collections.abc import Callable, Iterable, Sequence
-from typing import Any, NamedTuple
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import matplotlib as mpl
@@ -36,6 +37,14 @@ from ._layout import (
     LayoutResult,
 )
 from ._style import DrawingStyle
+from ._component import (
+    Component,
+    content_of,
+    definitions_of,
+    make_component,
+    parts_of,
+    transform_of,
+)
 from ._geometry import BBox, Vec2
 from ._font import find_font_path, text_width, vertical_center_offset, vertical_extent
 
@@ -90,25 +99,6 @@ def _ensure_def(
         if element.attribs.get("id") == element_id:
             return
     drawing.defs.add(build())
-
-
-class Rendered(NamedTuple):
-    """What a renderer made: a part, its extent, and its definitions.
-
-    Attributes
-    ----------
-    content : svgwrite.container.Group
-        The drawn part.
-    bbox : BBox
-        Extent of the part in its own coordinate system.
-    definitions : tuple
-        The definitions the part refers to, such as an arrowhead marker
-        or a gradient, which the document has to contain.
-    """
-
-    content: Any
-    bbox: BBox
-    definitions: tuple[Any, ...]
 
 
 class _Renderer:
@@ -434,13 +424,13 @@ class _Renderer:
 
         group = drawing.g()
 
-        vb_width = 150
-        vb_height = 500
+        box_width = 150
+        box_height = 500
 
         bar_height = 450
         bar_width = bar_height * self.style.colorbar_aspect_ratio
         bar_x = 30
-        bar_y = (vb_height - bar_height) / 2
+        bar_y = (box_height - bar_height) / 2
 
         # Define the vertical color gradient. The colormap is asked for
         # every stop in one call, because its cost is per call rather
@@ -510,23 +500,23 @@ class _Renderer:
             group.add(
                 drawing.text(
                     label,
-                    insert=(100, vb_height/2),
+                    insert=(100, box_height/2),
                     text_anchor="middle",
                     font_family=self.style.font_family,
                     font_size=self.style.colorbar_label_font_size,
                     fill="black",
-                    transform=f"rotate(90, 100, {vb_height / 2})",
+                    transform=f"rotate(90, 100, {box_height / 2})",
                 )
             )
 
-        return group, BBox(0.0, 0.0, vb_width, vb_height)
+        return group, BBox(0.0, 0.0, box_width, box_height)
 
 
 def render_structure(
     layout_result: LayoutResult,
     *,
     style: DrawingStyle | None = None,
-) -> Rendered:
+) -> Component:
     """Render a laid-out secondary structure.
 
     Parameters
@@ -538,19 +528,19 @@ def render_structure(
 
     Returns
     -------
-    Rendered
-        The drawn structure, its extent, and its definitions.
+    Component
+        The drawn structure.
     """
     drawing = svgwrite.Drawing()
     content, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
-    return Rendered(content, bbox, definitions(drawing))
+    return make_component(bbox, content, _registered_definitions(drawing))
 
 
 def render_colorbar(
     *,
     label: str | None = "Equilibrium probability",
     style: DrawingStyle | None = None,
-) -> Rendered:
+) -> Component:
     """Render a colorbar.
 
     Parameters
@@ -564,15 +554,15 @@ def render_colorbar(
 
     Returns
     -------
-    Rendered
-        The drawn colorbar, its extent, and its definitions.
+    Component
+        The drawn colorbar.
     """
     drawing = svgwrite.Drawing()
     content, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
-    return Rendered(content, bbox, definitions(drawing))
+    return make_component(bbox, content, _registered_definitions(drawing))
 
 
-def render_text(text: str, *, font_family: str, font_size: float) -> Rendered:
+def render_text(text: str, *, font_family: str, font_size: float) -> Component:
     """Render one line of text.
 
     The text is set on a baseline as far below the top of its box as the
@@ -592,8 +582,8 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Rendered:
 
     Returns
     -------
-    Rendered
-        The drawn text and its extent. Text refers to no definitions.
+    Component
+        The drawn text.
     """
     font_path = find_font_path(font_family)
     above, below = vertical_extent(font_path, font_size)
@@ -610,16 +600,11 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Rendered:
             fill="black",
         )
     )
-    return Rendered(group, BBox(0.0, 0.0, width, above + below), definitions(drawing))
+    bbox = BBox(0.0, 0.0, width, above + below)
+    return make_component(bbox, group, _registered_definitions(drawing))
 
 
-# What composition needs from SVG. The composition layer places parts and
-# frames the result without knowing how either is written; these are the
-# only places it reaches into SVG, so that a different way of writing it
-# changes this module and no other.
-
-
-def definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
+def _registered_definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
     """Return the definitions a renderer registered in ``drawing``.
 
     A renderer draws into a drawing of its own, and what it put in that
@@ -628,87 +613,78 @@ def definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
     return tuple(drawing.defs.elements)
 
 
-def merge_definitions(groups: Iterable[tuple[Any, ...]]) -> tuple[Any, ...]:
-    """Merge the definitions of several parts, keeping each id once.
+# Writing a component. One made of others holds only their placements, so
+# the groups and transforms that put each part where it goes are made
+# here, each time a document is written.
+
+
+def _element(component: Component) -> Any:
+    """Return an SVG element drawing ``component`` and everything in it."""
+    content = content_of(component)
+    if content is not None:
+        return content
+    group = svgwrite.container.Group()
+    for placement in parts_of(component):
+        dx, dy, scale = transform_of(placement)
+        placed = svgwrite.container.Group(
+            transform=f"translate({dx},{dy}) scale({scale},{scale})"
+        )
+        placed.add(_element(placement.component))
+        group.add(placed)
+    return group
+
+
+def _definitions(component: Component) -> tuple[Any, ...]:
+    """Return the definitions ``component`` refers to, each id once.
 
     An id is derived from the definition's content, so two definitions
     with one id are the same definition, and either can stand for both.
     """
+    if content_of(component) is not None:
+        return definitions_of(component)
     merged: dict[str, Any] = {}
-    for group in groups:
-        for element in group:
+    for placement in parts_of(component):
+        for element in _definitions(placement.component):
             merged.setdefault(element.attribs["id"], element)
     return tuple(merged.values())
 
 
-def transformed(content: Any, *, dx: float, dy: float, scale: float) -> Any:
-    """Return ``content`` scaled about the origin, then moved by (dx, dy)."""
-    wrapper = svgwrite.container.Group(
-        transform=f"translate({dx},{dy}) scale({scale},{scale})"
-    )
-    wrapper.add(content)
-    return wrapper
-
-
-def gather(contents: Sequence[Any]) -> Any:
-    """Gather ``contents`` into one part, drawn in the order given."""
-    group = svgwrite.container.Group()
-    for content in contents:
-        group.add(content)
-    return group
-
-
 def _document(
-    content: Any,
-    defs: tuple[Any, ...],
-    *,
-    viewbox: BBox,
-    width_px: float,
-    height_px: float,
+    component: Component, *, width_px: float, height_px: float
 ) -> svgwrite.Drawing:
     drawing = svgwrite.Drawing()
-    for element in defs:
+    for element in _definitions(component):
         drawing.defs.add(element)
-    drawing.add(content)
-    drawing.viewbox(viewbox.xmin, viewbox.ymin, viewbox.width, viewbox.height)
+    drawing.add(_element(component))
+    bbox = component.bbox
+    drawing.viewbox(bbox.xmin, bbox.ymin, bbox.width, bbox.height)
     drawing["width"] = f"{width_px}px"
     drawing["height"] = f"{height_px}px"
     return drawing
 
 
 def document_string(
-    content: Any,
-    defs: tuple[Any, ...],
-    *,
-    viewbox: BBox,
-    width_px: float,
-    height_px: float,
+    component: Component, *, width_px: float, height_px: float
 ) -> str:
-    """Return a complete SVG document showing ``content``.
+    """Return a complete SVG document showing ``component``.
 
-    The document is framed on ``viewbox`` and sized ``width_px`` by
-    ``height_px``.
+    The document is framed on the component's box and sized ``width_px``
+    by ``height_px``.
     """
     return str(
-        _document(
-            content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
-        ).tostring()
+        _document(component, width_px=width_px, height_px=height_px).tostring()
     )
 
 
 def save_document(
     filename: str | os.PathLike[str],
-    content: Any,
-    defs: tuple[Any, ...],
+    component: Component,
     *,
-    viewbox: BBox,
     width_px: float,
     height_px: float,
 ) -> None:
-    """Write a complete SVG document showing ``content`` to ``filename``.
+    """Write a complete SVG document showing ``component`` to ``filename``.
 
     The document is the one :func:`document_string` returns.
     """
-    _document(
-        content, defs, viewbox=viewbox, width_px=width_px, height_px=height_px
-    ).saveas(filename)
+    _document(component, width_px=width_px, height_px=height_px).saveas(filename)

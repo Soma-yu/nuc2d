@@ -9,11 +9,11 @@ import pytest
 import svgwrite
 
 from nuc2d import (
+    Component,
     DrawingStyle,
     Placement,
     RadialLayoutEngine,
     Scene,
-    compose,
     draw_colorbar,
     draw_structure,
     draw_svg,
@@ -27,7 +27,7 @@ def side_by_side(components):
         placement = Placement(component=component, x=cursor_x)
         placements.append(placement)
         cursor_x = placement.bbox.xmax
-    return Scene(compose(placements))
+    return Scene(Component.from_placements(placements))
 
 
 def collect_ids(svg_string):
@@ -228,7 +228,7 @@ def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     colorbar = draw_colorbar()
 
     placed = Placement(component=structure)
-    panel = compose([
+    panel = Component.from_placements([
         placed,
         Placement(
             component=colorbar,

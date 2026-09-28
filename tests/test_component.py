@@ -1,24 +1,18 @@
-import ast
 import dataclasses
-import importlib
-import inspect
-import pkgutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
 import pytest
 
-import nuc2d
 from nuc2d import (
     BBox,
+    Component,
     Placement,
     Scene,
-    compose,
     draw_colorbar,
     draw_structure,
-    draw_svg,
 )
-from nuc2d._compose import _ANCHOR_FRACTIONS, _anchor_point, fit
+from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -101,26 +95,26 @@ def test_placements_are_frozen_and_hashable():
     hash(placement)
 
 
-# ---------------------------------------------------------------- compose
+# ---------------------------------------------------------------- from_placements
 
 
-def test_compose_encloses_everything_it_places():
+def test_from_placements_encloses_everything_it_places():
     a, b = structure(CLOVERLEAF), structure()
     pa = Placement(component=a)
     pb = Placement(component=b, x=pa.bbox.xmax + 20.0, y=0.0)
 
-    panel = compose([pa, pb])
+    panel = Component.from_placements([pa, pb])
 
     assert panel.bbox == pa.bbox.union(pb.bbox)
 
 
-def test_compose_of_nothing_is_empty():
-    assert compose([]).bbox.is_empty
+def test_from_placements_of_nothing_is_empty():
+    assert Component.from_placements([]).bbox.is_empty
 
 
-def test_compose_refuses_a_component_that_was_not_placed():
+def test_from_placements_refuses_a_component_that_was_not_placed():
     with pytest.raises(TypeError, match="Placement"):
-        compose([structure()])
+        Component.from_placements([structure()])
 
 
 def first_tag(svg_string, tags):
@@ -132,12 +126,12 @@ def first_tag(svg_string, tags):
     return None
 
 
-def test_compose_draws_in_order_of_z_index():
+def test_components_are_drawn_in_order_of_z_index():
     colorbar = draw_colorbar()  # draws a rect
     plain = structure()  # draws circles, no rect
 
     def drawn_first(placements):
-        return first_tag(Scene(compose(placements)).to_svg(), ["rect", "circle"])
+        return first_tag(Scene(Component.from_placements(placements)).to_svg(), ["rect", "circle"])
 
     assert drawn_first([Placement(component=colorbar), Placement(component=plain)]) == "rect"
     assert drawn_first(
@@ -148,7 +142,7 @@ def test_compose_draws_in_order_of_z_index():
 def test_a_definition_is_written_once_however_many_components_use_it():
     a, b = structure(CLOVERLEAF), structure(CLOVERLEAF)
     pa = Placement(component=a)
-    panel = compose([pa, Placement(component=b, x=pa.bbox.xmax)])
+    panel = Component.from_placements([pa, Placement(component=b, x=pa.bbox.xmax)])
 
     svg = Scene(panel).to_svg()
 
@@ -160,15 +154,15 @@ def test_different_definitions_are_all_written():
     plain = structure()
     pc = Placement(component=colored)
 
-    svg = Scene(compose([pc, Placement(component=plain, x=pc.bbox.xmax)])).to_svg()
+    svg = Scene(Component.from_placements([pc, Placement(component=plain, x=pc.bbox.xmax)])).to_svg()
 
     assert count(svg, "marker") == 1
     assert count(svg, "linearGradient") == 1
 
 
 def test_a_composed_component_can_be_placed_again():
-    inner = compose([Placement(component=structure(CLOVERLEAF))])
-    outer = compose([Placement(component=inner, x=5.0, y=5.0, scale=0.5)])
+    inner = Component.from_placements([Placement(component=structure(CLOVERLEAF))])
+    outer = Component.from_placements([Placement(component=inner, x=5.0, y=5.0, scale=0.5)])
 
     assert (outer.bbox.xmin, outer.bbox.ymin) == pytest.approx((5.0, 5.0))
     assert outer.bbox.width == pytest.approx(inner.bbox.width * 0.5)
@@ -222,136 +216,6 @@ def test_fit_aligns_the_component_by_its_anchor():
 
 def test_fit_refuses_what_has_no_area():
     with pytest.raises(ValueError):
-        fit(compose([]), BBox(0.0, 0.0, 1.0, 1.0), anchor="center")
+        fit(Component.from_placements([]), BBox(0.0, 0.0, 1.0, 1.0), anchor="center")
     with pytest.raises(ValueError):
         fit(structure(), BBox(0.0, 0.0, 0.0, 1.0), anchor="center")
-
-
-# ---------------------------------------------------------------- Scene
-
-
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        {"probs": PROBS},
-        {"probs": PROBS, "colorbar_label": None},
-        {"probs": PROBS, "add_colorbar": False},
-        {"sequences": ["AUGCAUGCA"]},
-    ],
-)
-@pytest.mark.parametrize("size", [{}, {"width_px": 300.0}, {"height_px": 120.0}])
-def test_draw_svg_is_a_scene_of_draw_structure(kwargs, size):
-    """draw_svg(...) is Scene(draw_structure(...)), byte for byte."""
-    expected = Scene(draw_structure("(((...)))", **kwargs), **size).to_svg()
-
-    assert draw_svg("(((...)))", **kwargs, **size).to_svg() == expected
-
-
-def test_a_scene_is_framed_on_the_component():
-    component = structure(CLOVERLEAF)
-    root = ET.fromstring(Scene(component).to_svg())
-
-    bbox = component.bbox
-    assert [float(v) for v in root.attrib["viewBox"].split(",")] == pytest.approx(
-        [bbox.xmin, bbox.ymin, bbox.width, bbox.height]
-    )
-
-
-def test_the_size_follows_the_component_proportions():
-    component = structure(CLOVERLEAF)
-    aspect = component.bbox.width / component.bbox.height
-
-    default = ET.fromstring(Scene(component).to_svg()).attrib
-    by_width = ET.fromstring(Scene(component, width_px=300.0).to_svg()).attrib
-    both = ET.fromstring(
-        Scene(component, width_px=300.0, height_px=100.0).to_svg()
-    ).attrib
-
-    assert default["height"] == "500.0px"
-    assert float(default["width"][:-2]) == pytest.approx(500.0 * aspect)
-    assert float(by_width["height"][:-2]) == pytest.approx(300.0 / aspect)
-    assert (both["width"], both["height"]) == ("300.0px", "100.0px")
-
-
-def test_save_svg_writes_the_same_document(tmp_path):
-    scene = Scene(structure(CLOVERLEAF))
-    path = tmp_path / "structure.svg"
-
-    scene.save_svg(path)
-
-    text = path.read_text(encoding="utf-8")
-    assert text.startswith("<?xml")
-    assert text.endswith(scene.to_svg())
-
-
-def test_jupyter_displays_the_scene():
-    scene = Scene(structure())
-
-    assert scene._repr_svg_() == scene.to_svg()
-
-
-@pytest.mark.parametrize("old, new", [("tostring", "to_svg"), ("saveas", "save_svg")])
-def test_the_names_1x_used_say_what_replaced_them(old, new):
-    scene = Scene(structure())
-
-    with pytest.raises(AttributeError, match=new):
-        getattr(scene, old)
-    assert not hasattr(scene, old)
-
-
-def test_any_other_missing_attribute_is_a_plain_attribute_error():
-    with pytest.raises(AttributeError, match="no attribute 'add'$"):
-        Scene(structure()).add
-
-
-def test_an_empty_component_cannot_be_drawn():
-    with pytest.raises(ValueError, match="empty"):
-        Scene(compose([]))
-
-
-@pytest.mark.parametrize("size", [0.0, -10.0, float("inf")])
-def test_a_size_must_be_positive_and_finite(size):
-    with pytest.raises(ValueError, match="width_px"):
-        Scene(structure(), width_px=size)
-    with pytest.raises(ValueError, match="height_px"):
-        Scene(structure(), height_px=size)
-
-
-def test_a_scene_can_be_written_more_than_once():
-    """Writing does not consume the component."""
-    scene = Scene(structure(CLOVERLEAF, probs=np.eye(76) * 0.5))
-
-    assert scene.to_svg() == scene.to_svg()
-
-
-def test_the_colorbar_travels_with_its_gradient():
-    colorbar = draw_colorbar()
-
-    assert count(Scene(colorbar).to_svg(), "linearGradient") == 1
-
-
-def imports_of(module):
-    """Return the top-level names of every package a module imports."""
-    tree = ast.parse(inspect.getsource(module))
-    return {
-        alias.name.split(".")[0]
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Import)
-        for alias in node.names
-    } | {
-        node.module.split(".")[0]
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom) and node.module and node.level == 0
-    }
-
-
-def test_only_the_svg_module_knows_how_svg_is_written():
-    """Writing SVG another way changes nuc2d._svg and no other module."""
-    importers = {
-        info.name
-        for info in pkgutil.iter_modules(nuc2d.__path__)
-        if "svgwrite" in imports_of(importlib.import_module(f"nuc2d.{info.name}"))
-    }
-
-    assert importers == {"_svg"}

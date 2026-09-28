@@ -204,14 +204,14 @@ and frame the result:
   `add_colorbar=False`.
 - `draw_text` draws a line of text, such as a title, in a box measured from
   the font, so that it can be placed like anything else.
-- `Placement` says where a component goes and at what size, and `compose`
-  gathers placed components into a new one.
+- `Placement` says where a component goes and at what size, and
+  `Component.from_placements` makes one component of several placed ones.
 - `Scene` frames a component, and is what is saved or shown.
 
 This is how the picture at the top of this page is drawn:
 
 ```python
-from nuc2d import Placement, Scene, compose, draw_structure
+from nuc2d import Component, Placement, Scene, draw_structure
 
 components = [
     draw_structure(CLOVERLEAF),
@@ -228,7 +228,7 @@ for component in components:
     placements.append(placement)
     cursor_x = placement.bbox.xmax + 20.0
 
-Scene(compose(placements)).save_svg("panel.svg")
+Scene(Component.from_placements(placements)).save_svg("panel.svg")
 ```
 
 <p align="center">

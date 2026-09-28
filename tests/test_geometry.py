@@ -1,5 +1,3 @@
-import math
-
 import pytest
 
 from nuc2d._geometry import BBox

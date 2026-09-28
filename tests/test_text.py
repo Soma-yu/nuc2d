@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from nuc2d import Placement, Scene, compose, draw_structure, draw_text
+from nuc2d import Component, Placement, Scene, draw_structure, draw_text
 from nuc2d._font import find_font_path, vertical_extent
 
 
@@ -54,7 +54,7 @@ def test_a_title_can_be_centred_over_a_structure():
         anchor="upper center",
     )
 
-    panel = compose([title, structure])
+    panel = Component.from_placements([title, structure])
 
     assert title.bbox.center_x == pytest.approx(structure.bbox.center_x)
     assert panel.bbox.height == pytest.approx(

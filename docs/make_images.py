@@ -22,7 +22,6 @@ from nuc2d import (
     Placement,
     RadialLayoutEngine,
     Scene,
-    compose,
     draw_structure,
     draw_svg,
 )
@@ -80,7 +79,7 @@ def row(components: list[Component], gap: float) -> Scene:
         placements.append(placement)
         cursor_x = placement.bbox.xmax + gap
 
-    return Scene(compose(placements))
+    return Scene(Component.from_placements(placements))
 
 
 def write(scene: Scene, name: str) -> None:

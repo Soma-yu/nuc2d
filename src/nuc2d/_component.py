@@ -1,28 +1,31 @@
-"""Placing drawn parts, and framing the result as a whole.
+"""Components, and where each one is placed.
 
 A :class:`Component` is anything that can be placed: a structure, a
-colorbar, or a group of them. :class:`Placement` says where one goes, and
-:func:`compose` gathers placed components into a new one. A
-:class:`Scene` is the whole: a component framed on its box and sized, as
-a caller saves or shows it.
+colorbar, a line of text, or several components placed together.
+:class:`Placement` says where one goes and at what size, and
+:meth:`Component.from_placements` makes one component of several placed
+ones.
 
 This module is the geometry of placing, and the checks on what a caller
-asks for. It does not know how anything is written: a component's
-content, and the definitions that content refers to, are opaque here,
-and every operation on them goes through :mod:`nuc2d._svg`. Nothing here
-takes a drawing to draw into, either, because a component carries its
-own definitions and they are written once, when the scene is.
+asks for. It does not know how anything is written, and imports nothing
+that does. A component that was drawn holds what it was drawn with as an
+opaque value, and one made of others holds only their placements; how
+the whole is written is worked out from them when a scene is. That keeps
+the dependency one way, so that the module that writes SVG can make
+components itself.
+
+The functions at the end of this module are for that module. It reads a
+component through them, so that the private fields are touched here and
+nowhere else.
 """
 
 import math
 import numbers
-import os
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from functools import reduce
 from typing import Any, Literal, Union
 
-from . import _svg
 from ._geometry import BBox
 
 
@@ -84,10 +87,12 @@ def _anchor_point(bbox: BBox, anchor: Anchor) -> tuple[float, float]:
 
 @dataclass(frozen=True, kw_only=True)
 class Component:
-    """Something that can be placed: a structure, a colorbar, or a group.
+    """Something that can be placed: a drawing, or several put together.
 
-    Components are made by nuc2d's drawing functions and by
-    :func:`compose`, not built by hand.
+    Components are made by nuc2d's drawing functions, which draw a
+    structure, a colorbar or a line of text, and by
+    :meth:`from_placements`, which puts placed components together. They
+    are not built by hand.
 
     Attributes
     ----------
@@ -104,8 +109,50 @@ class Component:
     """
 
     bbox: BBox
-    _content: Any = field(repr=False)
+    # A drawn component holds what it was drawn with, and the definitions
+    # that refers to; one made of others holds their placements instead,
+    # in the order they are drawn.
+    _content: Any = field(default=None, repr=False)
     _definitions: tuple[Any, ...] = field(default=(), repr=False)
+    _parts: tuple["Placement", ...] = field(default=(), repr=False)
+
+    @classmethod
+    def from_placements(cls, placements: Sequence["Placement"]) -> "Component":
+        """Make one component of several placed components.
+
+        Parameters
+        ----------
+        placements : Sequence[Placement]
+            Components to put together, each with where it goes.
+
+        Returns
+        -------
+        Component
+            A component holding every one placed, whose box encloses them
+            all. An empty sequence gives a component with an empty box.
+
+        Raises
+        ------
+        TypeError
+            If an item is not a :class:`Placement`, such as a component
+            that was not wrapped in one.
+
+        Notes
+        -----
+        Components are drawn in ascending order of ``z_index``, and in the
+        order given where it is equal. No padding is added between them.
+        """
+        placements = tuple(placements)
+        for item in placements:
+            if not isinstance(item, Placement):
+                raise TypeError(
+                    "from_placements takes Placements; wrap each component as "
+                    f"Placement(component=...). Got {type(item).__name__}."
+                )
+        return cls(
+            bbox=reduce(BBox.union, (p.bbox for p in placements), BBox.empty()),
+            _parts=tuple(sorted(placements, key=lambda p: p.z_index)),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -159,7 +206,7 @@ class Placement:
     z_index: int = 0
 
     def __post_init__(self) -> None:
-        # Refuse a bad placement where it is written, not when composing.
+        # Refuse a bad placement where it is written, not when it is used.
         _fractions(self.anchor)
         if not (math.isfinite(self.scale) and self.scale > 0):
             raise ValueError(
@@ -178,20 +225,6 @@ class Placement:
         height = component_bbox.height * self.scale
         left, top = self.x - fx * width, self.y - fy * height
         return BBox(left, top, left + width, top + height)
-
-    def _placed_content(self) -> Any:
-        """The component's content, scaled and moved to where it goes."""
-        component_bbox = self.component.bbox
-        if component_bbox.is_empty:
-            dx, dy = self.x, self.y
-        else:
-            # Scaling about the anchor and then moving the anchor to (x, y)
-            # is one scaling about the origin followed by this translation.
-            ax, ay = _anchor_point(component_bbox, self.anchor)
-            dx, dy = self.x - self.scale * ax, self.y - self.scale * ay
-        return _svg.transformed(
-            self.component._content, dx=dx, dy=dy, scale=self.scale
-        )
 
 
 def fit(
@@ -240,140 +273,53 @@ def fit(
     )
 
 
-def compose(placements: Sequence[Placement]) -> Component:
-    """Gather placed components into a single component.
+# For the module that writes SVG, which makes components and reads them
+# through these.
 
-    Parameters
-    ----------
-    placements : Sequence[Placement]
-        Components to gather, each with where it goes.
 
-    Returns
-    -------
-    Component
-        A component holding every one placed, whose box encloses them
-        all. An empty sequence gives a component with an empty box.
+def make_component(
+    bbox: BBox, content: Any, definitions: tuple[Any, ...]
+) -> Component:
+    """Make a component drawn with ``content``.
 
-    Raises
-    ------
-    TypeError
-        If an item is not a :class:`Placement`, such as a component that
-        was not wrapped in one.
-
-    Notes
-    -----
-    Components are drawn in ascending order of ``z_index``, and in the
-    order given where it is equal. No padding is added between them.
+    ``definitions`` are those ``content`` refers to, such as an arrowhead
+    marker or a gradient, which the document showing it has to contain.
     """
-    for item in placements:
-        if not isinstance(item, Placement):
-            raise TypeError(
-                "compose takes Placements; wrap each component as "
-                f"Placement(component=...). Got {type(item).__name__}."
-            )
+    return Component(bbox=bbox, _content=content, _definitions=definitions)
 
-    in_order = sorted(placements, key=lambda p: p.z_index)
-    return Component(
-        bbox=reduce(BBox.union, (p.bbox for p in placements), BBox.empty()),
-        _content=_svg.gather([p._placed_content() for p in in_order]),
-        _definitions=_svg.merge_definitions(
-            p.component._definitions for p in in_order
-        ),
+
+def content_of(component: Component) -> Any:
+    """Return what a component was drawn with, or None if made of others."""
+    return component._content
+
+
+def definitions_of(component: Component) -> tuple[Any, ...]:
+    """Return the definitions a drawn component's content refers to."""
+    return component._definitions
+
+
+def parts_of(component: Component) -> tuple[Placement, ...]:
+    """Return the placements a component is made of, in drawing order.
+
+    A drawn component is made of none.
+    """
+    return component._parts
+
+
+def transform_of(placement: Placement) -> tuple[float, float, float]:
+    """Return ``(dx, dy, scale)`` putting a component where it is placed.
+
+    The component's own coordinates are scaled about the origin by
+    ``scale``, then moved by ``(dx, dy)``.
+    """
+    bbox = placement.component.bbox
+    if bbox.is_empty:
+        return placement.x, placement.y, placement.scale
+    # Scaling about the anchor and then moving the anchor to (x, y) is one
+    # scaling about the origin followed by this translation.
+    ax, ay = _anchor_point(bbox, placement.anchor)
+    return (
+        placement.x - placement.scale * ax,
+        placement.y - placement.scale * ay,
+        placement.scale,
     )
-
-
-class Scene:
-    """The whole of what is shown: a component, framed and sized.
-
-    A component is a part, to be placed among others; a scene is what
-    they add up to, and is what is saved or shown.
-
-    Parameters
-    ----------
-    component : Component
-        What the scene shows. The scene is framed on exactly its box.
-    width_px : float, optional
-        Width of the scene in pixels. Given alone, the height follows
-        from the component's proportions.
-    height_px : float, optional
-        Height of the scene in pixels. Given alone, the width follows
-        from the component's proportions. Giving neither sets the height
-        to 500. Giving both keeps the component's proportions and centres
-        it, rather than stretching it to fit.
-
-    Raises
-    ------
-    ValueError
-        If the component is empty, or a size given is not a positive
-        finite number.
-
-    Notes
-    -----
-    In Jupyter, a scene that ends a cell is displayed as it is.
-    """
-
-    def __init__(
-        self,
-        component: Component,
-        *,
-        width_px: float | None = None,
-        height_px: float | None = None,
-    ) -> None:
-        bbox = component.bbox
-        if bbox.is_empty:
-            raise ValueError("Nothing to draw: the component is empty.")
-        for name, size in (("width_px", width_px), ("height_px", height_px)):
-            if size is not None and not (math.isfinite(size) and size > 0):
-                raise ValueError(
-                    f"{name} must be a positive finite number; got {size!r}."
-                )
-
-        aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
-        if height_px is None:
-            height_px = 500.0 if width_px is None else width_px / aspect_ratio
-        if width_px is None:
-            width_px = height_px * aspect_ratio
-
-        self._component = component
-        self._width_px = width_px
-        self._height_px = height_px
-
-    def to_svg(self) -> str:
-        """Return the scene as an SVG document."""
-        return _svg.document_string(
-            self._component._content,
-            self._component._definitions,
-            viewbox=self._component.bbox,
-            width_px=self._width_px,
-            height_px=self._height_px,
-        )
-
-    def save_svg(self, filename: str | os.PathLike[str]) -> None:
-        """Write the scene to ``filename`` as an SVG file."""
-        _svg.save_document(
-            filename,
-            self._component._content,
-            self._component._definitions,
-            viewbox=self._component.bbox,
-            width_px=self._width_px,
-            height_px=self._height_px,
-        )
-
-    def _repr_svg_(self) -> str:
-        """Let Jupyter display the scene."""
-        return self.to_svg()
-
-    # What draw_svg returned up to 1.x was an svgwrite.Drawing, and
-    # these are the two of its methods every caller wrote. Asking for either
-    # still fails, but says what replaced it.
-    _RENAMED = {"tostring": "to_svg", "saveas": "save_svg"}
-
-    def __getattr__(self, name: str) -> Any:
-        if name in self._RENAMED:
-            raise AttributeError(
-                f"{type(self).__name__!r} object has no attribute {name!r}; "
-                f"nuc2d 2.0 renamed it {self._RENAMED[name]!r}."
-            )
-        raise AttributeError(
-            f"{type(self).__name__!r} object has no attribute {name!r}"
-        )
