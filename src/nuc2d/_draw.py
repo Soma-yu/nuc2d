@@ -32,7 +32,7 @@ def draw_component(
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
-    colorbar_label: str | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
     add_colorbar: bool = True,
 ) -> SVGComponent:
     """Generate an SVG component from a secondary structure string.
@@ -59,10 +59,10 @@ def draw_component(
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
-    colorbar_label : str, optional
-        Text written alongside the colorbar. Defaults to
-        ``"Equilibrium probability"``. Has no effect unless ``probs`` is
-        given, since the colorbar is drawn only then.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, or None to leave it without
+        one. Has no effect unless ``probs`` is given, since the colorbar is
+        drawn only then.
     add_colorbar : bool, default=True
         Whether to place a colorbar beside the structure. Passing False
         colors the nucleotides from ``probs`` but leaves the colorbar out,
@@ -139,7 +139,7 @@ def draw_svg(
     probs: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
-    colorbar_label: str | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
     add_colorbar: bool = True,
     width_px: float | None = None,
     height_px: float | None = None,
@@ -164,10 +164,10 @@ def draw_svg(
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
-    colorbar_label : str, optional
-        Text written alongside the colorbar. Defaults to
-        ``"Equilibrium probability"``. Has no effect unless ``probs`` is
-        given, since the colorbar is drawn only then.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, or None to leave it without
+        one. Has no effect unless ``probs`` is given, since the colorbar is
+        drawn only then.
     add_colorbar : bool, default=True
         Whether to place a colorbar beside the structure.
     width_px : float, optional

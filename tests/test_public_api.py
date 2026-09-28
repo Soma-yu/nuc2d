@@ -2,6 +2,8 @@ import dataclasses
 import inspect
 import pkgutil
 
+import pytest
+
 import nuc2d
 
 
@@ -110,3 +112,16 @@ def test_the_box_is_built_by_position():
     kinds = {p.kind for p in inspect.signature(nuc2d.BBox).parameters.values()}
 
     assert kinds == {inspect.Parameter.POSITIONAL_OR_KEYWORD}
+
+
+def test_a_malformed_structure_is_a_value_error():
+    """One except ValueError catches every malformed input.
+
+    A sequence that does not match its strand and a probability matrix of
+    the wrong shape raise ValueError, so a structure that does not parse
+    does too.
+    """
+    assert issubclass(nuc2d.ParseError, ValueError)
+
+    with pytest.raises(ValueError):
+        nuc2d.draw_svg("(((")

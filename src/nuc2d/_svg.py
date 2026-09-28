@@ -456,12 +456,13 @@ class SVGRenderer:
         self,
         drawing: svgwrite.Drawing,
         *,
-        label: str | None = None,
+        label: str | None = "Equilibrium probability",
     ) -> SVGComponent:
-        """Render a colorbar as an SVG component."""
+        """Render a colorbar as an SVG component.
 
-        if label is None:
-            label = "Equilibrium probability"
+        With ``label=None`` the label is left out. The box keeps the space
+        it would have taken, so colorbars with and without one line up.
+        """
 
         group = drawing.g()
 
@@ -537,17 +538,18 @@ class SVGRenderer:
                 )
             )
 
-        group.add(
-            drawing.text(
-                label,
-                insert=(100, vb_height/2),
-                text_anchor="middle",
-                font_family = self.style.font_family,
-                font_size=self.style.colorbar_label_font_size,
-                fill="black",
-                transform=f"rotate(90, 100, {vb_height / 2})",
+        if label is not None:
+            group.add(
+                drawing.text(
+                    label,
+                    insert=(100, vb_height/2),
+                    text_anchor="middle",
+                    font_family=self.style.font_family,
+                    font_size=self.style.colorbar_label_font_size,
+                    fill="black",
+                    transform=f"rotate(90, 100, {vb_height / 2})",
+                )
             )
-        )
 
         return SVGComponent(
             group=group,
@@ -587,7 +589,7 @@ def render_structure(
 def render_colorbar(
     drawing: svgwrite.Drawing,
     *,
-    label: str | None = None,
+    label: str | None = "Equilibrium probability",
     style: DrawingStyle | None = None,
 ) -> SVGComponent:
     """Render a colorbar as an SVG component.
@@ -596,9 +598,9 @@ def render_colorbar(
     ----------
     drawing : svgwrite.Drawing
         Drawing object used to create SVG elements and definitions.
-    label : str, optional
-        Label displayed alongside the colorbar. If ``None``, a default
-        label is used.
+    label : str or None, default="Equilibrium probability"
+        Label displayed alongside the colorbar, or None to leave it
+        without one. The colorbar occupies the same box either way.
     style : DrawingStyle, optional
         Drawing style providing the colormap used for rendering.
 

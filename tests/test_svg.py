@@ -152,6 +152,24 @@ def test_colorbar_label_is_configurable():
     assert "Equilibrium probability" not in texts
 
 
+def test_colorbar_label_none_leaves_the_label_out():
+    labelled = draw_svg("(((...)))", probs=PROBS).tostring()
+    unlabelled = draw_svg("(((...)))", probs=PROBS, colorbar_label=None).tostring()
+
+    assert "Equilibrium probability" not in collect_texts(unlabelled)
+    assert len(collect_texts(unlabelled)) == len(collect_texts(labelled)) - 1
+
+
+def test_colorbar_keeps_its_box_without_a_label():
+    """So colorbars with and without a label line up when placed."""
+    from nuc2d import render_colorbar
+
+    labelled = render_colorbar(svgwrite.Drawing())
+    unlabelled = render_colorbar(svgwrite.Drawing(), label=None)
+
+    assert unlabelled.bbox == labelled.bbox
+
+
 def test_colorbar_label_is_ignored_without_probabilities():
     with_label = draw_svg("(((...)))", colorbar_label="Unpaired probability")
 

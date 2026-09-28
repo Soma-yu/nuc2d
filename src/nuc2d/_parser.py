@@ -13,9 +13,13 @@ from ._structure import (
 MINIMUM_HAIRPIN_LOOP_SIZE = 3
 
 
-class ParseError(Exception):
-    """Exception raised when an error occurs during parsing of a string."""
-    pass
+class ParseError(ValueError):
+    """Raised when a string is not a well-formed secondary structure.
+
+    It is a ValueError: the argument has the right type and the wrong
+    value, as with a sequence that does not match its strand, so one
+    ``except ValueError`` catches every malformed input.
+    """
 
 class _Parser:
     def __init__(self, dot_bracket: str) -> None:

@@ -62,6 +62,9 @@ except ParseError as error:
     print(error)
 ```
 
+`ParseError` is a `ValueError`, so `except ValueError` catches it too, along
+with the mismatched sequences and probabilities described below.
+
 ## Sequence annotation
 
 Nucleotide sequences can be provided through the `sequences` argument, one per
@@ -132,6 +135,8 @@ drawing = draw_svg(
     colorbar_label="Pairing probability",
 )
 ```
+
+`colorbar_label=None` leaves the colorbar without a label.
 
 ## Output size
 
