@@ -76,7 +76,6 @@ def test_differing_styles_get_their_own_definitions():
     ids = collect_ids(scene.to_svg())
 
     assert [i for i, n in Counter(ids).items() if n > 1] == []
-    assert len([i for i in ids if i.startswith("arrowhead-")]) == 2
     assert len([i for i in ids if i.startswith("colorbar-gradient-")]) == 2
 
 
@@ -85,7 +84,6 @@ def test_identical_styles_share_one_definition():
 
     ids = collect_ids(scene.to_svg())
 
-    assert len([i for i in ids if i.startswith("arrowhead-")]) == 1
     assert len([i for i in ids if i.startswith("colorbar-gradient-")]) == 1
 
 
@@ -327,16 +325,33 @@ def test_layout_engine_is_configurable():
     assert wider.bbox.height > default.bbox.height
 
 
+def tag_of(element):
+    return element.tag.split("}")[-1]
+
+
+def arrows(root):
+    """Return the (line, head) of each 3' arrow, in order.
+
+    An arrow is a group holding its line and the polygon of its head.
+    """
+    found = []
+    for group in root.iter():
+        kids = list(group)
+        if [tag_of(kid) for kid in kids] == ["line", "polygon"]:
+            found.append((kids[0], kids[1]))
+    return found
+
+
+def length_of(line):
+    return math.hypot(
+        float(line.attrib["x2"]) - float(line.attrib["x1"]),
+        float(line.attrib["y2"]) - float(line.attrib["y1"]),
+    )
+
+
 def collect_arrow_lengths(svg_string):
-    """Return the length of every line carrying an arrowhead, in order."""
-    return [
-        math.hypot(
-            float(element.attrib["x2"]) - float(element.attrib["x1"]),
-            float(element.attrib["y2"]) - float(element.attrib["y1"]),
-        )
-        for element in ET.fromstring(svg_string).iter()
-        if element.tag.endswith("line") and "marker-end" in element.attrib
-    ]
+    """Return the length of every 3' arrow's line, in order."""
+    return [length_of(line) for line, _ in arrows(ET.fromstring(svg_string))]
 
 
 def test_the_three_prime_arrow_length_is_a_style_setting():
@@ -400,15 +415,16 @@ def test_the_dash_pattern_reaches_the_whole_backbone():
         ).to_svg()
     )
 
+    arrow_lines = {id(line) for line, _ in arrows(root)}
     dashes = Counter()
     for element in root.iter():
-        tag = element.tag.split("}")[-1]
+        tag = tag_of(element)
         if tag not in ("line", "path") or "stroke" not in element.attrib:
             continue
-        # The 3' arrow is a terminus marker rather than a stretch of
+        # The 3' arrow marks a terminus rather than being a stretch of
         # backbone, so it stays solid whatever the backbone is dashed with.
         kind = (
-            "arrow" if "marker-end" in element.attrib
+            "arrow" if id(element) in arrow_lines
             else "arc" if tag == "path"
             else "line"
         )
@@ -442,38 +458,79 @@ def test_the_backbone_and_the_base_pairs_take_their_own_colors():
         ET.tostring(root, encoding="unicode")
     ), "expected an arrow to be drawn"
 
-    arrow = next(
-        element
-        for element in root.iter()
-        if element.tag.endswith("line") and "marker-end" in element.attrib
-    )
-    assert arrow.attrib["stroke"] == "crimson"
-
-    marker = root.find(".//{*}marker")
-    assert marker.find("{*}path").attrib["fill"] == "crimson"
+    [(line, head)] = arrows(root)
+    assert line.attrib["stroke"] == "crimson"
+    assert head.attrib["fill"] == "crimson"
 
 
-def test_arrowhead_marker_carries_its_own_coordinate_system():
-    """Pin the marker's viewBox, which decides the arrowhead's size.
+def test_the_arrowhead_is_a_shape_not_a_marker():
+    """Adobe Illustrator mishandles SVG markers.
 
-    A marker without a viewBox leaves renderers to guess how its content
-    maps into the marker viewport: browsers draw it unscaled, while
-    cairosvg stretches it to fill the viewport. Declaring a viewBox as
-    large as the viewport settles it at a scale of one.
+    With a marker, it dropped the line carrying it, and the backbone and
+    base-pair lines beside it vanished once the drawing was scaled a few
+    times. The head is drawn as a shape of its own, so no marker is left.
     """
-    svg = draw_svg("(((...)))").to_svg()
+    svg = draw_svg("(((..+...)))").to_svg()
+    root = ET.fromstring(svg)
 
-    marker = ET.fromstring(svg).find(".//{*}marker")
+    assert [tag_of(e) for e in root.iter() if tag_of(e) == "marker"] == []
+    assert "marker-end" not in svg
+    assert len(arrows(root)) == 2
 
-    assert marker is not None, "expected an arrowhead marker definition"
-    assert "viewBox" in marker.attrib, "the marker must declare a viewBox"
 
-    *_, vb_width, vb_height = [
-        float(value) for value in marker.attrib["viewBox"].replace(",", " ").split()
+@pytest.mark.parametrize("width", [2.0, 5.0])
+def test_the_arrowhead_is_measured_in_stroke_widths(width):
+    """The head runs from one stroke width behind the end of its line to
+    two past it, and is three wide, as the marker it replaced was."""
+    root = ET.fromstring(
+        draw_svg("(((...)))", style=DrawingStyle(backbone_width=width)).to_svg()
+    )
+    [(line, head)] = arrows(root)
+    x1, y1, x2, y2 = (float(line.attrib[k]) for k in ("x1", "y1", "x2", "y2"))
+    length = math.hypot(x2 - x1, y2 - y1)
+    ux, uy = (x2 - x1) / length, (y2 - y1) / length
+    corners = [
+        tuple(map(float, pair.split(",")))
+        for pair in head.attrib["points"].split()
+    ]
+    along = [(x - x2) * ux + (y - y2) * uy for x, y in corners]
+    across = [-(x - x2) * uy + (y - y2) * ux for x, y in corners]
+
+    assert (min(along), max(along)) == pytest.approx((-width, 2 * width))
+    assert max(across) - min(across) == pytest.approx(3 * width)
+
+
+def test_the_backbone_is_solid_by_default():
+    """"none" is SVG's own value for a solid line.
+
+    A solid line used to be written as the dash pattern "1,0", dashes
+    with no gaps between them, which draws the same but asks every
+    renderer to work out dashes that are not there.
+    """
+    root = ET.fromstring(draw_svg("((..((...))..))").to_svg())
+    arrow_lines = {id(line) for line, _ in arrows(root)}
+
+    patterns = Counter(
+        (e.attrib["stroke-width"], e.attrib.get("stroke-dasharray"))
+        for e in root.iter()
+        if tag_of(e) in ("line", "path")
+        and "stroke" in e.attrib
+        and id(e) not in arrow_lines
+    )
+
+    assert {pattern for width, pattern in patterns if width == "2.0"} == {"none"}
+    assert {pattern for width, pattern in patterns if width == "1.5"} == {"1,1"}
+
+
+def test_the_outline_under_each_letter_has_round_corners():
+    """A mitred corner juts out at the sharp apex of an A."""
+    root = ET.fromstring(draw_svg("(((...)))", sequences=["AAAAAAAAA"]).to_svg())
+    outlines = [
+        e for e in root.iter() if tag_of(e) == "text" and "stroke" in e.attrib
     ]
 
-    assert float(marker.attrib["markerWidth"]) == vb_width
-    assert float(marker.attrib["markerHeight"]) == vb_height
+    assert outlines
+    assert all(e.attrib["stroke-linejoin"] == "round" for e in outlines)
 
 
 def test_output_is_reproducible():

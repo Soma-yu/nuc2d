@@ -81,7 +81,8 @@ class DrawingStyle:
         Stroke width used for base-pair edges.
     backbone_dasharray : str
         Dash pattern used for backbone edges, specified as an SVG
-        ``stroke-dasharray`` value.
+        ``stroke-dasharray`` value. The default, ``"none"``, draws them
+        solid.
     basepair_dasharray : str
         Dash pattern used for base-pair edges, specified as an SVG
         ``stroke-dasharray`` value.
@@ -150,7 +151,7 @@ class DrawingStyle:
     """
     backbone_width: float = 2.0
     basepair_width: float = 1.5
-    backbone_dasharray: str = "1,0"
+    backbone_dasharray: str = "none"
     basepair_dasharray: str = "1,1"
 
     three_prime_arrow_length: float = 7.0

@@ -7,8 +7,8 @@ is written, so that writing it another way changes this module and no
 other.
 
 Each part is drawn into a drawing of its own, and handed back together
-with the definitions it registered there, such as an arrowhead or a
-gradient, so that the document can write each of them once however many
+with the definitions it registered there, such as the gradient of a
+colorbar, so that the document can write each of them once however many
 parts refer to it.
 
 What other modules use is the three ``render_`` functions,
@@ -183,6 +183,8 @@ class _Renderer:
                     fill="black",
                     stroke="black",
                     stroke_width=1,
+                    # A mitred corner juts out at the sharp apex of an A.
+                    stroke_linejoin="round",
                 )
             )
             group.add(
@@ -281,7 +283,7 @@ class _Renderer:
         self,
         drawing: svgwrite.Drawing,
         decoration: Decoration,
-    ) -> svgwrite.shapes.Line:
+    ) -> svgwrite.container.Group:
         """Draw a decoration."""
 
         if isinstance(decoration, ArrowDecoration):
@@ -296,68 +298,58 @@ class _Renderer:
         self,
         drawing: svgwrite.Drawing,
         decoration: ArrowDecoration,
-    ) -> svgwrite.shapes.Line:
+    ) -> svgwrite.container.Group:
         """Draw the arrow that marks a 3' terminus.
 
-        The marker the arrowhead refers to is added here rather than by
-        the caller, so that the reference and its definition are made
-        together and a drawing with no arrow declares no arrowhead.
+        The arrowhead is a shape of its own at the end of the line, not a
+        marker on it. Adobe Illustrator mishandles SVG markers: it drops
+        the line that carries one, and the backbone and base-pair lines
+        drawn beside it vanish once the drawing is scaled a few times. A
+        plain shape is drawn the same everywhere.
         """
-
-        self._ensure_arrowhead_def(drawing)
 
         start = decoration.node.pos
         end = start + decoration.direction * self.style.three_prime_arrow_length
 
-        line = drawing.line(
-            start=start.to_tuple(),
-            end=end.to_tuple(),
-            stroke=self.style.backbone_color,
-            stroke_width=self.style.backbone_width,
+        arrow = drawing.g()
+        arrow.add(
+            drawing.line(
+                start=start.to_tuple(),
+                end=end.to_tuple(),
+                stroke=self.style.backbone_color,
+                stroke_width=self.style.backbone_width,
+            )
         )
+        arrow.add(
+            drawing.polygon(
+                points=self._arrowhead_points(end, decoration.direction),
+                fill=self.style.backbone_color,
+            )
+        )
+        return arrow
 
-        line["marker-end"] = f"url(#{self._arrowhead_id()})"
+    def _arrowhead_points(
+        self, end: Vec2, direction: Vec2
+    ) -> list[tuple[float, float]]:
+        """Return the corners of the arrowhead at ``end``, pointing along
+        ``direction``.
 
-        return line
-
-    def _arrowhead_id(self) -> str:
-        """Return the id of the arrowhead marker for the current style.
-
-        The id is derived from the style values the marker depends on, so
-        renderers using the same style share one definition while
-        renderers using different ones never collide.
+        The head is measured in stroke widths, so that it keeps to the
+        width of the line it ends: from one stroke width behind the end
+        of the line to two past it, three wide, with its back notched.
+        The notch sits a little behind the end of the line, so that the
+        line runs into the head rather than meeting it at a point.
         """
-        return _def_id("arrowhead", self.style.backbone_color)
-
-    def _ensure_arrowhead_def(
-        self,
-        drawing: svgwrite.Drawing,
-    ) -> None:
-        """Add the arrowhead marker to the drawing unless it is there."""
-
-        def build() -> svgwrite.container.Marker:
-            # The viewBox matches the path's own extent, so the arrowhead is
-            # drawn at the size the path describes. Without one, a renderer
-            # has to guess how the path maps into the marker viewport: a
-            # browser draws it unscaled, while cairosvg stretches it to fill
-            # the viewport, which made PNG exports show an oversized arrow.
-            arrow = drawing.marker(
-                id=self._arrowhead_id(),
-                insert=(1, 1.5),
-                size=(3, 3),
-                orient="auto",
-                markerUnits="strokeWidth",
-                viewBox="0 0 3 3",
-            )
-            arrow.add(
-                drawing.path(
-                    d="M 0,0 L 0.7,1.5 L 0,3 L 3,1.5 Z",
-                    fill=self.style.backbone_color,
-                )
-            )
-            return arrow
-
-        _ensure_def(drawing, self._arrowhead_id(), build)
+        width = self.style.backbone_width
+        along = direction.normalized()
+        across = Vec2(-along.y, along.x)
+        # (u, v) in stroke widths from the end of the line: u along the
+        # arrow, v across it.
+        corners = [(-1.0, -1.5), (-0.3, 0.0), (-1.0, 1.5), (2.0, 0.0)]
+        return [
+            (end + along * (u * width) + across * (v * width)).to_tuple()
+            for u, v in corners
+        ]
 
     def render_structure(
         self,
@@ -527,8 +519,8 @@ class _Graphics:
     group : svgwrite.container.Group
         The ``<g>`` that draws the part.
     definitions : tuple
-        The definitions the group refers to, such as an arrowhead marker
-        or a gradient, which the document showing it has to contain.
+        The definitions the group refers to, such as a colorbar's
+        gradient, which the document showing it has to contain.
     """
 
     group: svgwrite.container.Group

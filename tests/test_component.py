@@ -1,12 +1,14 @@
 import dataclasses
 import xml.etree.ElementTree as ET
 
+import matplotlib as mpl
 import numpy as np
 import pytest
 
 from nuc2d import (
     BBox,
     Component,
+    DrawingStyle,
     Placement,
     Scene,
     draw_colorbar,
@@ -140,24 +142,33 @@ def test_components_are_drawn_in_order_of_z_index():
 
 
 def test_a_definition_is_written_once_however_many_components_use_it():
-    a, b = structure(CLOVERLEAF), structure(CLOVERLEAF)
+    a, b = draw_colorbar(), draw_colorbar()  # each refers to one gradient
     pa = Placement(component=a)
     panel = Component.from_placements([pa, Placement(component=b, x=pa.bbox.xmax)])
 
     svg = Scene(panel).to_svg()
 
-    assert count(svg, "marker") == 1
+    assert count(svg, "linearGradient") == 1
 
 
 def test_different_definitions_are_all_written():
-    colored = structure(probs=PROBS)  # structure with colorbar: a gradient
-    plain = structure()
-    pc = Placement(component=colored)
+    turbo = draw_colorbar()
+    viridis = draw_colorbar(style=DrawingStyle(cmap=mpl.colormaps["viridis"]))
+    pt = Placement(component=turbo)
 
-    svg = Scene(Component.from_placements([pc, Placement(component=plain, x=pc.bbox.xmax)])).to_svg()
+    svg = Scene(
+        Component.from_placements([pt, Placement(component=viridis, x=pt.bbox.xmax)])
+    ).to_svg()
 
-    assert count(svg, "marker") == 1
-    assert count(svg, "linearGradient") == 1
+    assert count(svg, "linearGradient") == 2
+
+
+def test_a_structure_refers_to_no_definitions():
+    """Its arrowheads are shapes of their own, not markers defined once."""
+    svg = Scene(structure(CLOVERLEAF)).to_svg()
+
+    assert count(svg, "marker") == 0
+    assert count(svg, "linearGradient") == 0
 
 
 def test_a_composed_component_can_be_placed_again():
