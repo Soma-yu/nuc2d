@@ -168,7 +168,7 @@ class LayoutEngine(ABC):
     """Abstract base class for secondary structure layout engines.
 
     How an engine lays a structure out is private to this module; the rest
-    of the package asks for a layout through :func:`lay_out`.
+    of the package asks for a layout through :func:`layout`.
     """
 
     @abstractmethod
@@ -176,24 +176,26 @@ class LayoutEngine(ABC):
         """Compute a layout for the given secondary structure."""
         pass
 
+
 class RadialLayoutEngine(LayoutEngine):
     """Layout engine for generating a radial representation of a secondary structure.
 
     This layout engine places nucleotides and structural elements using a
-    radial geometry, built from the spacing along the backbone, the spacing
+    radial geometry, built from the spacing along a stem, the spacing
     around a loop, and the angle by which stacked stems are deflected.
 
     Parameters
     ----------
-    backbone_spacing : float, default=15
-        Distance between adjacent nucleotides wherever the backbone runs
-        straight: inside a stem, along an unpaired strand, and through a
-        loop whose stems stack coaxially on one another.
+    stem_spacing : float, default=15
+        Distance, centre to centre, between adjacent nucleotides along a
+        stem, where the backbone runs straight. The same spacing holds
+        through a loop whose stems stack coaxially on one another, which
+        continues the stem, and along a structure with no base pair at
+        all, which is drawn as one straight strand.
     loop_spacing : float, default=20
-        Distance between adjacent nucleotides around a loop that is not
-        stacked, measured as the chord of the loop circle. This is the same
-        backbone curved rather than straight, and it is what sets the
-        radius the loop is drawn on.
+        Distance, centre to centre, between adjacent nucleotides around a
+        loop that is not stacked, measured as the chord of the loop circle.
+        It is what sets the radius the loop is drawn on.
 
         It sets the width of every stem as well: the base pair closing a
         loop joins two nucleotides that are neighbours on that loop's
@@ -205,18 +207,20 @@ class RadialLayoutEngine(LayoutEngine):
 
     Notes
     -----
-    Laying a structure out does not modify any parameter, so one engine
-    can lay out any number of structures.
+    Each parameter is also an attribute of the same name, which can be
+    read and assigned; a structure is laid out with the values the engine
+    holds when it is drawn. Laying a structure out does not modify any of
+    them, so one engine can lay out any number of structures.
     """
 
     def __init__(
         self,
         *,
-        backbone_spacing: float = 15,
+        stem_spacing: float = 15,
         loop_spacing: float = 20,
         stack_deflection: float = math.pi/18,
     ) -> None:
-        self.backbone_spacing = backbone_spacing
+        self.stem_spacing = stem_spacing
         self.loop_spacing = loop_spacing
         self.stack_deflection = stack_deflection
 
@@ -279,7 +283,7 @@ class RadialLayoutEngine(LayoutEngine):
             nucleotides = current_stem.nucleotides[start_idx+1:start_idx+stem_length]
             for nt in nucleotides:
                 # Generate nodes
-                state.pos += state.vec * self.backbone_spacing
+                state.pos += state.vec * self.stem_spacing
                 state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 # Generate backbones
                 self._add_backbone_line(state)
@@ -341,7 +345,7 @@ class RadialLayoutEngine(LayoutEngine):
             intermediate_vec = state.vec.rotated(defl_angle/2)
             delta = self.loop_spacing * math.sin(defl_angle/2)
             # Layout the second nucleotide in this loop region
-            state.pos += intermediate_vec * (self.backbone_spacing + delta)
+            state.pos += intermediate_vec * (self.stem_spacing + delta)
             state.vec = state.vec.rotated(defl_angle)
             state.nodes.append(Node(nucleotide=nucleotides[1], pos=state.pos))
             self._add_backbone_line(state)
@@ -349,7 +353,7 @@ class RadialLayoutEngine(LayoutEngine):
             self._layout_stem(state, child_stems[0])
             # Layout the 4th nucleotide in this loop region
             if not current_loop.is_root:
-                state.pos -= intermediate_vec * (self.backbone_spacing - delta)
+                state.pos -= intermediate_vec * (self.stem_spacing - delta)
                 state.vec = state.vec.rotated(-defl_angle)
                 state.nodes.append(Node(nucleotide=nucleotides[3], pos=state.pos))
                 self._add_backbone_line(state)
@@ -408,7 +412,7 @@ class RadialLayoutEngine(LayoutEngine):
             # Layout for secondary structures without base pairs
             state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
             for nt in nucleotides[1:]:
-                state.pos += self.backbone_spacing * state.vec
+                state.pos += self.stem_spacing * state.vec
                 state.nodes.append(Node(nucleotide=nt, pos=state.pos))
                 state.edges.append(
                     LineEdge(
@@ -425,7 +429,7 @@ class RadialLayoutEngine(LayoutEngine):
         )
 
 
-def lay_out(root_loop: LoopRegion, engine: LayoutEngine) -> LayoutResult:
+def layout(root_loop: LoopRegion, engine: LayoutEngine) -> LayoutResult:
     """Lay out a secondary structure with ``engine``.
 
     Parameters

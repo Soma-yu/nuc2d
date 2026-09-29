@@ -138,7 +138,7 @@ def styling() -> Scene:
             cmap=mpl.colormaps["viridis"],
         ),
         layout_engine=RadialLayoutEngine(
-            backbone_spacing=18.0,
+            stem_spacing=18.0,
             loop_spacing=24.0,
         ),
     )

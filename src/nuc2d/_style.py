@@ -3,7 +3,7 @@
 This module provides classes for configuring the visual appearance of
 rendered secondary structure diagrams. Style parameters control
 the appearance of graphical elements such as nucleotide nodes,
-backbone and base-pair edges, labels, margins, and color mappings.
+backbone and base-pair edges, labels, and color mappings.
 
 The main class, DrawingStyle, stores the parameters the renderer draws
 with.
@@ -91,10 +91,6 @@ class DrawingStyle:
         ``backbone_width`` rather than this.
     node_radius : float
         Radius of nucleotide nodes.
-    x_margin : float
-        Horizontal margin added around the drawing area.
-    y_margin : float
-        Vertical margin added around the drawing area.
     node_color : str
         Color a node is drawn in when no probabilities are given. With
         ``probs``, a node takes its color from ``cmap`` instead.
@@ -146,6 +142,11 @@ class DrawingStyle:
     commas or by spaces, such as ``"4,2"`` or ``"4 2"``, but not both at
     once. Lengths are plain non-negative numbers, in the units of the
     drawing.
+
+    A structure's box runs 20 units past the centres of its outermost
+    nucleotides, whatever the style. A ``node_radius``,
+    ``node_font_size`` or ``three_prime_arrow_length`` large enough to
+    draw past that is cut off at the edge of a scene.
     """
     backbone_width: float = 2.0
     basepair_width: float = 1.5
@@ -156,8 +157,6 @@ class DrawingStyle:
 
     node_radius: float = 4.2
 
-    x_margin: float = 20.0
-    y_margin: float = 20.0
 
     node_color: str = "black"
     backbone_color: str = "black"

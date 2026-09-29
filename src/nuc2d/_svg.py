@@ -20,7 +20,8 @@ import hashlib
 import os
 from functools import reduce
 from collections.abc import Callable
-from typing import Any, NamedTuple
+from dataclasses import dataclass
+from typing import Any, cast
 
 import numpy as np
 import matplotlib as mpl
@@ -98,6 +99,13 @@ def _ensure_def(
         if element.attribs.get("id") == element_id:
             return
     drawing.defs.add(build())
+
+
+# The box around a structure runs this far past the centres of its
+# outermost nodes, which leaves some room around what is drawn there at
+# the default sizes. It is not measured from what is drawn, so a node, a
+# letter or a 3' arrow drawn larger than this reaches past the box.
+_STRUCTURE_MARGIN = 20.0
 
 
 class _Renderer:
@@ -375,12 +383,11 @@ class _Renderer:
             ),
             BBox.empty(),
         )
-        x_margin, y_margin = self.style.x_margin, self.style.y_margin
         bbox = BBox(
-            points.xmin - x_margin,
-            points.ymin - y_margin,
-            points.xmax + x_margin,
-            points.ymax + y_margin,
+            points.xmin - _STRUCTURE_MARGIN,
+            points.ymin - _STRUCTURE_MARGIN,
+            points.xmax + _STRUCTURE_MARGIN,
+            points.ymax + _STRUCTURE_MARGIN,
         )
 
         for edge in layout_result.edges:
@@ -511,19 +518,20 @@ class _Renderer:
         return group, BBox(0.0, 0.0, box_width, box_height)
 
 
-class _Graphics(NamedTuple):
-    """What a component drawn here holds: its element and its definitions.
+@dataclass(frozen=True, kw_only=True)
+class _Graphics:
+    """What a component drawn here holds: its group and its definitions.
 
     Attributes
     ----------
-    element : svgwrite.container.Group
-        The drawn part.
+    group : svgwrite.container.Group
+        The ``<g>`` that draws the part.
     definitions : tuple
-        The definitions the part refers to, such as an arrowhead marker
+        The definitions the group refers to, such as an arrowhead marker
         or a gradient, which the document showing it has to contain.
     """
 
-    element: Any
+    group: svgwrite.container.Group
     definitions: tuple[Any, ...]
 
 
@@ -547,8 +555,9 @@ def render_structure(
         The drawn structure.
     """
     drawing = svgwrite.Drawing()
-    content, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
-    return make_component(bbox, _Graphics(content, _definitions_in(drawing)))
+    group, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
+    graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
+    return make_component(bbox, graphics)
 
 
 def render_colorbar(
@@ -573,8 +582,9 @@ def render_colorbar(
         The drawn colorbar.
     """
     drawing = svgwrite.Drawing()
-    content, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
-    return make_component(bbox, _Graphics(content, _definitions_in(drawing)))
+    group, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
+    graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
+    return make_component(bbox, graphics)
 
 
 def render_text(text: str, *, font_family: str, font_size: float) -> Component:
@@ -616,7 +626,8 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
         )
     )
     bbox = BBox(0.0, 0.0, width, above + below)
-    return make_component(bbox, _Graphics(group, _definitions_in(drawing)))
+    graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
+    return make_component(bbox, graphics)
 
 
 def _definitions_in(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
@@ -643,8 +654,10 @@ def _assemble(component: Component) -> _Graphics:
     with one id are the same definition, and either can stand for both.
     """
     graphics = graphics_of(component)
-    if isinstance(graphics, _Graphics):
-        return graphics
+    if graphics is not None:
+        # Drawn: its graphics are its own.
+        return cast(_Graphics, graphics)
+    # Made of others: put its children's graphics together.
     group = svgwrite.container.Group()
     definitions: dict[str, Any] = {}
     for placement in child_placements_of(component):
@@ -653,11 +666,11 @@ def _assemble(component: Component) -> _Graphics:
         placed = svgwrite.container.Group(
             transform=f"translate({dx},{dy}) scale({scale},{scale})"
         )
-        placed.add(child.element)
+        placed.add(child.group)
         group.add(placed)
         for element in child.definitions:
             definitions.setdefault(element.attribs["id"], element)
-    return _Graphics(group, tuple(definitions.values()))
+    return _Graphics(group=group, definitions=tuple(definitions.values()))
 
 
 def _document(
@@ -667,7 +680,7 @@ def _document(
     drawing = svgwrite.Drawing()
     for element in graphics.definitions:
         drawing.defs.add(element)
-    drawing.add(graphics.element)
+    drawing.add(graphics.group)
     bbox = component.bbox
     drawing.viewbox(bbox.xmin, bbox.ymin, bbox.width, bbox.height)
     drawing["width"] = f"{width_px}px"

@@ -2,7 +2,7 @@ from nuc2d._parse import parse
 from nuc2d._layout import (
     RadialLayoutEngine,
     EdgeType,
-    lay_out,
+    layout,
 )
 
 
@@ -23,7 +23,7 @@ def get_edge_counts(layout_result):
 def test_layout_unpaired():
     root = parse(".....")
 
-    result = lay_out(root, RadialLayoutEngine())
+    result = layout(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -36,7 +36,7 @@ def test_layout_unpaired():
 def test_layout_hairpin():
     root = parse("(((...)))")
 
-    result = lay_out(root, RadialLayoutEngine())
+    result = layout(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
     print(len(result.nodes))
@@ -50,7 +50,7 @@ def test_layout_hairpin():
 def test_layout_duplex():
     root = parse("(((((+)))))")
 
-    result = lay_out(root, RadialLayoutEngine())
+    result = layout(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -63,7 +63,7 @@ def test_layout_duplex():
 def test_layout_hinge():
     root = parse("((((((...)))+)))(((...)))")
 
-    result = lay_out(root, RadialLayoutEngine())
+    result = layout(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -76,7 +76,7 @@ def test_layout_hinge():
 def test_layout_nested():
     root = parse("((..((...))..))")
 
-    result = lay_out(root, RadialLayoutEngine())
+    result = layout(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -84,3 +84,20 @@ def test_layout_nested():
     assert n_backbone == 14
     assert n_basepair == 4
     assert len(result.decorations) == 1
+
+
+def positions(dot_bracket, engine):
+    return [node.pos for node in layout(parse(dot_bracket), engine).nodes]
+
+
+def test_a_setting_assigned_after_the_engine_is_made_is_used():
+    """The settings are attributes a caller may assign, not only read."""
+    engine = RadialLayoutEngine()
+    engine.stem_spacing = 30
+
+    assert positions("(((...)))", engine) == positions(
+        "(((...)))", RadialLayoutEngine(stem_spacing=30)
+    )
+    assert positions("(((...)))", engine) != positions(
+        "(((...)))", RadialLayoutEngine()
+    )

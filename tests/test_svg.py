@@ -108,6 +108,39 @@ def test_output_is_well_formed_xml(dot_bracket):
     ET.fromstring(draw_svg(dot_bracket).to_svg())
 
 
+def node_extent(dot_bracket):
+    """Return the box around the centres of a structure's nodes."""
+    from nuc2d._layout import layout
+    from nuc2d._parse import parse
+
+    nodes = layout(parse(dot_bracket), RadialLayoutEngine()).nodes
+    xs = [node.pos.x for node in nodes]
+    ys = [node.pos.y for node in nodes]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def test_the_box_runs_twenty_units_past_the_outermost_nodes():
+    xmin, ymin, xmax, ymax = node_extent("(((...)))")
+
+    bbox = draw_structure("(((...)))").bbox
+
+    assert (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax) == pytest.approx(
+        (xmin - 20.0, ymin - 20.0, xmax + 20.0, ymax + 20.0)
+    )
+
+
+def test_the_box_is_not_widened_by_the_style():
+    """The box is not measured from what is drawn, so a style leaves it be."""
+    default = draw_structure("(((...)))").bbox
+
+    for style in [
+        DrawingStyle(node_radius=30.0),
+        DrawingStyle(node_font_size=50.0),
+        DrawingStyle(three_prime_arrow_length=40.0),
+    ]:
+        assert draw_structure("(((...)))", style=style).bbox == default
+
+
 def test_viewbox_frames_exactly_the_component():
     component = draw_structure("..(((...)))..")
 
@@ -288,7 +321,7 @@ def test_layout_engine_is_configurable():
     default = draw_structure("(((...)))")
     wider = draw_structure(
         "(((...)))",
-        layout_engine=RadialLayoutEngine(backbone_spacing=30),
+        layout_engine=RadialLayoutEngine(stem_spacing=30),
     )
 
     assert wider.bbox.height > default.bbox.height
@@ -333,13 +366,13 @@ def test_something_the_renderer_cannot_draw_says_so():
     """
     from dataclasses import dataclass
 
-    from nuc2d._layout import Decoration, Edge, EdgeType, lay_out
+    from nuc2d._layout import Decoration, Edge, EdgeType, layout
     from nuc2d._parse import parse
     from nuc2d._svg import _Renderer
 
     renderer = _Renderer()
     drawing = svgwrite.Drawing()
-    node = lay_out(parse("(((...)))"), RadialLayoutEngine()).nodes[0]
+    node = layout(parse("(((...)))"), RadialLayoutEngine()).nodes[0]
 
     @dataclass(kw_only=True)
     class Squiggle(Decoration):
