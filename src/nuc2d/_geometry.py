@@ -90,7 +90,11 @@ class Vec2:
         return (self - other).norm()
 
     def rotated(self, theta: float) -> Vec2:
-        """Return the vector rotated counterclockwise.
+        """Return the vector rotated by ``theta`` radians.
+
+        The rotation is counterclockwise in the usual mathematical sense,
+        from the x-axis towards the y-axis. The y-axis points down, as in
+        SVG, so the rotation looks clockwise when drawn.
 
         Parameters
         ----------

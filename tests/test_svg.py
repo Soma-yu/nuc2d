@@ -48,7 +48,7 @@ PROBS = np.eye(9) * 0.4 + 0.3
 
 
 def test_ids_are_unique_within_one_drawing():
-    svg = draw_svg("(((...)))", probs=PROBS).to_svg()
+    svg = draw_svg("(((...)))", probabilities=PROBS).to_svg()
 
     ids = collect_ids(svg)
 
@@ -57,7 +57,7 @@ def test_ids_are_unique_within_one_drawing():
 
 
 def test_ids_stay_unique_across_several_components_in_one_scene():
-    scene = side_by_side([draw_structure("(((...)))", probs=PROBS) for _ in range(3)])
+    scene = side_by_side([draw_structure("(((...)))", probabilities=PROBS) for _ in range(3)])
 
     ids = collect_ids(scene.to_svg())
 
@@ -66,7 +66,7 @@ def test_ids_stay_unique_across_several_components_in_one_scene():
 
 def test_differing_styles_get_their_own_definitions():
     scene = side_by_side([
-        draw_structure("(((...)))", probs=PROBS, style=style)
+        draw_structure("(((...)))", probabilities=PROBS, style=style)
         for style in [
             DrawingStyle(backbone_color="black", colormap=mpl.colormaps["turbo"]),
             DrawingStyle(backbone_color="red", colormap=mpl.colormaps["viridis"]),
@@ -80,7 +80,7 @@ def test_differing_styles_get_their_own_definitions():
 
 
 def test_identical_styles_share_one_definition():
-    scene = side_by_side([draw_structure("(((...)))", probs=PROBS) for _ in range(3)])
+    scene = side_by_side([draw_structure("(((...)))", probabilities=PROBS) for _ in range(3)])
 
     ids = collect_ids(scene.to_svg())
 
@@ -89,7 +89,7 @@ def test_identical_styles_share_one_definition():
 
 def test_every_reference_resolves():
     scene = side_by_side([
-        draw_structure("(((...)))", probs=PROBS, style=DrawingStyle(backbone_color=color))
+        draw_structure("(((...)))", probabilities=PROBS, style=DrawingStyle(backbone_color=color))
         for color in ["black", "red"]
     ])
 
@@ -162,7 +162,7 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
 
     for dot_bracket in ["(((...)))", "." * 40, "((((....))))" * 3]:
         with_bar = draw_structure(
-            dot_bracket, probs=np.eye(len(dot_bracket)) * 0.5
+            dot_bracket, probabilities=np.eye(len(dot_bracket)) * 0.5
         ).bbox
 
         assert with_bar.height == pytest.approx(colorbar.height)
@@ -180,7 +180,7 @@ def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
         alone = draw_structure(dot_bracket).bbox
         assert alone.width > alone.height
         svg = Scene(
-            draw_structure(dot_bracket, probs=np.eye(len(dot_bracket)) * 0.5)
+            draw_structure(dot_bracket, probabilities=np.eye(len(dot_bracket)) * 0.5)
         ).to_svg()
 
         # The structure is placed first, so its transform is the first one.
@@ -208,14 +208,14 @@ def collect_texts(svg_string):
 
 
 def test_colorbar_carries_a_default_label():
-    svg = draw_svg("(((...)))", probs=PROBS).to_svg()
+    svg = draw_svg("(((...)))", probabilities=PROBS).to_svg()
 
     assert "Equilibrium probability" in collect_texts(svg)
 
 
 def test_colorbar_label_is_configurable():
     svg = draw_svg(
-        "(((...)))", probs=PROBS, colorbar_label="Unpaired probability"
+        "(((...)))", probabilities=PROBS, colorbar_label="Unpaired probability"
     ).to_svg()
 
     texts = collect_texts(svg)
@@ -225,8 +225,8 @@ def test_colorbar_label_is_configurable():
 
 
 def test_colorbar_label_none_leaves_the_label_out():
-    labelled = draw_svg("(((...)))", probs=PROBS).to_svg()
-    unlabelled = draw_svg("(((...)))", probs=PROBS, colorbar_label=None).to_svg()
+    labelled = draw_svg("(((...)))", probabilities=PROBS).to_svg()
+    unlabelled = draw_svg("(((...)))", probabilities=PROBS, colorbar_label=None).to_svg()
 
     assert "Equilibrium probability" not in collect_texts(unlabelled)
     assert len(collect_texts(unlabelled)) == len(collect_texts(labelled)) - 1
@@ -245,21 +245,21 @@ def test_colorbar_label_is_ignored_without_probabilities():
 
 def test_the_colorbar_can_be_left_out():
     """probs colors the nucleotides; the colorbar beside them is optional."""
-    with_bar = draw_structure("(((...)))", probs=PROBS)
-    without_bar = draw_structure("(((...)))", probs=PROBS, add_colorbar=False)
+    with_bar = draw_structure("(((...)))", probabilities=PROBS)
+    without_bar = draw_structure("(((...)))", probabilities=PROBS, add_colorbar=False)
     plain = draw_structure("(((...)))")
 
     # The structure itself is unchanged; only the colorbar beside it is gone.
     assert without_bar.bbox == plain.bbox
     assert without_bar.bbox.width < with_bar.bbox.width
     assert "Equilibrium probability" not in collect_texts(
-        draw_svg("(((...)))", probs=PROBS, add_colorbar=False).to_svg()
+        draw_svg("(((...)))", probabilities=PROBS, add_colorbar=False).to_svg()
     )
 
 
 def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
     """The point of leaving it out: size it against something else."""
-    structure = draw_structure("(((...)))", probs=PROBS, add_colorbar=False)
+    structure = draw_structure("(((...)))", probabilities=PROBS, add_colorbar=False)
     colorbar = draw_colorbar()
 
     placed = Placement(component=structure)
@@ -538,7 +538,7 @@ def test_the_outline_under_each_letter_has_round_corners():
 
 
 def test_output_is_reproducible():
-    first = draw_svg("(((...)))", probs=PROBS).to_svg()
-    second = draw_svg("(((...)))", probs=PROBS).to_svg()
+    first = draw_svg("(((...)))", probabilities=PROBS).to_svg()
+    second = draw_svg("(((...)))", probabilities=PROBS).to_svg()
 
     assert first == second

@@ -83,7 +83,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
 
 def attach_equilibrium_probabilities(
     root_loop: LoopRegion,
-    probs: np.ndarray,
+    probabilities: np.ndarray,
 ) -> None:
     """Attach an equilibrium probability to every nucleotide.
 
@@ -95,7 +95,7 @@ def attach_equilibrium_probabilities(
     ----------
     root_loop : LoopRegion
         Root loop of the secondary structure.
-    probs : ndarray
+    probabilities : ndarray
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
         (i, i) how likely nucleotide i is to be left unpaired.
@@ -103,15 +103,15 @@ def attach_equilibrium_probabilities(
     Raises
     ------
     ValueError
-        If ``probs`` is not a square matrix whose size matches the number
+        If ``probabilities`` is not a square matrix whose size matches the number
         of nucleotides in the structure.
     """
-    probs = np.asarray(probs)
+    probs = np.asarray(probabilities)
     size = sum(_strand_lengths(root_loop))
 
     if probs.shape != (size, size):
         raise ValueError(
-            f"The structure has {size} nucleotide(s), so probs must have "
+            f"The structure has {size} nucleotide(s), so probabilities must have "
             f"shape ({size}, {size}), but its shape is {probs.shape}."
         )
 

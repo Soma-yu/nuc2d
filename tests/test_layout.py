@@ -1,3 +1,7 @@
+import math
+
+import pytest
+
 from nuc2d._parse import parse
 from nuc2d._layout import (
     RadialLayoutEngine,
@@ -13,7 +17,7 @@ def get_edge_counts(layout_result):
     )
 
     n_basepair = sum(
-        edge.edge_type == EdgeType.BASE_PAIR
+        edge.edge_type == EdgeType.BASEPAIR
         for edge in layout_result.edges
     )
 
@@ -101,3 +105,19 @@ def test_a_setting_assigned_after_the_engine_is_made_is_used():
     assert positions("(((...)))", engine) != positions(
         "(((...)))", RadialLayoutEngine()
     )
+
+
+@pytest.mark.parametrize("degrees", [0.0, 10.0, 30.0])
+def test_stems_stacked_across_a_break_bend_by_the_angle_in_degrees(degrees):
+    """The second stem turns from the first by coaxial_stack_deflection."""
+    engine = RadialLayoutEngine(coaxial_stack_deflection=degrees)
+    nodes = layout(parse("((+((...))))"), engine).nodes
+    pos = {node.nucleotide.index: node.pos for node in nodes}
+    first, second = pos[1] - pos[0], pos[3] - pos[2]
+
+    bend = math.degrees(math.atan2(
+        first.x * second.y - first.y * second.x,
+        first.x * second.x + first.y * second.y,
+    ))
+
+    assert bend == pytest.approx(degrees)

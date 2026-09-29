@@ -113,7 +113,7 @@ def draw_structure(
     dot_bracket: str,
     *,
     sequences: list[str] | None = None,
-    probs: np.ndarray | None = None,
+    probabilities: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = "Equilibrium probability",
@@ -130,10 +130,10 @@ def draw_structure(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    probs : ndarray, optional
-        Base-pair probability matrix: ``probs[i][j]`` is how likely
+    probabilities : ndarray, optional
+        Base-pair probability matrix: ``probabilities[i][j]`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
-        ``probs[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
+        ``probabilities[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
         When given, each nucleotide is colored by it, and a colorbar is
         set beside the structure.
     style : DrawingStyle, optional
@@ -143,10 +143,10 @@ def draw_structure(
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, or None to leave it without
-        one. Has no effect unless ``probs`` is given, since the colorbar is
+        one. Has no effect unless ``probabilities`` is given, since the colorbar is
         drawn only then.
     add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when ``probs`` is
+        Whether to set a colorbar beside the structure when ``probabilities`` is
         given. Passing False colors the nucleotides but leaves the
         colorbar out, for a caller placing one of its own from
         :func:`~nuc2d.draw_colorbar`.
@@ -162,7 +162,7 @@ def draw_structure(
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
     ValueError
-        If ``sequences`` or ``probs`` does not match the structure.
+        If ``sequences`` or ``probabilities`` does not match the structure.
 
     Notes
     -----
@@ -179,13 +179,13 @@ def draw_structure(
     root_loop = parse(dot_bracket)
     if sequences is not None:
         attach_sequences(root_loop, sequences)
-    if probs is not None:
-        attach_equilibrium_probabilities(root_loop, probs)
+    if probabilities is not None:
+        attach_equilibrium_probabilities(root_loop, probabilities)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
     structure = render_structure(layout(root_loop, engine), style=style)
 
-    if probs is None or not add_colorbar:
+    if probabilities is None or not add_colorbar:
         return structure
 
     colorbar = draw_colorbar(label=colorbar_label, style=style)
@@ -205,7 +205,7 @@ def draw_svg(
     dot_bracket: str,
     *,
     sequences: list[str] | None = None,
-    probs: np.ndarray | None = None,
+    probabilities: np.ndarray | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = "Equilibrium probability",
@@ -228,10 +228,10 @@ def draw_svg(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    probs : ndarray, optional
-        Base-pair probability matrix: ``probs[i][j]`` is how likely
+    probabilities : ndarray, optional
+        Base-pair probability matrix: ``probabilities[i][j]`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
-        ``probs[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
+        ``probabilities[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
     style : DrawingStyle, optional
         Drawing style.
     layout_engine : RadialLayoutEngine, optional
@@ -239,9 +239,9 @@ def draw_svg(
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, or None to leave it without
-        one. Has no effect unless ``probs`` is given.
+        one. Has no effect unless ``probabilities`` is given.
     add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when ``probs`` is
+        Whether to set a colorbar beside the structure when ``probabilities`` is
         given.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
@@ -262,13 +262,13 @@ def draw_svg(
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
     ValueError
-        If ``sequences`` or ``probs`` does not match the structure, or a
+        If ``sequences`` or ``probabilities`` does not match the structure, or a
         size is not a positive number.
     """
     component = draw_structure(
         dot_bracket,
         sequences=sequences,
-        probs=probs,
+        probabilities=probabilities,
         style=style,
         layout_engine=layout_engine,
         colorbar_label=colorbar_label,

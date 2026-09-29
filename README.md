@@ -89,12 +89,12 @@ raises `ValueError` rather than drawing something misleading.
 ## Equilibrium probability visualization
 
 Base-pair probabilities are visualized by passing a symmetric probability
-matrix through the `probs` argument. A colorbar is placed beside the structure,
+matrix through the `probabilities` argument. A colorbar is placed beside the structure,
 which is fitted into a square as tall as the colorbar, so that the colorbar
 keeps its size whatever the shape of the structure.
 
-`probs[i][j]` is how likely nucleotides `i` and `j` are to be paired with each
-other, and `probs[i][i]` how likely nucleotide `i` is to be left unpaired. A
+`probabilities[i][j]` is how likely nucleotides `i` and `j` are to be paired with each
+other, and `probabilities[i][i]` how likely nucleotide `i` is to be left unpaired. A
 real matrix comes from a structure prediction tool; the one below is made up,
 which is enough to see what the drawing does.
 
@@ -116,7 +116,7 @@ for i, char in enumerate(flat):
 # Whatever is left over is the probability of staying unpaired.
 probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
 
-scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=probs)
+scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probabilities=probs)
 ```
 
 <p align="center">
@@ -133,7 +133,7 @@ given:
 ```python
 scene = draw_svg(
     dot_bracket=CLOVERLEAF,
-    probs=probs,
+    probabilities=probs,
     colorbar_label="Pairing probability",
 )
 ```
@@ -168,7 +168,7 @@ from nuc2d import DrawingStyle, RadialLayoutEngine
 scene = draw_svg(
     dot_bracket=CLOVERLEAF,
     sequences=SEQUENCES,
-    probs=probs,
+    probabilities=probs,
     style=DrawingStyle(
         backbone_color="#333333",
         basepair_color="crimson",
@@ -215,7 +215,7 @@ from nuc2d import Component, Placement, Scene, draw_structure
 
 components = [
     draw_structure(CLOVERLEAF),
-    draw_structure(CLOVERLEAF, sequences=SEQUENCES, probs=probs),
+    draw_structure(CLOVERLEAF, sequences=SEQUENCES, probabilities=probs),
 ]
 
 # Lay the components out in a row, all as tall as the first, with a gap between.

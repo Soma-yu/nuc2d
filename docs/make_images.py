@@ -104,7 +104,7 @@ def example() -> Scene:
     return row(
         [
             draw_structure(CLOVERLEAF),
-            draw_structure(CLOVERLEAF, sequences=SEQUENCES, probs=PROBS),
+            draw_structure(CLOVERLEAF, sequences=SEQUENCES, probabilities=PROBS),
         ],
         gap=20.0,
     )
@@ -122,7 +122,7 @@ def sequences() -> Scene:
 
 def probabilities() -> Scene:
     """Equilibrium probabilities: the same structure, coloured."""
-    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probs=PROBS)
+    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probabilities=PROBS)
 
 
 def styling() -> Scene:
@@ -130,7 +130,7 @@ def styling() -> Scene:
     return draw_svg(
         dot_bracket=CLOVERLEAF,
         sequences=SEQUENCES,
-        probs=PROBS,
+        probabilities=PROBS,
         style=DrawingStyle(
             backbone_color="#333333",
             basepair_color="crimson",

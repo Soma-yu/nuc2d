@@ -25,9 +25,9 @@ def count(svg_string, tag):
     "kwargs",
     [
         {},
-        {"probs": PROBS},
-        {"probs": PROBS, "colorbar_label": None},
-        {"probs": PROBS, "add_colorbar": False},
+        {"probabilities": PROBS},
+        {"probabilities": PROBS, "colorbar_label": None},
+        {"probabilities": PROBS, "add_colorbar": False},
         {"sequences": ["AUGCAUGCA"]},
     ],
 )
@@ -111,7 +111,7 @@ def test_a_size_must_be_positive_and_finite(size):
 
 def test_a_scene_can_be_written_more_than_once():
     """Writing does not consume the component."""
-    scene = Scene(structure(CLOVERLEAF, probs=np.eye(76) * 0.5))
+    scene = Scene(structure(CLOVERLEAF, probabilities=np.eye(76) * 0.5))
 
     assert scene.to_svg() == scene.to_svg()
 

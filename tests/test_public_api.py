@@ -146,7 +146,7 @@ def test_a_layout_engine_offers_only_its_settings():
     engine = nuc2d.RadialLayoutEngine()
     offered = {m for m in dir(engine) if not m.startswith("_")}
 
-    assert offered == {"stem_spacing", "loop_spacing", "stack_deflection"}
+    assert offered == {"stem_spacing", "loop_spacing", "coaxial_stack_deflection"}
 
 
 def test_the_box_is_built_by_position():

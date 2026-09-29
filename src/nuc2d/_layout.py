@@ -24,7 +24,7 @@ from ._geometry import Vec2
 class EdgeType(Enum):
     """Enumeration of edge types used in the drawing graph."""
     BACKBONE = auto()
-    BASE_PAIR = auto()
+    BASEPAIR = auto()
 
 
 @dataclass(kw_only=True)
@@ -201,9 +201,12 @@ class RadialLayoutEngine(LayoutEngine):
         loop joins two nucleotides that are neighbours on that loop's
         circle, so the pair spans one chord, and the two strands of the
         stem then run parallel at that separation.
-    stack_deflection : float, default=math.pi/18
-        Angle in radians by which the backbone is deflected where two stems
-        stack directly on one another.
+    coaxial_stack_deflection : float, default=10.0
+        Angle in degrees by which a helix is bent where two stems stack
+        coaxially on one another. Two stems do so across a loop with no
+        unpaired nucleotide of its own, which has the end of a strand in
+        it: where one strand ends and another begins, or where the two
+        ends of one strand meet. The bend shows where the backbone breaks.
 
     Notes
     -----
@@ -218,11 +221,11 @@ class RadialLayoutEngine(LayoutEngine):
         *,
         stem_spacing: float = 15,
         loop_spacing: float = 20,
-        stack_deflection: float = math.pi/18,
+        coaxial_stack_deflection: float = 10.0,
     ) -> None:
         self.stem_spacing = stem_spacing
         self.loop_spacing = loop_spacing
-        self.stack_deflection = stack_deflection
+        self.coaxial_stack_deflection = coaxial_stack_deflection
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
         """Join the last two nodes with a straight backbone edge.
@@ -304,7 +307,7 @@ class RadialLayoutEngine(LayoutEngine):
                 LineEdge(
                     start=state.nodes[base_idx+idx],
                     end=state.nodes[-(idx+1)],
-                    edge_type=EdgeType.BASE_PAIR,
+                    edge_type=EdgeType.BASEPAIR,
                 )
             )
         state.vec = state.vec.normalized()
@@ -337,10 +340,9 @@ class RadialLayoutEngine(LayoutEngine):
             nucleotides = nucleotides[1:]
             child_stems = child_stems[1:]
         if current_loop.is_stacked:
+            deflection = math.radians(self.coaxial_stack_deflection)
             defl_angle = (
-                self.stack_deflection
-                if nucleotides[0].is_three_prime
-                else -self.stack_deflection
+                deflection if nucleotides[0].is_three_prime else -deflection
             )
             intermediate_vec = state.vec.rotated(defl_angle/2)
             delta = self.loop_spacing * math.sin(defl_angle/2)

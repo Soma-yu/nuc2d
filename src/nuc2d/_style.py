@@ -81,31 +81,36 @@ class DrawingStyle:
 
     Attributes
     ----------
+    backbone_color : str
+        Color of backbone edges. The arrow at each 3' terminus continues
+        the backbone, so it is drawn in this color too.
     backbone_width : float
         Stroke width used for backbone edges.
-    basepair_width : float
-        Stroke width used for base-pair edges.
     backbone_dasharray : str
         Dash pattern used for backbone edges, specified as an SVG
         ``stroke-dasharray`` value. The default, ``"none"``, draws them
         solid.
-    basepair_dasharray : str
-        Dash pattern used for base-pair edges, specified as an SVG
-        ``stroke-dasharray`` value.
     three_prime_arrow_length : float
         Length of the arrow drawn at each 3' terminus. The arrowhead is
         measured in stroke widths, so its size follows
         ``backbone_width`` rather than this.
-    node_radius : float
-        Radius of nucleotide nodes.
-    node_color : str
-        Color a node is drawn in when no probabilities are given. With
-        ``probs``, a node takes its color from ``colormap`` instead.
-    backbone_color : str
-        Color of backbone edges. The arrow at each 3' terminus continues
-        the backbone, so it is drawn in this color too.
+
     basepair_color : str
         Color of base-pair edges.
+    basepair_width : float
+        Stroke width used for base-pair edges.
+    basepair_dasharray : str
+        Dash pattern used for base-pair edges, specified as an SVG
+        ``stroke-dasharray`` value.
+
+    node_color : str
+        Color a node is drawn in when no probabilities are given. With
+        ``probabilities``, a node takes its color from ``colormap`` instead.
+    node_radius : float
+        Radius of nucleotide nodes.
+    node_font_size : float
+        Font size of the base letter drawn inside a node.
+
     font_family : str
         Font family of the letters: those inside the nodes, and those of a
         colorbar drawn with this style. One family name, not a CSS
@@ -113,8 +118,6 @@ class DrawingStyle:
         up on the machine doing the drawing, and its metrics decide where
         the letters sit, so a drawing can differ between machines.
         Arial is recommended for consistent rendering in PowerPoint.
-    node_font_size : float
-        Font size of the base letter drawn inside a node.
     colormap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
         Colormap a probability from 0 to 1 is shown in, on the nodes and
         on a colorbar drawn with this style.
@@ -147,23 +150,20 @@ class DrawingStyle:
     ``node_font_size`` or ``three_prime_arrow_length`` large enough to
     draw past that is cut off at the edge of a scene.
     """
+    backbone_color: str = "black"
     backbone_width: float = 2.0
-    basepair_width: float = 1.5
     backbone_dasharray: str = "none"
-    basepair_dasharray: str = "1,1"
-
     three_prime_arrow_length: float = 7.0
 
-    node_radius: float = 4.2
-
+    basepair_color: str = "black"
+    basepair_width: float = 1.5
+    basepair_dasharray: str = "1,1"
 
     node_color: str = "black"
-    backbone_color: str = "black"
-    basepair_color: str = "black"
-
-    font_family: str = "Arial"
+    node_radius: float = 4.2
     node_font_size: float = 6.5
 
+    font_family: str = "Arial"
     colormap: mpl.colors.Colormap = field(
         default_factory=lambda: mpl.colormaps["turbo"]
     )

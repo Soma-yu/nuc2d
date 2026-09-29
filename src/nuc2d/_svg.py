@@ -244,7 +244,7 @@ class _Renderer:
             color = self.style.backbone_color
             width = self.style.backbone_width
             dasharray = self.style.backbone_dasharray
-        elif edge.edge_type == EdgeType.BASE_PAIR:
+        elif edge.edge_type == EdgeType.BASEPAIR:
             color = self.style.basepair_color
             width = self.style.basepair_width
             dasharray = self.style.basepair_dasharray
