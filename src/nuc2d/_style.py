@@ -3,7 +3,8 @@
 This module provides classes for configuring the visual appearance of
 rendered secondary structure diagrams. Style parameters control
 the appearance of graphical elements such as nucleotide nodes,
-backbone and base-pair edges, labels, and color mappings.
+backbone and base-pair edges, their letters, and the colormap
+probabilities are shown in.
 
 The main class, DrawingStyle, stores the parameters the renderer draws
 with.
@@ -71,7 +72,12 @@ def _check_dasharray(name: str, value: object) -> None:
 
 @dataclass(kw_only=True)
 class DrawingStyle:
-    """Container for drawing style parameters.
+    """How a structure looks, and the colors its probabilities are shown in.
+
+    A colorbar is the key to those colors, so it is drawn from the style
+    of the structure it belongs to, and takes the colormap and the font
+    family from it. How the colorbar itself is laid out is not a style
+    setting.
 
     Attributes
     ----------
@@ -94,32 +100,24 @@ class DrawingStyle:
         Radius of nucleotide nodes.
     node_color : str
         Color a node is drawn in when no probabilities are given. With
-        ``probs``, a node takes its color from ``cmap`` instead.
+        ``probs``, a node takes its color from ``colormap`` instead.
     backbone_color : str
         Color of backbone edges. The arrow at each 3' terminus continues
         the backbone, so it is drawn in this color too.
     basepair_color : str
         Color of base-pair edges.
     font_family : str
-        Font family used for nucleotide labels. One family name, not a CSS
+        Font family of the letters: those inside the nodes, and those of a
+        colorbar drawn with this style. One family name, not a CSS
         list: ``"Arial"``, not ``"Arial, sans-serif"``. The font is looked
         up on the machine doing the drawing, and its metrics decide where
         the letters sit, so a drawing can differ between machines.
         Arial is recommended for consistent rendering in PowerPoint.
     node_font_size : float
         Font size of the base letter drawn inside a node.
-    cmap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
-        Colormap used for probability visualization.
-
-    colorbar_aspect_ratio : float
-        Aspect ratio of the colorbar's bar: its width divided by its
-        height.
-    colorbar_tick_length : float
-        Length of colorbar tick marks.
-    colorbar_tick_font_size : float
-        Font size used for colorbar tick labels.
-    colorbar_label_font_size : float
-        Font size used for the colorbar label.
+    colormap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
+        Colormap a probability from 0 to 1 is shown in, on the nodes and
+        on a colorbar drawn with this style.
 
     Raises
     ------
@@ -166,15 +164,9 @@ class DrawingStyle:
     font_family: str = "Arial"
     node_font_size: float = 6.5
 
-    cmap: mpl.colors.Colormap = field(
+    colormap: mpl.colors.Colormap = field(
         default_factory=lambda: mpl.colormaps["turbo"]
     )
-
-    colorbar_aspect_ratio: float = 1 / 30
-
-    colorbar_tick_length: float = 5.0
-    colorbar_tick_font_size: float = 12.0
-    colorbar_label_font_size: float = 15.0
 
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every field through here as well,

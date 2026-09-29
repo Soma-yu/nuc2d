@@ -8,6 +8,7 @@ or of SVG, so every other module is free to depend on this one.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 import math
 
@@ -125,14 +126,16 @@ class BBox:
     xmax, ymax : float
         Corner with the largest coordinates, the lower right.
 
+    Attributes
+    ----------
+    width, height : float
+        Extent of the box along each axis.
+
     Notes
     -----
-    A box is stored as its two corners, and ``width``, ``height``,
-    ``center_x`` and ``center_y`` are derived from them. A box whose
-    minimum exceeds its maximum along either axis is empty: :meth:`empty`
-    returns one, its width and height are zero, its centre raises, and it
-    is the identity element of :meth:`union`. A box around a single point
-    is not empty, although its width and height are zero.
+    The box of a component with nothing in it is empty, and its width and
+    height are zero. A box around a single point is not empty, although
+    its width and height are zero too.
     """
 
     xmin: float
@@ -140,74 +143,45 @@ class BBox:
     xmax: float
     ymax: float
 
-    @classmethod
-    def empty(cls) -> BBox:
-        """Return the empty box, the identity element of :meth:`union`."""
-        return cls(math.inf, math.inf, -math.inf, -math.inf)
-
-    @property
-    def is_empty(self) -> bool:
-        """Return whether the box encloses nothing."""
-        return self.xmin > self.xmax or self.ymin > self.ymax
-
     @property
     def width(self) -> float:
         """Extent of the box along the x-axis, or 0 when it is empty."""
-        return 0.0 if self.is_empty else self.xmax - self.xmin
+        return 0.0 if is_empty_bbox(self) else self.xmax - self.xmin
 
     @property
     def height(self) -> float:
         """Extent of the box along the y-axis, or 0 when it is empty."""
-        return 0.0 if self.is_empty else self.ymax - self.ymin
+        return 0.0 if is_empty_bbox(self) else self.ymax - self.ymin
 
-    @property
-    def center_x(self) -> float:
-        """Midpoint of the box along the x-axis.
 
-        Raises
-        ------
-        ValueError
-            If the box is empty. ``width`` and ``height`` are zero for such
-            a box, that being the extent of nothing, but a midpoint has no
-            answer of the same kind.
-        """
-        if self.is_empty:
-            raise ValueError("An empty box has no centre.")
-        return (self.xmin + self.xmax) / 2
+# What the package does with boxes, as against what a caller reads from
+# one. These are functions of this module rather than methods of BBox, so
+# that BBox offers a caller its corners and its size and nothing more.
 
-    @property
-    def center_y(self) -> float:
-        """Midpoint of the box along the y-axis.
+# The box enclosing nothing. Its minimum exceeds its maximum along both
+# axes, so it is where bbox_around starts from.
+_EMPTY_BBOX = BBox(math.inf, math.inf, -math.inf, -math.inf)
 
-        Raises
-        ------
-        ValueError
-            If the box is empty. See :attr:`center_x`.
-        """
-        if self.is_empty:
-            raise ValueError("An empty box has no centre.")
-        return (self.ymin + self.ymax) / 2
 
-    def union(self, other: BBox) -> BBox:
-        """Return the smallest box containing both boxes.
+def is_empty_bbox(bbox: BBox) -> bool:
+    """Return whether ``bbox`` encloses nothing."""
+    return bbox.xmin > bbox.xmax or bbox.ymin > bbox.ymax
 
-        Parameters
-        ----------
-        other : BBox
-            Box to combine with this one.
 
-        Returns
-        -------
-        BBox
-            The combined box. An empty operand is ignored.
-        """
-        if self.is_empty:
-            return other
-        if other.is_empty:
-            return self
-        return BBox(
-            min(self.xmin, other.xmin),
-            min(self.ymin, other.ymin),
-            max(self.xmax, other.xmax),
-            max(self.ymax, other.ymax),
+def bbox_around(boxes: Iterable[BBox]) -> BBox:
+    """Return the smallest box enclosing every box in ``boxes``.
+
+    An empty box encloses nothing and is passed over, so no boxes at all,
+    or empty ones only, give an empty box.
+    """
+    around = _EMPTY_BBOX
+    for bbox in boxes:
+        if is_empty_bbox(bbox):
+            continue
+        around = BBox(
+            min(around.xmin, bbox.xmin),
+            min(around.ymin, bbox.ymin),
+            max(around.xmax, bbox.xmax),
+            max(around.ymax, bbox.ymax),
         )
+    return around

@@ -15,6 +15,7 @@ from nuc2d import (
     draw_structure,
 )
 from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit
+from nuc2d._geometry import bbox_around, is_empty_bbox
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -107,11 +108,11 @@ def test_from_placements_encloses_everything_it_places():
 
     panel = Component.from_placements([pa, pb])
 
-    assert panel.bbox == pa.bbox.union(pb.bbox)
+    assert panel.bbox == bbox_around([pa.bbox, pb.bbox])
 
 
 def test_from_placements_of_nothing_is_empty():
-    assert Component.from_placements([]).bbox.is_empty
+    assert is_empty_bbox(Component.from_placements([]).bbox)
 
 
 def test_from_placements_refuses_a_component_that_was_not_placed():
@@ -128,17 +129,17 @@ def first_tag(svg_string, tags):
     return None
 
 
-def test_components_are_drawn_in_order_of_z_index():
-    colorbar = draw_colorbar()  # draws a rect
-    plain = structure()  # draws circles, no rect
+def test_components_are_drawn_in_the_order_given():
+    """A later one covers an earlier one, as SVG draws in document order."""
+    colorbar = Placement(component=draw_colorbar())  # draws a rect
+    plain = Placement(component=structure())  # draws circles, no rect
 
     def drawn_first(placements):
-        return first_tag(Scene(Component.from_placements(placements)).to_svg(), ["rect", "circle"])
+        svg = Scene(Component.from_placements(placements)).to_svg()
+        return first_tag(svg, ["rect", "circle"])
 
-    assert drawn_first([Placement(component=colorbar), Placement(component=plain)]) == "rect"
-    assert drawn_first(
-        [Placement(component=colorbar, z_index=1), Placement(component=plain)]
-    ) == "circle"
+    assert drawn_first([colorbar, plain]) == "rect"
+    assert drawn_first([plain, colorbar]) == "circle"
 
 
 def test_a_definition_is_written_once_however_many_components_use_it():
@@ -153,7 +154,7 @@ def test_a_definition_is_written_once_however_many_components_use_it():
 
 def test_different_definitions_are_all_written():
     turbo = draw_colorbar()
-    viridis = draw_colorbar(style=DrawingStyle(cmap=mpl.colormaps["viridis"]))
+    viridis = draw_colorbar(style=DrawingStyle(colormap=mpl.colormaps["viridis"]))
     pt = Placement(component=turbo)
 
     svg = Scene(

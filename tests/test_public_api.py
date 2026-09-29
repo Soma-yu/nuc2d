@@ -109,13 +109,16 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
 # is as much a promise as a name in __all__, so this is edited in the same
 # commit as a change to it, like PUBLIC_NAMES.
 PUBLIC_MEMBERS = {
-    "BBox": {
-        "xmin", "ymin", "xmax", "ymax",
-        "width", "height", "center_x", "center_y",
-        "is_empty", "empty", "union",
-    },
+    "BBox": {"xmin", "ymin", "xmax", "ymax", "width", "height"},
     "Component": {"bbox", "from_placements"},
-    "Placement": {"component", "x", "y", "anchor", "scale", "z_index", "bbox"},
+    "DrawingStyle": {
+        "backbone_width", "basepair_width",
+        "backbone_dasharray", "basepair_dasharray",
+        "backbone_color", "basepair_color", "node_color",
+        "node_radius", "node_font_size", "font_family",
+        "three_prime_arrow_length", "colormap",
+    },
+    "Placement": {"component", "x", "y", "anchor", "scale", "bbox"},
     "Scene": {"to_svg", "save_svg"},
 }
 

@@ -173,7 +173,7 @@ scene = draw_svg(
         backbone_color="#333333",
         basepair_color="crimson",
         node_radius=5.0,
-        cmap=mpl.colormaps["viridis"],
+        colormap=mpl.colormaps["viridis"],
     ),
     layout_engine=RadialLayoutEngine(
         stem_spacing=18.0,

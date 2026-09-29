@@ -56,7 +56,10 @@ def test_a_title_can_be_centred_over_a_structure():
 
     panel = Component.from_placements([title, structure])
 
-    assert title.bbox.center_x == pytest.approx(structure.bbox.center_x)
+    def centre_x(bbox):
+        return (bbox.xmin + bbox.xmax) / 2
+
+    assert centre_x(title.bbox) == pytest.approx(centre_x(structure.bbox))
     assert panel.bbox.height == pytest.approx(
         title.bbox.height + 10.0 + structure.bbox.height
     )

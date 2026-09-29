@@ -18,7 +18,6 @@ the renderer class included, is private to this module.
 
 import hashlib
 import os
-from functools import reduce
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
@@ -45,7 +44,7 @@ from ._component import (
     make_component,
     transform_of,
 )
-from ._geometry import BBox, Vec2
+from ._geometry import BBox, Vec2, bbox_around
 from ._font import find_font_path, text_width, vertical_center_offset, vertical_extent
 
 
@@ -107,6 +106,16 @@ def _ensure_def(
 # letter or a 3' arrow drawn larger than this reaches past the box.
 _STRUCTURE_MARGIN = 20.0
 
+# The colorbar's own proportions and lettering. They are not style
+# settings: a style says how a structure looks and which colors show its
+# probabilities, and the colorbar is only the key to those colors. A
+# caller wanting other lettering leaves the label out and places one of
+# its own with draw_text.
+_COLORBAR_ASPECT_RATIO = 1 / 30  # the bar's width over its height
+_COLORBAR_TICK_LENGTH = 5.0
+_COLORBAR_TICK_FONT_SIZE = 12.0
+_COLORBAR_LABEL_FONT_SIZE = 15.0
+
 
 class _Renderer:
     """Draws a laid-out structure or a colorbar into the drawing it is handed.
@@ -151,7 +160,7 @@ class _Renderer:
             fill = self.style.node_color
         else:
             fill = mpl.colors.to_hex(
-                self.style.cmap(
+                self.style.colormap(
                     self._color_norm(
                         nt.equilibrium_probability
                     )
@@ -367,13 +376,9 @@ class _Renderer:
 
         # Each node contributes the point it sits at. What the node draws
         # around that point is not enclosed yet; the margin covers it.
-        points = reduce(
-            BBox.union,
-            (
-                BBox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
-                for node in layout_result.nodes
-            ),
-            BBox.empty(),
+        points = bbox_around(
+            BBox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
+            for node in layout_result.nodes
         )
         bbox = BBox(
             points.xmin - _STRUCTURE_MARGIN,
@@ -426,7 +431,7 @@ class _Renderer:
         box_height = 500
 
         bar_height = 450
-        bar_width = bar_height * self.style.colorbar_aspect_ratio
+        bar_width = bar_height * _COLORBAR_ASPECT_RATIO
         bar_x = 30
         bar_y = (box_height - bar_height) / 2
 
@@ -440,7 +445,7 @@ class _Renderer:
                 offsets,
                 map(
                     mpl.colors.to_hex,
-                    self.style.cmap(self._color_norm(offsets)),
+                    self.style.colormap(self._color_norm(offsets)),
                 ),
             )
         )
@@ -479,7 +484,7 @@ class _Renderer:
             group.add(
                 drawing.line(
                     start=(bar_x + bar_width, y),
-                    end=(bar_x + bar_width + self.style.colorbar_tick_length, y),
+                    end=(bar_x + bar_width + _COLORBAR_TICK_LENGTH, y),
                     stroke="black",
                 )
             )
@@ -489,7 +494,7 @@ class _Renderer:
                     f"{value:.1f}",
                     insert=(bar_x + bar_width + 10, y + 4),
                     font_family = self.style.font_family,
-                    font_size=self.style.colorbar_tick_font_size,
+                    font_size=_COLORBAR_TICK_FONT_SIZE,
                     fill="black",
                 )
             )
@@ -501,7 +506,7 @@ class _Renderer:
                     insert=(100, box_height/2),
                     text_anchor="middle",
                     font_family=self.style.font_family,
-                    font_size=self.style.colorbar_label_font_size,
+                    font_size=_COLORBAR_LABEL_FONT_SIZE,
                     fill="black",
                     transform=f"rotate(90, 100, {box_height / 2})",
                 )

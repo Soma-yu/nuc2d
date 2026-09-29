@@ -1,52 +1,40 @@
-import pytest
-
-from nuc2d._geometry import BBox
+from nuc2d._geometry import BBox, bbox_around, is_empty_bbox
 
 
-def test_a_single_point_encloses_an_empty_area_but_is_not_the_empty_box():
+def test_the_size_is_the_distance_between_the_corners():
+    bbox = BBox(-2, 3, 8, 7)
+
+    assert (bbox.width, bbox.height) == (10, 4)
+
+
+def test_a_single_point_encloses_an_empty_area_but_is_not_an_empty_box():
     bbox = BBox(3, 4, 3, 4)
 
-    assert not bbox.is_empty
+    assert not is_empty_bbox(bbox)
     assert (bbox.width, bbox.height) == (0.0, 0.0)
 
 
-def test_union():
-    a = BBox(0, 0, 10, 10)
-    b = BBox(5, -5, 20, 5)
-
-    assert a.union(b) == BBox(0, -5, 20, 10)
-    assert a.union(b) == b.union(a)
-
-
-def test_empty_is_the_identity_of_union():
-    a = BBox(0, 0, 10, 10)
-
-    assert BBox.empty().union(a) == a
-    assert a.union(BBox.empty()) == a
-    assert BBox.empty().union(BBox.empty()).is_empty
-
-
-def test_union_reduces_over_a_sequence():
-    from functools import reduce
-
+def test_the_box_around_boxes_encloses_them_all():
     boxes = [BBox(0, 0, 1, 1), BBox(5, 5, 6, 6), BBox(-3, 2, -1, 4)]
 
-    assert reduce(BBox.union, boxes, BBox.empty()) == BBox(-3, 0, 6, 6)
+    assert bbox_around(boxes) == BBox(-3, 0, 6, 6)
+    assert bbox_around(reversed(boxes)) == BBox(-3, 0, 6, 6)
 
 
-def test_center_x_and_center_y_are_the_midpoints_of_the_corners():
-    assert (BBox(0, 0, 10, 20).center_x, BBox(0, 0, 10, 20).center_y) == (5.0, 10.0)
-    assert (BBox(-6, -8, -2, -2).center_x, BBox(-6, -8, -2, -2).center_y) == (-4.0, -5.0)
-
-    point = BBox(3, 4, 3, 4)
-
-    assert (point.center_x, point.center_y) == (3.0, 4.0)
+def test_the_box_around_one_box_is_that_box():
+    assert bbox_around([BBox(1, 2, 3, 4)]) == BBox(1, 2, 3, 4)
 
 
-def test_an_empty_box_has_no_center():
-    empty = BBox.empty()
+def test_the_box_around_nothing_is_empty_and_has_no_size():
+    around = bbox_around([])
 
-    with pytest.raises(ValueError):
-        empty.center_x
-    with pytest.raises(ValueError):
-        empty.center_y
+    assert is_empty_bbox(around)
+    assert (around.width, around.height) == (0.0, 0.0)
+
+
+def test_an_empty_box_is_passed_over():
+    empty = bbox_around([])
+
+    assert bbox_around([empty, BBox(0, 0, 10, 10), empty]) == BBox(0, 0, 10, 10)
+    assert bbox_around([BBox(5, 5, 1, 1), BBox(0, 0, 2, 2)]) == BBox(0, 0, 2, 2)
+    assert is_empty_bbox(bbox_around([empty, empty]))

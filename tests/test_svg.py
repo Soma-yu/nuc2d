@@ -68,8 +68,8 @@ def test_differing_styles_get_their_own_definitions():
     scene = side_by_side([
         draw_structure("(((...)))", probs=PROBS, style=style)
         for style in [
-            DrawingStyle(backbone_color="black", cmap=mpl.colormaps["turbo"]),
-            DrawingStyle(backbone_color="red", cmap=mpl.colormaps["viridis"]),
+            DrawingStyle(backbone_color="black", colormap=mpl.colormaps["turbo"]),
+            DrawingStyle(backbone_color="red", colormap=mpl.colormaps["viridis"]),
         ]
     ])
 
@@ -172,7 +172,9 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
 def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
     """A structure wider than it is tall sits midway up the colorbar."""
     colorbar = draw_colorbar().bbox
-    square_centre = (colorbar.xmin - colorbar.height / 2, colorbar.center_y)
+    square_centre = (
+        colorbar.xmin - colorbar.height / 2, (colorbar.ymin + colorbar.ymax) / 2
+    )
 
     for dot_bracket in ["." * 40, "((((....))))" * 3]:
         alone = draw_structure(dot_bracket).bbox
@@ -189,7 +191,9 @@ def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
         )
         dx, dy, scale, _ = map(float, re.findall(r"-?[\d.]+(?:e-?\d+)?", transform))
 
-        assert (dx + scale * alone.center_x, dy + scale * alone.center_y) == (
+        centre_x = (alone.xmin + alone.xmax) / 2
+        centre_y = (alone.ymin + alone.ymax) / 2
+        assert (dx + scale * centre_x, dy + scale * centre_y) == (
             pytest.approx(square_centre)
         )
 
@@ -264,7 +268,7 @@ def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
         Placement(
             component=colorbar,
             x=placed.bbox.xmax,
-            y=placed.bbox.center_y,
+            y=(placed.bbox.ymin + placed.bbox.ymax) / 2,
             anchor="center left",
             scale=0.5,
         ),

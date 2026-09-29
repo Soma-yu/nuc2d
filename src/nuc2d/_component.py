@@ -23,10 +23,9 @@ import math
 import numbers
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from functools import reduce
 from typing import Any, Literal, Union
 
-from ._geometry import BBox
+from ._geometry import BBox, bbox_around, is_empty_bbox
 
 
 AnchorName = Literal[
@@ -139,8 +138,8 @@ class Component:
 
         Notes
         -----
-        Components are drawn in ascending order of ``z_index``, and in the
-        order given where it is equal. No padding is added between them.
+        Components are drawn in the order given, so a later one covers an
+        earlier one where they overlap. No padding is added between them.
         """
         for item in placements:
             if not isinstance(item, Placement):
@@ -148,10 +147,9 @@ class Component:
                     "from_placements takes Placements; wrap each component as "
                     f"Placement(component=...). Got {type(item).__name__}."
                 )
-        in_order = sorted(placements, key=lambda p: p.z_index)
         return cls(
-            bbox=reduce(BBox.union, (p.bbox for p in placements), BBox.empty()),
-            _child_placements=tuple(in_order),
+            bbox=bbox_around(p.bbox for p in placements),
+            _child_placements=tuple(placements),
         )
 
 
@@ -181,9 +179,6 @@ class Placement:
         ``(0.5, 0.0)`` is the middle of the top edge.
     scale : float, default=1.0
         Uniform scaling factor. Must be positive.
-    z_index : int, default=0
-        Drawing order. Components with smaller values are drawn first, so
-        later ones cover them.
 
     Attributes
     ----------
@@ -203,7 +198,6 @@ class Placement:
     y: float = 0.0
     anchor: Anchor = "upper left"
     scale: float = 1.0
-    z_index: int = 0
 
     def __post_init__(self) -> None:
         # Refuse a bad placement where it is written, not when it is used.
@@ -218,7 +212,7 @@ class Placement:
         """Extent of the component once placed."""
         # The component's own box, as distinct from the placed one returned.
         component_bbox = self.component.bbox
-        if component_bbox.is_empty:
+        if is_empty_bbox(component_bbox):
             return component_bbox
         fx, fy = _fractions(self.anchor)
         width = component_bbox.width * self.scale
@@ -232,7 +226,6 @@ def fit(
     slot: BBox,
     *,
     anchor: Anchor,
-    z_index: int = 0,
 ) -> Placement:
     """Place a component at the largest size that fits inside ``slot``.
 
@@ -247,9 +240,9 @@ def fit(
     usually done by its centre, so neither default is obvious here.
     """
     bbox = component.bbox
-    if bbox.is_empty or bbox.width <= 0 or bbox.height <= 0:
+    if is_empty_bbox(bbox) or bbox.width <= 0 or bbox.height <= 0:
         raise ValueError("Cannot fit a component that has no area.")
-    if slot.is_empty or slot.width <= 0 or slot.height <= 0:
+    if is_empty_bbox(slot) or slot.width <= 0 or slot.height <= 0:
         raise ValueError("Cannot fit a component into a slot that has no area.")
 
     scale = min(slot.width / bbox.width, slot.height / bbox.height)
@@ -269,7 +262,6 @@ def fit(
         x=slot.xmin,
         y=slot.ymin,
         scale=scale,
-        z_index=z_index,
     )
 
 
@@ -306,7 +298,7 @@ def transform_of(placement: Placement) -> tuple[float, float, float]:
     ``scale``, then moved by ``(dx, dy)``.
     """
     bbox = placement.component.bbox
-    if bbox.is_empty:
+    if is_empty_bbox(bbox):
         return placement.x, placement.y, placement.scale
     # Scaling about the anchor and then moving the anchor to (x, y) is one
     # scaling about the origin followed by this translation.

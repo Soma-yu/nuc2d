@@ -10,6 +10,7 @@ from typing import Any
 
 from . import _svg
 from ._component import Component
+from ._geometry import is_empty_bbox
 
 
 class Scene:
@@ -50,7 +51,7 @@ class Scene:
         height_px: float | None = None,
     ) -> None:
         bbox = component.bbox
-        if bbox.is_empty:
+        if is_empty_bbox(bbox):
             raise ValueError("Nothing to draw: the component is empty.")
         for name, size in (("width_px", width_px), ("height_px", height_px)):
             if size is not None and not (math.isfinite(size) and size > 0):

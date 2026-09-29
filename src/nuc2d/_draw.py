@@ -40,7 +40,8 @@ def draw_colorbar(
         one. The colorbar occupies the same box either way, so colorbars
         with and without a label line up.
     style : DrawingStyle, optional
-        Drawing style. Its colormap and colorbar settings apply.
+        Style of the structure the colorbar belongs to. Its colormap and
+        font family apply.
 
     Returns
     -------
