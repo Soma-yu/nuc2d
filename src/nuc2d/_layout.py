@@ -165,10 +165,14 @@ class _LayoutState:
 
 
 class LayoutEngine(ABC):
-    """Abstract base class for secondary structure layout engines."""
+    """Abstract base class for secondary structure layout engines.
+
+    How an engine lays a structure out is private to this module; the rest
+    of the package asks for a layout through :func:`lay_out`.
+    """
 
     @abstractmethod
-    def layout(self, root_loop: LoopRegion) -> LayoutResult:
+    def _layout(self, root_loop: LoopRegion) -> LayoutResult:
         """Compute a layout for the given secondary structure."""
         pass
 
@@ -201,8 +205,8 @@ class RadialLayoutEngine(LayoutEngine):
 
     Notes
     -----
-    Every parameter is configuration that :meth:`layout` does not modify,
-    so one engine can lay out any number of structures.
+    Laying a structure out does not modify any parameter, so one engine
+    can lay out any number of structures.
     """
 
     def __init__(
@@ -370,7 +374,7 @@ class RadialLayoutEngine(LayoutEngine):
         state.vec = state.vec.normalized()
         return None
 
-    def layout(self, root_loop: LoopRegion) -> LayoutResult:
+    def _layout(self, root_loop: LoopRegion) -> LayoutResult:
         """Generate a complete layout starting from the root loop region.
 
         Parameters
@@ -382,8 +386,8 @@ class RadialLayoutEngine(LayoutEngine):
         -------
         LayoutResult
             Nodes, edges and decorations describing the geometry of the
-            structure. The result owns its lists; a later call to this
-            method does not modify it.
+            structure. The result owns its lists; a later layout does not
+            modify it.
         """
         state = _LayoutState()
         nucleotides = root_loop.nucleotides
@@ -419,3 +423,22 @@ class RadialLayoutEngine(LayoutEngine):
             edges=state.edges,
             decorations=state.decorations,
         )
+
+
+def lay_out(root_loop: LoopRegion, engine: LayoutEngine) -> LayoutResult:
+    """Lay out a secondary structure with ``engine``.
+
+    Parameters
+    ----------
+    root_loop : LoopRegion
+        Root loop region of the secondary structure tree.
+    engine : LayoutEngine
+        Engine deciding where each nucleotide goes.
+
+    Returns
+    -------
+    LayoutResult
+        Nodes, edges and decorations describing the geometry of the
+        structure.
+    """
+    return engine._layout(root_loop)

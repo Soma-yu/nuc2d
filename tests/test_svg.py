@@ -333,13 +333,13 @@ def test_something_the_renderer_cannot_draw_says_so():
     """
     from dataclasses import dataclass
 
-    from nuc2d._layout import Decoration, Edge, EdgeType
+    from nuc2d._layout import Decoration, Edge, EdgeType, lay_out
     from nuc2d._parse import parse
     from nuc2d._svg import _Renderer
 
     renderer = _Renderer()
     drawing = svgwrite.Drawing()
-    node = RadialLayoutEngine().layout(parse("(((...)))")).nodes[0]
+    node = lay_out(parse("(((...)))"), RadialLayoutEngine()).nodes[0]
 
     @dataclass(kw_only=True)
     class Squiggle(Decoration):

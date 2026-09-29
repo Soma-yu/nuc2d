@@ -2,6 +2,7 @@ from nuc2d._parse import parse
 from nuc2d._layout import (
     RadialLayoutEngine,
     EdgeType,
+    lay_out,
 )
 
 
@@ -22,7 +23,7 @@ def get_edge_counts(layout_result):
 def test_layout_unpaired():
     root = parse(".....")
 
-    result = RadialLayoutEngine().layout(root)
+    result = lay_out(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -35,7 +36,7 @@ def test_layout_unpaired():
 def test_layout_hairpin():
     root = parse("(((...)))")
 
-    result = RadialLayoutEngine().layout(root)
+    result = lay_out(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
     print(len(result.nodes))
@@ -49,7 +50,7 @@ def test_layout_hairpin():
 def test_layout_duplex():
     root = parse("(((((+)))))")
 
-    result = RadialLayoutEngine().layout(root)
+    result = lay_out(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -62,7 +63,7 @@ def test_layout_duplex():
 def test_layout_hinge():
     root = parse("((((((...)))+)))(((...)))")
 
-    result = RadialLayoutEngine().layout(root)
+    result = lay_out(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 
@@ -75,7 +76,7 @@ def test_layout_hinge():
 def test_layout_nested():
     root = parse("((..((...))..))")
 
-    result = RadialLayoutEngine().layout(root)
+    result = lay_out(root, RadialLayoutEngine())
 
     n_backbone, n_basepair = get_edge_counts(result)
 

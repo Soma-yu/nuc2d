@@ -13,7 +13,7 @@ import numpy as np
 from ._annotation import attach_equilibrium_probabilities, attach_sequences
 from ._component import Component, Placement, fit
 from ._geometry import BBox
-from ._layout import RadialLayoutEngine
+from ._layout import RadialLayoutEngine, lay_out
 from ._parse import parse
 from ._scene import Scene
 from ._style import DrawingStyle
@@ -177,7 +177,7 @@ def draw_structure(
         attach_equilibrium_probabilities(root_loop, probs)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
-    structure = render_structure(engine.layout(root_loop), style=style)
+    structure = render_structure(lay_out(root_loop, engine), style=style)
 
     if probs is None or not add_colorbar:
         return structure

@@ -8,11 +8,11 @@ ones.
 
 This module is the geometry of placing, and the checks on what a caller
 asks for. It does not know how anything is written, and imports nothing
-that does. A component that was drawn holds what it was drawn with as an
-opaque value, and one made of others holds only their placements; how
-the whole is written is worked out from them when a scene is. That keeps
-the dependency one way, so that the module that writes SVG can make
-components itself.
+that does. A drawn component holds its graphics, which only the module
+that drew them can read, and one made of others holds only the
+placements of its children; how the whole is written is worked out from
+them when a scene is. That keeps the dependency one way, so that the
+module that writes SVG can make components itself.
 
 The functions at the end of this module are for that module. It reads a
 component through them, so that the private fields are touched here and
@@ -109,12 +109,12 @@ class Component:
     """
 
     bbox: BBox
-    # A drawn component holds what it was drawn with, and the definitions
-    # that refers to; one made of others holds their placements instead,
-    # in the order they are drawn.
-    _content: Any = field(default=None, repr=False)
-    _definitions: tuple[Any, ...] = field(default=(), repr=False)
-    _parts: tuple["Placement", ...] = field(default=(), repr=False)
+    # A drawn component holds its graphics: what is drawn, as against bbox,
+    # the room it takes. Only the module that drew them can read them. A
+    # component made of others holds the placements of its children
+    # instead, in the order they are drawn.
+    _graphics: Any = field(default=None, repr=False)
+    _child_placements: tuple["Placement", ...] = field(default=(), repr=False)
 
     @classmethod
     def from_placements(cls, placements: Sequence["Placement"]) -> "Component":
@@ -142,16 +142,16 @@ class Component:
         Components are drawn in ascending order of ``z_index``, and in the
         order given where it is equal. No padding is added between them.
         """
-        placements = tuple(placements)
         for item in placements:
             if not isinstance(item, Placement):
                 raise TypeError(
                     "from_placements takes Placements; wrap each component as "
                     f"Placement(component=...). Got {type(item).__name__}."
                 )
+        in_order = sorted(placements, key=lambda p: p.z_index)
         return cls(
             bbox=reduce(BBox.union, (p.bbox for p in placements), BBox.empty()),
-            _parts=tuple(sorted(placements, key=lambda p: p.z_index)),
+            _child_placements=tuple(in_order),
         )
 
 
@@ -277,33 +277,26 @@ def fit(
 # through these.
 
 
-def make_component(
-    bbox: BBox, content: Any, definitions: tuple[Any, ...]
-) -> Component:
-    """Make a component drawn with ``content``.
+def make_component(bbox: BBox, graphics: Any) -> Component:
+    """Make a component drawn as ``graphics``, taking up ``bbox``.
 
-    ``definitions`` are those ``content`` refers to, such as an arrowhead
-    marker or a gradient, which the document showing it has to contain.
+    ``graphics`` is whatever the module that drew it needs in order to
+    write it; nothing here looks inside.
     """
-    return Component(bbox=bbox, _content=content, _definitions=definitions)
+    return Component(bbox=bbox, _graphics=graphics)
 
 
-def content_of(component: Component) -> Any:
-    """Return what a component was drawn with, or None if made of others."""
-    return component._content
+def graphics_of(component: Component) -> Any:
+    """Return a component's graphics, or None if it is made of others."""
+    return component._graphics
 
 
-def definitions_of(component: Component) -> tuple[Any, ...]:
-    """Return the definitions a drawn component's content refers to."""
-    return component._definitions
+def child_placements_of(component: Component) -> tuple[Placement, ...]:
+    """Return the placements of a component's children, in drawing order.
 
-
-def parts_of(component: Component) -> tuple[Placement, ...]:
-    """Return the placements a component is made of, in drawing order.
-
-    A drawn component is made of none.
+    A drawn component has none.
     """
-    return component._parts
+    return component._child_placements
 
 
 def transform_of(placement: Placement) -> tuple[float, float, float]:

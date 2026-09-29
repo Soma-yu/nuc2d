@@ -20,7 +20,7 @@ import hashlib
 import os
 from functools import reduce
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import matplotlib as mpl
@@ -39,10 +39,9 @@ from ._layout import (
 from ._style import DrawingStyle
 from ._component import (
     Component,
-    content_of,
-    definitions_of,
+    child_placements_of,
+    graphics_of,
     make_component,
-    parts_of,
     transform_of,
 )
 from ._geometry import BBox, Vec2
@@ -512,6 +511,22 @@ class _Renderer:
         return group, BBox(0.0, 0.0, box_width, box_height)
 
 
+class _Graphics(NamedTuple):
+    """What a component drawn here holds: its element and its definitions.
+
+    Attributes
+    ----------
+    element : svgwrite.container.Group
+        The drawn part.
+    definitions : tuple
+        The definitions the part refers to, such as an arrowhead marker
+        or a gradient, which the document showing it has to contain.
+    """
+
+    element: Any
+    definitions: tuple[Any, ...]
+
+
 def render_structure(
     layout_result: LayoutResult,
     *,
@@ -533,7 +548,7 @@ def render_structure(
     """
     drawing = svgwrite.Drawing()
     content, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
-    return make_component(bbox, content, _registered_definitions(drawing))
+    return make_component(bbox, _Graphics(content, _definitions_in(drawing)))
 
 
 def render_colorbar(
@@ -559,7 +574,7 @@ def render_colorbar(
     """
     drawing = svgwrite.Drawing()
     content, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
-    return make_component(bbox, content, _registered_definitions(drawing))
+    return make_component(bbox, _Graphics(content, _definitions_in(drawing)))
 
 
 def render_text(text: str, *, font_family: str, font_size: float) -> Component:
@@ -601,10 +616,10 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
         )
     )
     bbox = BBox(0.0, 0.0, width, above + below)
-    return make_component(bbox, group, _registered_definitions(drawing))
+    return make_component(bbox, _Graphics(group, _definitions_in(drawing)))
 
 
-def _registered_definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
+def _definitions_in(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
     """Return the definitions a renderer registered in ``drawing``.
 
     A renderer draws into a drawing of its own, and what it put in that
@@ -613,49 +628,46 @@ def _registered_definitions(drawing: svgwrite.Drawing) -> tuple[Any, ...]:
     return tuple(drawing.defs.elements)
 
 
-# Writing a component. One made of others holds only their placements, so
-# the groups and transforms that put each part where it goes are made
-# here, each time a document is written.
+# Writing a component. One made of others holds only the placements of its
+# children, so the groups and transforms that put each child where it goes
+# are assembled here, each time a document is written.
 
 
-def _element(component: Component) -> Any:
-    """Return an SVG element drawing ``component`` and everything in it."""
-    content = content_of(component)
-    if content is not None:
-        return content
+def _assemble(component: Component) -> _Graphics:
+    """Assemble the graphics of ``component`` and everything placed in it.
+
+    A drawn component's graphics are its own. Those of a component made of
+    others are its children's, each in a group that moves and scales it
+    to where it is placed, with every definition they refer to kept once.
+    An id is derived from the definition's content, so two definitions
+    with one id are the same definition, and either can stand for both.
+    """
+    graphics = graphics_of(component)
+    if isinstance(graphics, _Graphics):
+        return graphics
     group = svgwrite.container.Group()
-    for placement in parts_of(component):
+    definitions: dict[str, Any] = {}
+    for placement in child_placements_of(component):
+        child = _assemble(placement.component)
         dx, dy, scale = transform_of(placement)
         placed = svgwrite.container.Group(
             transform=f"translate({dx},{dy}) scale({scale},{scale})"
         )
-        placed.add(_element(placement.component))
+        placed.add(child.element)
         group.add(placed)
-    return group
-
-
-def _definitions(component: Component) -> tuple[Any, ...]:
-    """Return the definitions ``component`` refers to, each id once.
-
-    An id is derived from the definition's content, so two definitions
-    with one id are the same definition, and either can stand for both.
-    """
-    if content_of(component) is not None:
-        return definitions_of(component)
-    merged: dict[str, Any] = {}
-    for placement in parts_of(component):
-        for element in _definitions(placement.component):
-            merged.setdefault(element.attribs["id"], element)
-    return tuple(merged.values())
+        for element in child.definitions:
+            definitions.setdefault(element.attribs["id"], element)
+    return _Graphics(group, tuple(definitions.values()))
 
 
 def _document(
     component: Component, *, width_px: float, height_px: float
 ) -> svgwrite.Drawing:
+    graphics = _assemble(component)
     drawing = svgwrite.Drawing()
-    for element in _definitions(component):
+    for element in graphics.definitions:
         drawing.defs.add(element)
-    drawing.add(_element(component))
+    drawing.add(graphics.element)
     bbox = component.bbox
     drawing.viewbox(bbox.xmin, bbox.ymin, bbox.width, bbox.height)
     drawing["width"] = f"{width_px}px"
