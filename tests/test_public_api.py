@@ -116,24 +116,15 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     component = nuc2d.draw_text("tRNA")
     placement = nuc2d.Placement(component=component)
 
-    def read(value, attribute):
-        # A placement's box is worked out anew each time it is read, and
-        # boxes are not compared by their corners, so a box is read as
-        # its corners.
-        got = getattr(value, attribute, None)
-        if isinstance(got, nuc2d.BBox):
-            return (got.xmin, got.ymin, got.xmax, got.ymax)
-        return got
-
     for value, name in [(component.bbox, "BBox"), (component, "Component"),
                         (placement, "Placement")]:
         for attribute in [*sorted(PUBLIC_MEMBERS[name]), "not_an_attribute"]:
-            before = read(value, attribute)
+            before = getattr(value, attribute, None)
 
             with pytest.raises(AttributeError):
                 setattr(value, attribute, 1.0)
 
-            assert read(value, attribute) == before, f"{name}.{attribute}"
+            assert getattr(value, attribute, None) == before, f"{name}.{attribute}"
 
 
 # What a caller can reach on each of these, beyond the constructor. A member
@@ -192,11 +183,10 @@ def test_a_box_is_read_rather_than_built(args, kwargs):
 
 @pytest.mark.parametrize("make", [nuc2d.DrawingStyle, nuc2d.RadialLayoutEngine])
 def test_what_can_be_changed_has_no_hash(make):
-    """A style and an engine can be changed, as a list can.
+    """A style and an engine can be changed, and compare by their values.
 
-    Were either hashable, comparing them by their values could not be
-    added later, since what can change and is compared by its value must
-    not be hashed. With no hash, that stays open.
+    So neither has a hash, as a list has none: one changed while it was a
+    key of a dict would no longer be found under its hash.
     """
     with pytest.raises(TypeError, match="unhashable"):
         hash(make())

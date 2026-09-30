@@ -179,6 +179,11 @@ def test_a_setting_is_kept_as_a_float(value):
     assert engine.stem_spacing == 18.0 and type(engine.stem_spacing) is float
 
 
+def test_engines_are_equal_when_their_settings_are():
+    assert RadialLayoutEngine() == RadialLayoutEngine(stem_spacing=15)
+    assert RadialLayoutEngine() != RadialLayoutEngine(stem_spacing=18.0)
+
+
 def test_a_misspelt_setting_is_refused_and_the_right_one_named():
     engine = RadialLayoutEngine()
 

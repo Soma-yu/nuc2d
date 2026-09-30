@@ -20,11 +20,6 @@ from nuc2d import (
 )
 
 
-def corners(bbox):
-    """Return a box's corners, to compare two boxes by."""
-    return (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax)
-
-
 def side_by_side(components):
     """Place components in a row, each to the right of the last."""
     placements, cursor_x = [], 0.0
@@ -134,14 +129,14 @@ def test_the_box_runs_twenty_units_past_the_outermost_nodes():
 
 def test_the_box_is_not_widened_by_the_style():
     """The box is not measured from what is drawn, so a style leaves it be."""
-    default = corners(draw_structure("(((...)))").bbox)
+    default = draw_structure("(((...)))").bbox
 
     for style in [
         DrawingStyle(node_radius=30.0),
         DrawingStyle(node_font_size=50.0),
         DrawingStyle(three_prime_arrow_length=40.0),
     ]:
-        assert corners(draw_structure("(((...)))", style=style).bbox) == default
+        assert draw_structure("(((...)))", style=style).bbox == default
 
 
 def test_viewbox_frames_exactly_the_component():
@@ -239,7 +234,7 @@ def test_colorbar_label_none_leaves_the_label_out():
 
 def test_colorbar_keeps_its_box_without_a_label():
     """So colorbars with and without a label line up when placed."""
-    assert corners(draw_colorbar(label=None).bbox) == corners(draw_colorbar().bbox)
+    assert draw_colorbar(label=None).bbox == draw_colorbar().bbox
 
 
 def test_colorbar_label_is_ignored_without_probabilities():
@@ -255,7 +250,7 @@ def test_the_colorbar_can_be_left_out():
     plain = draw_structure("(((...)))")
 
     # The structure itself is unchanged; only the colorbar beside it is gone.
-    assert corners(without_bar.bbox) == corners(plain.bbox)
+    assert without_bar.bbox == plain.bbox
     assert without_bar.bbox.width < with_bar.bbox.width
     assert "Equilibrium probability" not in collect_texts(
         draw_svg("(((...)))", probabilities=PROBS, add_colorbar=False).to_svg()

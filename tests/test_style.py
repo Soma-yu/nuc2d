@@ -185,6 +185,17 @@ def test_every_field_is_checked_when_it_is_assigned():
     assert set(_FIELD_CHECKS) == {f.name for f in dataclasses.fields(DrawingStyle)}
 
 
+def test_styles_are_equal_when_their_fields_are():
+    assert DrawingStyle() == DrawingStyle()
+    assert DrawingStyle(node_radius=5) == DrawingStyle(node_radius=5.0)
+    assert DrawingStyle() != DrawingStyle(node_radius=5.0)
+    assert DrawingStyle() != DrawingStyle(colormap=mpl.colormaps["viridis"])
+
+
+def test_a_color_is_compared_as_it_is_written():
+    assert DrawingStyle() != DrawingStyle(node_color="#000000")
+
+
 def test_a_style_can_still_be_copied_with_a_field_changed():
     style = DrawingStyle(node_color="crimson")
 

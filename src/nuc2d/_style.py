@@ -123,7 +123,7 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
 }
 
 
-@dataclass(kw_only=True, eq=False)
+@dataclass(kw_only=True)
 class DrawingStyle:
     """How a structure looks, and the colors its probabilities are shown in.
 
@@ -215,6 +215,10 @@ class DrawingStyle:
     nucleotides, whatever the style. A ``node_radius``,
     ``node_font_size`` or ``three_prime_arrow_length`` large enough to
     draw past it is cut off at the edge of a scene.
+
+    Two styles are equal when their fields are. Colors and dash patterns
+    are compared as they are written, so ``"black"`` and ``"#000000"`` are
+    not equal, and colormaps as matplotlib compares them.
     """
     backbone_color: str = "black"
     backbone_width: float = 2.0
@@ -233,12 +237,6 @@ class DrawingStyle:
     colormap: mpl.colors.Colormap = field(
         default_factory=lambda: mpl.colormaps["turbo"]
     )
-
-    # A style is equal only to itself, and has no hash. What can be
-    # changed and is compared by its value has none, as a list has none,
-    # so a hash given now would rule out comparing styles by their fields
-    # later.
-    __hash__ = None  # type: ignore[assignment]
 
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every field through here as well,

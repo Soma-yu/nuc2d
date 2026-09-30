@@ -26,11 +26,6 @@ def structure(dot_bracket="(((...)))", **kwargs):
     return draw_structure(dot_bracket, **kwargs)
 
 
-def corners(bbox):
-    """Return a box's corners, to compare two boxes by."""
-    return (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax)
-
-
 def count(svg_string, tag):
     return sum(
         1 for element in ET.fromstring(svg_string).iter()
@@ -133,6 +128,24 @@ def test_a_named_anchor_is_kept_as_its_name(name):
     assert anchor == "center" and type(anchor) is str
 
 
+def test_placements_are_equal_when_they_place_one_component_alike():
+    """The component is the same one; one drawn alike is another."""
+    component = structure()
+
+    assert Placement(component=component, x=1) == Placement(component=component, x=1.0)
+    assert Placement(component=component) != Placement(component=component, x=1.0)
+    assert Placement(component=component) != Placement(component=structure())
+    assert len({Placement(component=component), Placement(component=component)}) == 1
+
+
+def test_an_anchor_is_compared_as_it_is_given():
+    component = structure()
+
+    assert Placement(component=component, anchor="upper left") != Placement(
+        component=component, anchor=(0.0, 0.0)
+    )
+
+
 def test_placements_are_frozen_and_hashable():
     placement = Placement(component=structure())
 
@@ -226,7 +239,7 @@ def test_from_placements_encloses_everything_it_places():
 
     panel = Component.from_placements([pa, pb])
 
-    assert corners(panel.bbox) == corners(bbox_around([pa.bbox, pb.bbox]))
+    assert panel.bbox == bbox_around([pa.bbox, pb.bbox])
 
 
 def test_from_placements_of_nothing_is_refused():

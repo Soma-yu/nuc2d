@@ -177,7 +177,7 @@ _RADIAL_SETTINGS: dict[str, Callable[[str, object], object]] = {
 }
 
 
-@dataclass(kw_only=True, eq=False)
+@dataclass(kw_only=True)
 class RadialLayoutEngine:
     """Layout engine for generating a radial representation of a secondary structure.
 
@@ -227,16 +227,13 @@ class RadialLayoutEngine:
     is. A structure is laid out with the values the engine holds when it
     is drawn. Laying a structure out does not modify any of them, so one
     engine can lay out any number of structures.
+
+    Two engines are equal when their settings are.
     """
 
     stem_spacing: float = 15.0
     loop_spacing: float = 20.0
     coaxial_stack_deflection: float = 10.0
-
-    # An engine is equal only to itself, and has no hash, as a style has
-    # none: a hash given now would rule out comparing engines by their
-    # settings later.
-    __hash__ = None  # type: ignore[assignment]
 
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every setting through here as

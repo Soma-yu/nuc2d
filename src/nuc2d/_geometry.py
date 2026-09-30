@@ -139,6 +139,8 @@ class BBox:
     The box of a component with nothing in it is empty, and its width and
     height are zero. A box around a single point is not empty, although
     its width and height are zero too.
+
+    Two boxes are equal when their corners are.
     """
 
     # The corners are held privately and read through properties, which
@@ -163,6 +165,19 @@ class BBox:
             f"<{type(self).__name__} xmin={self.xmin!r} ymin={self.ymin!r} "
             f"xmax={self.xmax!r} ymax={self.ymax!r}>"
         )
+
+    # A box is its four corners and cannot be changed, so it is compared
+    # and hashed by them.
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BBox):
+            return NotImplemented
+        return self._corners() == other._corners()
+
+    def __hash__(self) -> int:
+        return hash(self._corners())
+
+    def _corners(self) -> tuple[float, float, float, float]:
+        return (self._xmin, self._ymin, self._xmax, self._ymax)
 
     @property
     def xmin(self) -> float:

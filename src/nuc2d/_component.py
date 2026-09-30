@@ -192,7 +192,7 @@ class Component:
         )
 
 
-@dataclass(frozen=True, kw_only=True, eq=False)
+@dataclass(frozen=True, kw_only=True)
 class Placement:
     """Where a component goes, and at what size.
 
@@ -235,6 +235,13 @@ class Placement:
         If ``x`` or ``y`` is not finite; ``scale`` is not a positive finite
         number; or ``anchor`` is a name not listed above, or holds a number
         that is not finite.
+
+    Notes
+    -----
+    Two placements are equal when they place the same component, as
+    :class:`Component` compares them, at the same ``x``, ``y``, ``anchor``
+    and ``scale``. An anchor is compared as it is given, so ``"upper left"``
+    and ``(0.0, 0.0)`` are not equal, although they name the same point.
     """
 
     component: Component
