@@ -19,8 +19,6 @@ component through them, so that the private fields are touched here and
 nowhere else.
 """
 
-import math
-import numbers
 from dataclasses import dataclass
 from typing import Any, Literal, Union
 
@@ -64,18 +62,23 @@ def _fractions(anchor: object) -> tuple[float, float]:
                 f"anchor must be one of {names}, or a pair of fractions of "
                 f"the box such as (0.5, 0.0); got {anchor!r}."
             ) from None
-    if isinstance(anchor, tuple) and len(anchor) == 2:
+    elif isinstance(anchor, tuple) and len(anchor) == 2:
+        for index, fraction in enumerate(anchor):
+            check_finite(f"anchor[{index}]", fraction)
         fx, fy = anchor
-        if all(
-            isinstance(f, numbers.Real) and not isinstance(f, bool)
-            and math.isfinite(f)
-            for f in (fx, fy)
-        ):
-            return float(fx), float(fy)
-    raise ValueError(
-        "anchor must be a name such as 'upper left', or a pair of finite "
-        f"numbers such as (0.5, 0.0); got {anchor!r}."
-    )
+        return float(fx), float(fy)
+    elif isinstance(anchor, tuple):
+        # A tuple of another length is another type, tuple[float] or
+        # tuple[float, float, float], as it is to os.utime's pair of times.
+        raise TypeError(
+            "anchor must be a pair of finite numbers such as (0.5, 0.0); "
+            f"got {anchor!r}."
+        )
+    else:
+        raise TypeError(
+            "anchor must be a name such as 'upper left', or a pair of finite "
+            f"numbers such as (0.5, 0.0); got {type(anchor).__name__}."
+        )
 
 
 def _anchor_point(bbox: BBox, anchor: Anchor) -> tuple[float, float]:
@@ -220,12 +223,13 @@ class Placement:
     Raises
     ------
     TypeError
-        If ``component`` is not a :class:`Component`, or ``x``, ``y`` or
-        ``scale`` is not a number.
+        If ``component`` is not a :class:`Component`; ``x``, ``y`` or
+        ``scale`` is not a number; or ``anchor`` is neither a string nor a
+        pair, or holds something other than a number.
     ValueError
-        If ``x`` or ``y`` is not finite, ``anchor`` is neither a name above
-        nor a pair of finite numbers, or ``scale`` is not a positive finite
-        number.
+        If ``x`` or ``y`` is not finite; ``scale`` is not a positive finite
+        number; or ``anchor`` is a name not listed above, or holds a number
+        that is not finite.
     """
 
     component: Component

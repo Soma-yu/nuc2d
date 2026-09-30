@@ -70,8 +70,13 @@ def _string(name: str, value: object) -> str:
     return value
 
 
-def _check_single_line(name: str, text: str) -> None:
-    """Raise if ``text`` is empty or holds a character a line cannot."""
+def check_single_line_text(name: str, value: object) -> None:
+    """Raise unless ``value`` is text that can be drawn on a single line.
+
+    That is a non-empty string without line breaks, tabs or other control
+    characters. Any other character, in any script, is drawn as written.
+    """
+    text = _string(name, value)
     if not text:
         raise ValueError(f"{name} is empty.")
     if any(unicodedata.category(c) in _NOT_IN_A_SINGLE_LINE for c in text):
@@ -79,15 +84,6 @@ def _check_single_line(name: str, text: str) -> None:
             f"{name} must be a single line of text, without line breaks, "
             f"tabs or other control characters; got {text!r}."
         )
-
-
-def check_single_line_text(name: str, value: object) -> None:
-    """Raise unless ``value`` is text that can be drawn on a single line.
-
-    That is a non-empty string without line breaks, tabs or other control
-    characters. Any other character, in any script, is drawn as written.
-    """
-    _check_single_line(name, _string(name, value))
 
 
 def check_font_family(name: str, value: object) -> None:
@@ -100,7 +96,7 @@ def check_font_family(name: str, value: object) -> None:
     the SVG asked for another.
     """
     family = _string(name, value)
-    _check_single_line(name, family)
+    check_single_line_text(name, family)
     if not family.strip():
         raise ValueError(
             f"{name} is blank; give a font family, such as 'Arial'."

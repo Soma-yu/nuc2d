@@ -75,11 +75,27 @@ def test_upper_left_is_the_default_anchor():
 
 
 @pytest.mark.parametrize(
-    "anchor", ["upperleft", "top left", (0.5,), (0.5, 0.5, 0.5), ("a", 0.0),
-               (float("nan"), 0.0), (True, False), [0.5, 0.5]],
+    "anchor",
+    ["upperleft", "top left", (float("nan"), 0.0), (0.0, float("inf"))],
 )
-def test_a_bad_anchor_is_refused_where_it_is_written(anchor):
+def test_an_anchor_of_the_wrong_value_is_a_value_error(anchor):
     with pytest.raises(ValueError, match="anchor"):
+        Placement(component=structure(), anchor=anchor)
+
+
+@pytest.mark.parametrize(
+    "anchor, name",
+    [([0.5, 0.5], "anchor"), (None, "anchor"), (1, "anchor"),
+     ((0.5,), "anchor"), ((0.5, 0.5, 0.5), "anchor"),
+     (("a", 0.0), r"anchor\[0\]"), ((0.0, "a"), r"anchor\[1\]"),
+     ((True, False), r"anchor\[0\]")],
+)
+def test_an_anchor_of_the_wrong_type_is_a_type_error(anchor, name):
+    """A tuple of another length is another type, as os.utime has it.
+
+    An item that is not a number is named, as str.join names one.
+    """
+    with pytest.raises(TypeError, match=name):
         Placement(component=structure(), anchor=anchor)
 
 
