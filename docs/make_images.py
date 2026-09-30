@@ -131,15 +131,15 @@ def styling() -> Scene:
         dot_bracket=CLOVERLEAF,
         sequences=SEQUENCES,
         probabilities=PROBS,
+        layout_engine=RadialLayoutEngine(
+            stem_spacing=18.0,
+            loop_spacing=24.0,
+        ),
         style=DrawingStyle(
             backbone_color="#333333",
             basepair_color="crimson",
             node_radius=5.0,
             colormap=mpl.colormaps["viridis"],
-        ),
-        layout_engine=RadialLayoutEngine(
-            stem_spacing=18.0,
-            loop_spacing=24.0,
         ),
     )
 

@@ -156,11 +156,11 @@ Giving neither defaults the height to 500 px. Giving both keeps the structure's
 own proportions and centres it in the box, with space above and below or at
 the sides, rather than stretching it to fit.
 
-## Style and layout
+## Layout and style
 
+`RadialLayoutEngine` controls geometry — how far apart nucleotides are placed.
 `DrawingStyle` controls appearance — colors, stroke widths, node size, fonts,
-and the colormap used for probabilities. `RadialLayoutEngine` controls
-geometry — how far apart nucleotides are placed.
+and the colormap used for probabilities.
 
 ```python
 import matplotlib as mpl
@@ -171,15 +171,15 @@ scene = draw_svg(
     dot_bracket=CLOVERLEAF,
     sequences=SEQUENCES,
     probabilities=probs,
+    layout_engine=RadialLayoutEngine(
+        stem_spacing=18.0,
+        loop_spacing=24.0,
+    ),
     style=DrawingStyle(
         backbone_color="#333333",
         basepair_color="crimson",
         node_radius=5.0,
         colormap=mpl.colormaps["viridis"],
-    ),
-    layout_engine=RadialLayoutEngine(
-        stem_spacing=18.0,
-        loop_spacing=24.0,
     ),
 )
 ```
@@ -190,12 +190,12 @@ scene = draw_svg(
 
 Colors are written as SVG writes them: a name such as `black`, `#rgb` or
 `#rrggbb`, `rgb(r, g, b)`, or `none`. Dash patterns are `none` or lengths such
-as `1,1`. Sizes are numbers of at least 0, and spacings are positive. The
+as `1,1`. Spacings are positive, and sizes are numbers of at least 0. The
 colormap is a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`,
 rather than its name.
 
 Anything else raises an exception as soon as it is set, rather than when
-something is drawn with the style or the engine. So does a misspelt setting,
+something is drawn with the engine or the style. So does a misspelt setting,
 such as `style.node_colour = "black"`, which would otherwise be ignored.
 
 ## Combining several structures

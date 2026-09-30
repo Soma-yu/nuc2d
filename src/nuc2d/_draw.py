@@ -155,8 +155,8 @@ def draw_structure(
     *,
     sequences: list[str] | None = None,
     probabilities: npt.ArrayLike | None = None,
-    style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
+    style: DrawingStyle | None = None,
     colorbar_label: str | None = "Equilibrium probability",
     add_colorbar: bool = True,
 ) -> Component:
@@ -178,11 +178,11 @@ def draw_structure(
         to be left unpaired. When given, each nucleotide is colored by it,
         and a colorbar is set beside the structure. A value below 0 or
         above 1 is shown in the color of 0 or of 1.
-    style : DrawingStyle, optional
-        Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
+    style : DrawingStyle, optional
+        Drawing style.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, on one line, or None to leave
         it without one. Has no effect unless ``probabilities`` is given,
@@ -232,8 +232,8 @@ def draw_structure(
             "dot_bracket must be a string, such as '((...))'; "
             f"got {type(dot_bracket).__name__}."
         )
-    _check_style("style", style)
     _check_layout_engine("layout_engine", layout_engine)
+    _check_style("style", style)
     _check_label("colorbar_label", colorbar_label)
     if not isinstance(add_colorbar, bool):
         raise TypeError(
@@ -271,8 +271,8 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     probabilities: npt.ArrayLike | None = None,
-    style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
+    style: DrawingStyle | None = None,
     colorbar_label: str | None = "Equilibrium probability",
     add_colorbar: bool = True,
     width_px: float | None = None,
@@ -299,11 +299,11 @@ def draw_svg(
         other, and ``probabilities[i][i]`` how likely nucleotide ``i`` is
         to be left unpaired. A value below 0 or above 1 is shown in the
         color of 0 or of 1.
-    style : DrawingStyle, optional
-        Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
+    style : DrawingStyle, optional
+        Drawing style.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, on one line, or None to leave
         it without one. Has no effect unless ``probabilities`` is given.
@@ -339,8 +339,8 @@ def draw_svg(
         dot_bracket,
         sequences=sequences,
         probabilities=probabilities,
-        style=style,
         layout_engine=layout_engine,
+        style=style,
         colorbar_label=colorbar_label,
         add_colorbar=add_colorbar,
     )

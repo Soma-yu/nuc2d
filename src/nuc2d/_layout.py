@@ -13,7 +13,6 @@ shapes.
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from abc import ABC, abstractmethod
 import math
 
 from ._validation import (
@@ -168,19 +167,6 @@ class _LayoutState:
     vec: Vec2 = Vec2(1, 0)
 
 
-class LayoutEngine(ABC):
-    """Abstract base class for secondary structure layout engines.
-
-    How an engine lays a structure out is private to this module; the rest
-    of the package asks for a layout through :func:`layout`.
-    """
-
-    @abstractmethod
-    def _layout(self, root_loop: LoopRegion) -> LayoutResult:
-        """Compute a layout for the given secondary structure."""
-        pass
-
-
 # How each setting of RadialLayoutEngine is checked, whenever it is
 # assigned. Every setting is here, so that a name that is not is a
 # misspelt one.
@@ -191,7 +177,7 @@ _RADIAL_SETTINGS: dict[str, Callable[[str, object], None]] = {
 }
 
 
-class RadialLayoutEngine(LayoutEngine):
+class RadialLayoutEngine:
     """Layout engine for generating a radial representation of a secondary structure.
 
     This layout engine places nucleotides and structural elements using a
@@ -464,14 +450,17 @@ class RadialLayoutEngine(LayoutEngine):
         )
 
 
-def layout(root_loop: LoopRegion, engine: LayoutEngine) -> LayoutResult:
+def layout(root_loop: LoopRegion, engine: RadialLayoutEngine) -> LayoutResult:
     """Lay out a secondary structure with ``engine``.
+
+    How the engine lays a structure out is private to this module, so the
+    rest of the package asks for a layout through this.
 
     Parameters
     ----------
     root_loop : LoopRegion
         Root loop region of the secondary structure tree.
-    engine : LayoutEngine
+    engine : RadialLayoutEngine
         Engine deciding where each nucleotide goes.
 
     Returns
