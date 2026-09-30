@@ -118,20 +118,20 @@ class Vec2:
         return (float(self.x), float(self.y))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class BBox:
     """An axis-aligned bounding box.
 
-    Parameters
+    Boxes are read from what nuc2d makes, as :attr:`Component.bbox` and
+    :attr:`Placement.bbox`. Calling the class itself raises TypeError.
+
+    Attributes
     ----------
     xmin, ymin : float
         Corner with the smallest coordinates. The y-axis points down, as
         in SVG, so this is the upper left corner.
     xmax, ymax : float
         Corner with the largest coordinates, the lower right.
-
-    Attributes
-    ----------
     width, height : float
         Extent of the box along each axis.
 
@@ -146,6 +146,20 @@ class BBox:
     ymin: float
     xmax: float
     ymax: float
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        # Nothing public takes a box, so one made by hand would reach
+        # nothing. Say where one comes from instead.
+        raise TypeError(
+            "Boxes are not made by calling BBox. Read one from what is "
+            "drawn or placed, as Component.bbox or Placement.bbox."
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} xmin={self.xmin!r} ymin={self.ymin!r} "
+            f"xmax={self.xmax!r} ymax={self.ymax!r}>"
+        )
 
     @property
     def width(self) -> float:
@@ -162,9 +176,24 @@ class BBox:
 # one. These are functions of this module rather than methods of BBox, so
 # that BBox offers a caller its corners and its size and nothing more.
 
+
+def make_bbox(xmin: float, ymin: float, xmax: float, ymax: float) -> BBox:
+    """Make the box with these corners.
+
+    Calling the class does not make a box, so every one is made here.
+    """
+    bbox = object.__new__(BBox)
+    # The box is frozen, so its fields are filled in past its __setattr__.
+    object.__setattr__(bbox, "xmin", xmin)
+    object.__setattr__(bbox, "ymin", ymin)
+    object.__setattr__(bbox, "xmax", xmax)
+    object.__setattr__(bbox, "ymax", ymax)
+    return bbox
+
+
 # The box enclosing nothing. Its minimum exceeds its maximum along both
 # axes, so it is where bbox_around starts from.
-_EMPTY_BBOX = BBox(math.inf, math.inf, -math.inf, -math.inf)
+_EMPTY_BBOX = make_bbox(math.inf, math.inf, -math.inf, -math.inf)
 
 
 def is_empty_bbox(bbox: BBox) -> bool:
@@ -182,7 +211,7 @@ def bbox_around(boxes: Iterable[BBox]) -> BBox:
     for bbox in boxes:
         if is_empty_bbox(bbox):
             continue
-        around = BBox(
+        around = make_bbox(
             min(around.xmin, bbox.xmin),
             min(around.ymin, bbox.ymin),
             max(around.xmax, bbox.xmax),

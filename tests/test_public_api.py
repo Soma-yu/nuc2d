@@ -157,17 +157,15 @@ def test_a_layout_engine_offers_only_its_settings():
     assert offered == {"stem_spacing", "loop_spacing", "coaxial_stack_deflection"}
 
 
-def test_the_box_is_built_by_position():
-    """Every other type in the package is built by keyword; the box is not.
-
-    Its field set is closed — a box has four numbers — and their names are
-    the ones every geometry library uses, so neither an insertion nor a
-    rename is coming. Callers write them out in order, which is the promise
-    this pins.
-    """
-    kinds = {p.kind for p in inspect.signature(nuc2d.BBox).parameters.values()}
-
-    assert kinds == {inspect.Parameter.POSITIONAL_OR_KEYWORD}
+@pytest.mark.parametrize(
+    "args, kwargs",
+    [((0.0, 0.0, 1.0, 1.0), {}),
+     ((), {"xmin": 0.0, "ymin": 0.0, "xmax": 1.0, "ymax": 1.0})],
+)
+def test_a_box_is_read_rather_than_built(args, kwargs):
+    """Nothing public takes a box, so one built by hand would reach nothing."""
+    with pytest.raises(TypeError, match="Component.bbox"):
+        nuc2d.BBox(*args, **kwargs)
 
 
 def test_a_malformed_structure_is_a_value_error():

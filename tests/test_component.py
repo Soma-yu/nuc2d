@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from nuc2d import (
-    BBox,
     Component,
     DrawingStyle,
     Placement,
@@ -15,7 +14,7 @@ from nuc2d import (
     draw_structure,
 )
 from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit
-from nuc2d._geometry import bbox_around, is_empty_bbox
+from nuc2d._geometry import bbox_around, is_empty_bbox, make_bbox
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -136,7 +135,7 @@ def test_numbers_of_any_real_type_are_accepted():
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{}, {"bbox": BBox(0.0, 0.0, 10.0, 10.0)}]
+    "kwargs", [{}, {"bbox": make_bbox(0.0, 0.0, 10.0, 10.0)}]
 )
 def test_a_component_is_not_made_by_calling_the_class(kwargs):
     """What a component holds is private, so there is nothing to make one of."""
@@ -160,7 +159,7 @@ def test_a_component_cannot_be_changed():
     bbox = component.bbox
 
     with pytest.raises(AttributeError):
-        component.bbox = BBox(0.0, 0.0, 1.0, 1.0)
+        component.bbox = make_bbox(0.0, 0.0, 1.0, 1.0)
     with pytest.raises(AttributeError):
         component.label = "tRNA"
 
@@ -287,7 +286,7 @@ def test_a_composed_component_can_be_placed_again():
 
 @pytest.mark.parametrize("anchor", ["center", "upper left", "center right", (0.2, 0.8)])
 def test_fit_occupies_exactly_the_slot(anchor):
-    slot = BBox(-500.0, 0.0, 0.0, 500.0)
+    slot = make_bbox(-500.0, 0.0, 0.0, 500.0)
 
     placement = fit(structure(CLOVERLEAF), slot, anchor=anchor)
 
@@ -300,7 +299,7 @@ def test_fit_occupies_exactly_the_slot(anchor):
 
 def test_fit_uses_the_largest_scale_that_fits():
     component = structure(CLOVERLEAF)
-    slot = BBox(0.0, 0.0, 300.0, 1000.0)
+    slot = make_bbox(0.0, 0.0, 300.0, 1000.0)
 
     placement = fit(component, slot, anchor="center")
 
@@ -312,7 +311,7 @@ def test_fit_uses_the_largest_scale_that_fits():
 def test_fit_aligns_the_component_by_its_anchor():
     """The drawn part sits against the side the anchor names."""
     component = structure(CLOVERLEAF)
-    slot = BBox(0.0, 0.0, 2000.0, 500.0)  # much wider than the component
+    slot = make_bbox(0.0, 0.0, 2000.0, 500.0)  # much wider than the component
 
     placement = fit(component, slot, anchor="center right")
 
@@ -330,6 +329,6 @@ def test_fit_aligns_the_component_by_its_anchor():
 
 def test_fit_refuses_what_has_no_area():
     with pytest.raises(ValueError):
-        fit(Component.from_placements([]), BBox(0.0, 0.0, 1.0, 1.0), anchor="center")
+        fit(Component.from_placements([]), make_bbox(0.0, 0.0, 1.0, 1.0), anchor="center")
     with pytest.raises(ValueError):
-        fit(structure(), BBox(0.0, 0.0, 0.0, 1.0), anchor="center")
+        fit(structure(), make_bbox(0.0, 0.0, 0.0, 1.0), anchor="center")

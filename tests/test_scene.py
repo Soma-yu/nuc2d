@@ -140,3 +140,15 @@ def test_a_placement_given_to_a_scene_is_answered_with_what_to_pass():
 def test_a_size_must_be_a_number(name, size):
     with pytest.raises(TypeError, match=name):
         Scene(structure(), **{name: size})
+
+
+def test_a_scene_takes_no_attribute_it_does_not_have():
+    """An attribute assigned by mistake raises.
+
+    The size is given when the scene is made, so width_px assigned later
+    would change nothing.
+    """
+    scene = Scene(structure())
+
+    with pytest.raises(AttributeError, match="width_px"):
+        scene.width_px = 800.0

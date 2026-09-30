@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Union
 
 from ._validation import check_finite, check_finite_positive
-from ._geometry import BBox, bbox_around, is_empty_bbox
+from ._geometry import BBox, bbox_around, is_empty_bbox, make_bbox
 
 
 AnchorName = Literal[
@@ -257,7 +257,7 @@ class Placement:
         width = component_bbox.width * self.scale
         height = component_bbox.height * self.scale
         left, top = self.x - fx * width, self.y - fy * height
-        return BBox(left, top, left + width, top + height)
+        return make_bbox(left, top, left + width, top + height)
 
 
 def fit(
@@ -290,7 +290,7 @@ def fit(
     # before and after the component in the proportions anchor gives.
     spare_x = slot.width / scale - bbox.width
     spare_y = slot.height / scale - bbox.height
-    padded = BBox(
+    padded = make_bbox(
         bbox.xmin - fx * spare_x,
         bbox.ymin - fy * spare_y,
         bbox.xmax + (1 - fx) * spare_x,

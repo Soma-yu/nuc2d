@@ -44,7 +44,7 @@ from ._component import (
     make_component,
     transform_of,
 )
-from ._geometry import BBox, Vec2, bbox_around
+from ._geometry import BBox, Vec2, bbox_around, make_bbox
 from ._font import find_font_path, text_width, vertical_center_offset, vertical_extent
 
 
@@ -377,10 +377,10 @@ class _Renderer:
         # Each node contributes the point it sits at. What the node draws
         # around that point is not enclosed yet; the margin covers it.
         points = bbox_around(
-            BBox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
+            make_bbox(node.pos.x, node.pos.y, node.pos.x, node.pos.y)
             for node in layout_result.nodes
         )
-        bbox = BBox(
+        bbox = make_bbox(
             points.xmin - _STRUCTURE_MARGIN,
             points.ymin - _STRUCTURE_MARGIN,
             points.xmax + _STRUCTURE_MARGIN,
@@ -512,7 +512,7 @@ class _Renderer:
                 )
             )
 
-        return group, BBox(0.0, 0.0, box_width, box_height)
+        return group, make_bbox(0.0, 0.0, box_width, box_height)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -622,7 +622,7 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
             fill="black",
         )
     )
-    bbox = BBox(0.0, 0.0, width, above + below)
+    bbox = make_bbox(0.0, 0.0, width, above + below)
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
     return make_component(bbox, graphics=graphics)
 

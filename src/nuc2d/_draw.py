@@ -15,7 +15,7 @@ from ._validation import (
     check_single_line_text,
 )
 from ._component import Component, Placement, fit
-from ._geometry import BBox
+from ._geometry import make_bbox
 from ._layout import RadialLayoutEngine, layout
 from ._parse import parse
 from ._scene import Scene
@@ -253,7 +253,7 @@ def draw_structure(
 
     colorbar = draw_colorbar(label=colorbar_label, style=style)
     colorbar_bbox = colorbar.bbox
-    slot = BBox(
+    slot = make_bbox(
         colorbar_bbox.xmin - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
         colorbar_bbox.ymin,
         colorbar_bbox.xmin,

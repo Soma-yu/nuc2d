@@ -46,6 +46,10 @@ class Scene:
     In Jupyter, a scene that ends a cell is displayed as it is.
     """
 
+    # Only these can be held, so that an attribute assigned by mistake,
+    # such as scene.width_px = 800, raises rather than changing nothing.
+    __slots__ = ("_component", "_width_px", "_height_px")
+
     def __init__(
         self,
         component: Component,
