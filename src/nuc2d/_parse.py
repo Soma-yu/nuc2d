@@ -1,8 +1,6 @@
 """Utilities for parsing nucleic acid secondary structure strings.
 """
 
-from __future__ import annotations
-
 from ._structure import (
     Nucleotide, StemRegion, LoopRegion, iter_nucleotides, iter_stems
 )

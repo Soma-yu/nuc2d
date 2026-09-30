@@ -86,3 +86,17 @@ def test_a_nan_probability_is_refused():
 def test_an_empty_colorbar_label_is_answered_with_none():
     with pytest.raises(ValueError, match="pass None"):
         draw_colorbar(label="")
+
+
+@pytest.mark.parametrize(
+    "as_given",
+    [lambda m: m, lambda m: m.tolist(), lambda m: tuple(map(tuple, m))],
+)
+def test_probabilities_are_anything_numpy_makes_an_array_of(as_given):
+    """An array, a list of lists or a tuple of tuples draws the same."""
+    probs = np.eye(9) * 0.4 + 0.3
+
+    assert (
+        draw_svg(HAIRPIN, probabilities=as_given(probs)).to_svg()
+        == draw_svg(HAIRPIN, probabilities=probs).to_svg()
+    )

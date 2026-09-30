@@ -3,7 +3,9 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pytest
 
-from nuc2d import Component, Placement, Scene, draw_colorbar, draw_structure, draw_svg
+from nuc2d import Placement, Scene, draw_colorbar, draw_structure, draw_svg
+from nuc2d._component import make_component
+from nuc2d._geometry import _EMPTY_BBOX
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -97,8 +99,9 @@ def test_any_other_missing_attribute_is_a_plain_attribute_error():
 
 
 def test_an_empty_component_cannot_be_drawn():
+    """No public call makes one; the check guards the package itself."""
     with pytest.raises(ValueError, match="empty"):
-        Scene(Component.from_placements([]))
+        Scene(make_component(_EMPTY_BBOX))
 
 
 @pytest.mark.parametrize("size", [0.0, -10.0, float("inf")])

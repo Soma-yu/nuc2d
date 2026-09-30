@@ -134,12 +134,6 @@ class BBox:
         Corner with the largest coordinates, the lower right.
     width, height : float
         Extent of the box along each axis.
-
-    Notes
-    -----
-    The box of a component with nothing in it is empty, and its width and
-    height are zero. A box around a single point is not empty, although
-    its width and height are zero too.
     """
 
     xmin: float

@@ -6,7 +6,9 @@ draws a structure and frames it as a scene in one call: ``draw_svg(...)``
 is ``Scene(draw_structure(...))``, with the same arguments.
 """
 
-import numpy as np
+from __future__ import annotations
+
+import numpy.typing as npt
 
 from ._annotation import attach_probabilities, attach_sequences
 from ._validation import (
@@ -152,7 +154,7 @@ def draw_structure(
     dot_bracket: str,
     *,
     sequences: list[str] | None = None,
-    probabilities: np.ndarray | None = None,
+    probabilities: npt.ArrayLike | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = "Equilibrium probability",
@@ -169,7 +171,7 @@ def draw_structure(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    probabilities : ndarray, optional
+    probabilities : array_like, optional
         Base-pair probability matrix: ``probabilities[i][j]`` is how
         likely nucleotides ``i`` and ``j`` are to be paired with each
         other, and ``probabilities[i][i]`` how likely nucleotide ``i`` is
@@ -268,7 +270,7 @@ def draw_svg(
     dot_bracket: str,
     *,
     sequences: list[str] | None = None,
-    probabilities: np.ndarray | None = None,
+    probabilities: npt.ArrayLike | None = None,
     style: DrawingStyle | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     colorbar_label: str | None = "Equilibrium probability",
@@ -291,7 +293,7 @@ def draw_svg(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    probabilities : ndarray, optional
+    probabilities : array_like, optional
         Base-pair probability matrix: ``probabilities[i][j]`` is how
         likely nucleotides ``i`` and ``j`` are to be paired with each
         other, and ``probabilities[i][i]`` how likely nucleotide ``i`` is

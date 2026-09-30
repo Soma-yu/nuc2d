@@ -153,7 +153,7 @@ class Component:
         -------
         Component
             A component holding every one placed, whose box encloses them
-            all. An empty list gives a component with an empty box.
+            all.
 
         Raises
         ------
@@ -161,6 +161,8 @@ class Component:
             If ``placements`` is not a list, or an item in it is not a
             :class:`Placement`, such as a component that was not wrapped
             in one.
+        ValueError
+            If ``placements`` is empty.
 
         Notes
         -----
@@ -171,6 +173,10 @@ class Component:
             raise TypeError(
                 "placements must be a list of Placements; "
                 f"got {type(placements).__name__}."
+            )
+        if not placements:
+            raise ValueError(
+                "placements is empty, so there is nothing to put together."
             )
         for item in placements:
             if not isinstance(item, Placement):

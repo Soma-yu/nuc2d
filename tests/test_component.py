@@ -13,8 +13,8 @@ from nuc2d import (
     draw_colorbar,
     draw_structure,
 )
-from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit
-from nuc2d._geometry import bbox_around, is_empty_bbox, make_bbox
+from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit, make_component
+from nuc2d._geometry import bbox_around, make_bbox
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -201,8 +201,10 @@ def test_from_placements_encloses_everything_it_places():
     assert panel.bbox == bbox_around([pa.bbox, pb.bbox])
 
 
-def test_from_placements_of_nothing_is_empty():
-    assert is_empty_bbox(Component.from_placements([]).bbox)
+def test_from_placements_of_nothing_is_refused():
+    """Its box would enclose nothing, and no scene can be framed on it."""
+    with pytest.raises(ValueError, match="placements is empty"):
+        Component.from_placements([])
 
 
 def test_from_placements_refuses_a_component_that_was_not_placed():
@@ -345,6 +347,10 @@ def test_fit_aligns_the_component_by_its_anchor():
 
 def test_fit_refuses_what_has_no_area():
     with pytest.raises(ValueError):
-        fit(Component.from_placements([]), make_bbox(0.0, 0.0, 1.0, 1.0), anchor="center")
+        fit(
+            make_component(make_bbox(0.0, 0.0, 0.0, 1.0)),
+            make_bbox(0.0, 0.0, 1.0, 1.0),
+            anchor="center",
+        )
     with pytest.raises(ValueError):
         fit(structure(), make_bbox(0.0, 0.0, 0.0, 1.0), anchor="center")

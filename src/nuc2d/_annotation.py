@@ -14,6 +14,7 @@ import math
 from collections import Counter
 
 import numpy as np
+import numpy.typing as npt
 
 from ._structure import (
     LoopRegion,
@@ -99,7 +100,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
 
 def attach_probabilities(
     root_loop: LoopRegion,
-    probabilities: np.ndarray,
+    probabilities: npt.ArrayLike,
 ) -> None:
     """Attach an equilibrium probability to every nucleotide.
 
@@ -111,7 +112,7 @@ def attach_probabilities(
     ----------
     root_loop : LoopRegion
         Root loop of the secondary structure.
-    probabilities : ndarray
+    probabilities : array_like
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
         (i, i) how likely nucleotide i is to be left unpaired. A value

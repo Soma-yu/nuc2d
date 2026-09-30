@@ -10,8 +10,6 @@ with geometric information such as positions, orientations, and edge
 shapes.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto

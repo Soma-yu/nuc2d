@@ -29,6 +29,17 @@ def test_all_lists_exactly_the_public_names():
     assert set(nuc2d.__all__) == PUBLIC_NAMES
 
 
+def test_no_other_name_is_reachable_without_an_underscore():
+    """What the package imports for itself stays out of sight.
+
+    A name such as nuc2d.version would show up in completion as if it were
+    offered, though it is only importlib's function.
+    """
+    names = {name for name in dir(nuc2d) if not name.startswith("_")}
+
+    assert names == PUBLIC_NAMES - {"__version__"}
+
+
 def test_star_import_provides_every_listed_name():
     namespace = {}
     exec("from nuc2d import *", namespace)

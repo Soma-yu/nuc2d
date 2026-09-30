@@ -14,7 +14,7 @@ package all begin with an underscore: they are where the code lives, not
 part of what a version promises.
 """
 
-from importlib.metadata import PackageNotFoundError, version
+from importlib import metadata as _metadata
 
 from ._component import Component, Placement
 from ._draw import draw_colorbar, draw_structure, draw_svg, draw_text
@@ -25,8 +25,8 @@ from ._scene import Scene
 from ._style import DrawingStyle
 
 try:
-    __version__ = version("nuc2d")
-except PackageNotFoundError:  # pragma: no cover - running from a source tree
+    __version__ = _metadata.version("nuc2d")
+except _metadata.PackageNotFoundError:  # pragma: no cover - running from a source tree
     __version__ = "0.0.0+unknown"
 
 __all__ = [
