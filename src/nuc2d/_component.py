@@ -100,9 +100,11 @@ def _fractions(anchor: object) -> tuple[float, float]:
         )
 
 
-def _anchor_point(bbox: BBox, anchor: Anchor) -> tuple[float, float]:
-    """Return the point of a non-empty box that ``anchor`` names."""
-    fx, fy = _fractions(anchor)
+def _anchor_point(
+    bbox: BBox, anchor: tuple[float, float]
+) -> tuple[float, float]:
+    """Return the point of a non-empty box at these fractions of it."""
+    fx, fy = anchor
     return (bbox.xmin + fx * bbox.width, bbox.ymin + fy * bbox.height)
 
 
@@ -201,7 +203,7 @@ class Component:
             if not isinstance(item, Placement):
                 raise TypeError(
                     "from_placements takes Placements; wrap each component as "
-                    f"Placement(component=...). Got {type(item).__name__}."
+                    f"Placement(component). Got {type(item).__name__}."
                 )
         # A copy of our own, which nothing else can change afterwards, so
         # that the box worked out here stays the box of what is held.
@@ -212,7 +214,7 @@ class Component:
         )
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True, init=False)
 class Placement:
     """Where a component goes, and at what size.
 
@@ -268,27 +270,40 @@ class Placement:
     """
 
     component: Component
-    x: float = 0.0
-    y: float = 0.0
-    anchor: Anchor = "upper left"
-    scale: float = 1.0
+    x: float
+    y: float
+    anchor: tuple[float, float]
+    scale: float
 
-    def __post_init__(self) -> None:
+    # Written here rather than generated, which would give the argument and
+    # the attribute one annotation: an anchor is given as a name or a pair,
+    # and read as a pair. The component, which is what a placement places,
+    # is taken by position too, as Scene takes it; the rest only by name.
+    def __init__(
+        self,
+        component: Component,
+        *,
+        x: float = 0.0,
+        y: float = 0.0,
+        anchor: Anchor = "upper left",
+        scale: float = 1.0,
+    ) -> None:
         # Refuse a bad placement where it is written, not when it is used,
-        # and keep what the checks return. The placement is frozen, so
-        # that is assigned past its __setattr__, as its __init__ does.
-        if not isinstance(self.component, Component):
+        # and keep what the checks return. The placement is frozen, so each
+        # field is assigned past its __setattr__.
+        if not isinstance(component, Component):
             raise TypeError(
                 "component must be a Component, such as draw_structure "
-                f"returns; got {type(self.component).__name__}."
+                f"returns; got {type(component).__name__}."
             )
-        object.__setattr__(self, "x", check_finite("x", self.x))
-        object.__setattr__(self, "y", check_finite("y", self.y))
+        object.__setattr__(self, "component", component)
+        object.__setattr__(self, "x", check_finite("x", x))
+        object.__setattr__(self, "y", check_finite("y", y))
         # A name is only a way of writing a pair of fractions, and is kept
         # as that pair, so that one point is one anchor however it is given.
-        object.__setattr__(self, "anchor", _fractions(self.anchor))
+        object.__setattr__(self, "anchor", _fractions(anchor))
         object.__setattr__(
-            self, "scale", check_finite_positive("scale", self.scale)
+            self, "scale", check_finite_positive("scale", scale)
         )
 
     @property
@@ -298,7 +313,7 @@ class Placement:
         component_bbox = self.component.bbox
         if is_empty_bbox(component_bbox):
             return component_bbox
-        fx, fy = _fractions(self.anchor)
+        fx, fy = self.anchor
         width = component_bbox.width * self.scale
         height = component_bbox.height * self.scale
         left, top = self.x - fx * width, self.y - fy * height
@@ -343,7 +358,7 @@ def fit(
         bbox.ymax + (1 - fy) * spare_y,
     )
     return Placement(
-        component=make_component(
+        make_component(
             padded,
             graphics=component._graphics,
             child_placements=component._child_placements,

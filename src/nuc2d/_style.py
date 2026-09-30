@@ -27,18 +27,11 @@ from ._validation import (
 # The colour keywords SVG 1.1 defines. They are CSS's named colours as they
 # stood then; rebeccapurple came later and is not one of them.
 _COLOR_KEYWORDS = frozenset(mpl.colors.CSS4_COLORS) - {"rebeccapurple"}
-_HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?")
-_RGB_INTEGER = re.compile(r"rgb\( *[0-9]+ *, *[0-9]+ *, *[0-9]+ *\)")
-_RGB_PERCENTAGE = re.compile(
-    r"rgb\( *[0-9]+(?:\.[0-9]*)?% *, *[0-9]+(?:\.[0-9]*)?% *,"
-    r" *[0-9]+(?:\.[0-9]*)?% *\)"
-)
+_HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
 
-# One or more non-negative numbers, separated by a comma or by spaces. SVG
-# also allows a comma with spaces around it, but the renderer's own check
-# refuses that, and accepting it here would only move the error there.
-_NUMBER = r"(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)"
-_DASHARRAY = re.compile(rf"{_NUMBER}(?:(?:,| +){_NUMBER})*")
+# One or more non-negative numbers, such as 1 or 0.5, separated by commas.
+_NUMBER = r"[0-9]+(?:\.[0-9]+)?"
+_DASHARRAY = re.compile(rf"{_NUMBER}(?:,{_NUMBER})*")
 
 
 def _check_color(name: str, value: object) -> str:
@@ -56,12 +49,10 @@ def _check_color(name: str, value: object) -> str:
         color == "none"
         or color in _COLOR_KEYWORDS
         or _HEX_COLOR.fullmatch(color)
-        or _RGB_INTEGER.fullmatch(color)
-        or _RGB_PERCENTAGE.fullmatch(color)
     ):
         raise ValueError(
             f"{name} must be an SVG color: a name such as 'black', "
-            f"'#rgb' or '#rrggbb', 'rgb(r, g, b)', or 'none'; got {value!r}."
+            f"'#rrggbb', or 'none'; got {value!r}."
         )
     return color
 
@@ -79,8 +70,8 @@ def _check_dasharray(name: str, value: object) -> str:
     pattern = exact_str(value)
     if not (pattern == "none" or _DASHARRAY.fullmatch(pattern)):
         raise ValueError(
-            f"{name} must be 'none', or dash and gap lengths separated by "
-            f"commas or by spaces, such as '1,1' or '1 1'; got {value!r}."
+            f"{name} must be 'none', or non-negative numbers separated by "
+            f"commas, such as '1,1'; got {value!r}."
         )
     return pattern
 
@@ -197,15 +188,15 @@ class DrawingStyle:
     Notes
     -----
     A color is written as SVG writes one: one of the color names SVG
-    defines, such as ``"black"``; ``"#rgb"`` or ``"#rrggbb"``;
-    ``"rgb(r, g, b)"`` with integers or percentages; or ``"none"``.
+    defines, such as ``"black"``; ``"#rrggbb"``; or ``"none"``.
     Matplotlib's own spellings, such as ``"tab:blue"`` or ``"C0"``, are not
     SVG and are refused.
 
-    A dash pattern is ``"none"``, or dash and gap lengths separated by
-    commas or by spaces, such as ``"1,1"`` or ``"1 1"``, but not both at
-    once. Lengths are plain non-negative numbers, in the units of the
-    drawing.
+    A dash pattern is ``"none"``, or one or more lengths separated by
+    commas, such as ``"1,1"``: the length of a dash, of the gap after it,
+    and so on, repeated along the edge. An odd number of lengths is taken
+    twice, so ``"3"`` is ``"3,3"``. A length is a non-negative number such
+    as ``1`` or ``0.5``, in the units of the drawing.
 
     Every size in the style, the two widths, ``three_prime_arrow_length``,
     ``node_radius`` and ``node_font_size``, is a finite number of at least

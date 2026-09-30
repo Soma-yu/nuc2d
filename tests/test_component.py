@@ -43,7 +43,9 @@ def test_the_anchor_point_lands_on_x_y(anchor, scale):
         component=structure(CLOVERLEAF), x=100.0, y=50.0, anchor=anchor, scale=scale
     )
 
-    assert _anchor_point(placement.bbox, anchor) == pytest.approx((100.0, 50.0))
+    assert _anchor_point(placement.bbox, placement.anchor) == pytest.approx(
+        (100.0, 50.0)
+    )
 
 
 def test_the_anchor_stays_put_while_the_component_is_scaled():
@@ -160,6 +162,21 @@ def test_a_name_and_the_pair_it_names_are_one_anchor():
     by_pair = Placement(component=component, anchor=(0, 0))
 
     assert by_name == by_pair and hash(by_name) == hash(by_pair)
+
+
+def test_the_component_is_given_by_position_or_by_name():
+    component = structure()
+
+    assert Placement(component, x=1.0) == Placement(component=component, x=1.0)
+
+
+def test_a_placement_can_be_copied_with_a_field_changed():
+    """Its __init__ is written by hand, and replace goes through it."""
+    placement = Placement(component=structure(), anchor="center", scale=2.0)
+
+    moved = dataclasses.replace(placement, x=5.0)
+
+    assert (moved.x, moved.anchor, moved.scale) == (5.0, (0.5, 0.5), 2.0)
 
 
 def test_placements_are_frozen_and_hashable():

@@ -268,7 +268,7 @@ def draw_structure(
         colorbar_bbox.ymax,
     )
     return Component.from_placements(
-        [fit(structure, slot, anchor="center"), Placement(component=colorbar)]
+        [fit(structure, slot, anchor="center"), Placement(colorbar)]
     )
 
 

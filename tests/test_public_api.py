@@ -81,7 +81,7 @@ POSITIONAL_COUNT = {
     nuc2d.draw_text: 1,  # text
     nuc2d.Component.from_placements: 1,  # placements
     nuc2d.Scene: 1,  # component
-    nuc2d.Placement: 0,
+    nuc2d.Placement: 1,  # component
     nuc2d.RadialLayoutEngine: 0,
     nuc2d.DrawingStyle: 0,
 }

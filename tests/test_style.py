@@ -13,14 +13,14 @@ DASHARRAY_FIELDS = ["backbone_dasharray", "basepair_dasharray"]
 
 GOOD_COLORS = [
     "crimson",
-    "#333",
     "#A1b2C3",
-    "rgb(10, 20, 30)",
-    "rgb(10%,20.5%, 30%)",
     "none",
 ]
 BAD_COLORS = [
     "notacolor",
+    "#333",
+    "rgb(10, 20, 30)",
+    "rgb(10%,20.5%, 30%)",
     "tab:blue",       # matplotlib's spelling, not SVG's
     "C0",
     "rebeccapurple",  # CSS added it after SVG 1.1
@@ -30,8 +30,11 @@ BAD_COLORS = [
     "",
     " crimson",
 ]
-GOOD_DASHARRAYS = ["none", "1,0", "4 2", "0.5,1.5", ".5", "3"]
-BAD_DASHARRAYS = ["abc", "-1,2", "4,,2", "", "5px,3px", "4,2,"]
+GOOD_DASHARRAYS = ["none", "3", "1,0", "0.5,1.5", "4,2,1", "6,2,1,2"]
+BAD_DASHARRAYS = [
+    "abc", "-1,2", "4,,2", "", "5px,3px", "4,2,",
+    "4 2", "1, 1", ".5,1", "1.,1",
+]
 
 
 def test_the_defaults_are_valid():
@@ -40,7 +43,7 @@ def test_the_defaults_are_valid():
 
 @pytest.mark.parametrize("field", COLOR_FIELDS)
 @pytest.mark.parametrize("value", GOOD_COLORS)
-def test_every_svg_way_of_writing_a_color_is_accepted_and_drawn(field, value):
+def test_each_way_of_writing_a_color_is_accepted_and_drawn(field, value):
     style = DrawingStyle(**{field: value})
 
     # The renderer checks the value again as it writes it, so accepting one

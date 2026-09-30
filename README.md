@@ -189,9 +189,9 @@ scene = draw_svg(
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="65%">
 </p>
 
-Colors are written as SVG writes them: a name such as `black`, `#rgb` or
-`#rrggbb`, `rgb(r, g, b)`, or `none`. Dash patterns are `none` or lengths such
-as `1,1`. Spacings are positive, and sizes are numbers of at least 0. The
+Colors are written as SVG writes them: a name such as `black`, `#rrggbb`, or
+`none`. Dash patterns are `none` or lengths separated by commas, such as
+`1,1`. Spacings are positive, and sizes are numbers of at least 0. The
 colormap is a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`,
 rather than its name.
 
@@ -231,7 +231,7 @@ height = components[0].bbox.height
 placements, cursor_x = [], 0.0
 for component in components:
     placement = Placement(
-        component=component, x=cursor_x, scale=height / component.bbox.height
+        component, x=cursor_x, scale=height / component.bbox.height
     )
     placements.append(placement)
     cursor_x = placement.bbox.xmax + 20.0

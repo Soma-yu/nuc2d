@@ -74,7 +74,7 @@ def row(components: list[Component], gap: float) -> Scene:
     cursor_x = 0.0
     for component in components:
         placement = Placement(
-            component=component, x=cursor_x, scale=height / component.bbox.height
+            component, x=cursor_x, scale=height / component.bbox.height
         )
         placements.append(placement)
         cursor_x = placement.bbox.xmax + gap
