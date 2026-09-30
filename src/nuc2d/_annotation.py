@@ -97,7 +97,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
         nt.base = sequences[nt.strand_index][nt.index_in_strand]
 
 
-def attach_equilibrium_probabilities(
+def attach_probabilities(
     root_loop: LoopRegion,
     probabilities: np.ndarray,
 ) -> None:
@@ -163,7 +163,7 @@ def attach_equilibrium_probabilities(
             nt1 = nucleotides[idx]
             nt2 = nucleotides[-(idx+1)]
             prob = _probability(nt1.index, nt2.index)
-            nt1.equilibrium_probability = nt2.equilibrium_probability = prob
+            nt1.probability = nt2.probability = prob
         _attach_loop_probs(current_stem.child_loop)
 
     def _attach_loop_probs(current_loop: LoopRegion) -> None:
@@ -172,7 +172,7 @@ def attach_equilibrium_probabilities(
         else:
             nucleotides = current_loop.nucleotides[1:-1]
         for nt in nucleotides:
-            nt.equilibrium_probability = _probability(nt.index, nt.index)
+            nt.probability = _probability(nt.index, nt.index)
         for stem in current_loop.child_stems:
             _attach_stem_probs(stem)
 

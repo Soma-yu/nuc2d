@@ -8,7 +8,7 @@ is ``Scene(draw_structure(...))``, with the same arguments.
 
 import numpy as np
 
-from ._annotation import attach_equilibrium_probabilities, attach_sequences
+from ._annotation import attach_probabilities, attach_sequences
 from ._validation import (
     check_finite_positive,
     check_font_family,
@@ -45,20 +45,20 @@ def _check_label(name: str, label: object) -> None:
     check_single_line_text(name, label)
 
 
-def _check_style(style: object) -> None:
+def _check_style(name: str, style: object) -> None:
     if style is not None and not isinstance(style, DrawingStyle):
         raise TypeError(
-            "style must be a DrawingStyle, such as DrawingStyle(); "
+            f"{name} must be a DrawingStyle, such as DrawingStyle(); "
             f"got {type(style).__name__}."
         )
 
 
-def _check_layout_engine(layout_engine: object) -> None:
+def _check_layout_engine(name: str, layout_engine: object) -> None:
     if layout_engine is not None and not isinstance(
         layout_engine, RadialLayoutEngine
     ):
         raise TypeError(
-            "layout_engine must be a RadialLayoutEngine; "
+            f"{name} must be a RadialLayoutEngine; "
             f"got {type(layout_engine).__name__}."
         )
 
@@ -95,7 +95,7 @@ def draw_colorbar(
         control character.
     """
     _check_label("label", label)
-    _check_style(style)
+    _check_style("style", style)
     return render_colorbar(label=label, style=style)
 
 
@@ -230,8 +230,8 @@ def draw_structure(
             "dot_bracket must be a string, such as '((...))'; "
             f"got {type(dot_bracket).__name__}."
         )
-    _check_style(style)
-    _check_layout_engine(layout_engine)
+    _check_style("style", style)
+    _check_layout_engine("layout_engine", layout_engine)
     _check_label("colorbar_label", colorbar_label)
     if not isinstance(add_colorbar, bool):
         raise TypeError(
@@ -243,7 +243,7 @@ def draw_structure(
     if sequences is not None:
         attach_sequences(root_loop, sequences)
     if probabilities is not None:
-        attach_equilibrium_probabilities(root_loop, probabilities)
+        attach_probabilities(root_loop, probabilities)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
     structure = render_structure(layout(root_loop, engine), style=style)

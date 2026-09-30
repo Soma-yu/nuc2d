@@ -156,13 +156,13 @@ class _Renderer:
 
         group = drawing.g()
 
-        if nt.equilibrium_probability is None:
+        if nt.probability is None:
             fill = self.style.node_color
         else:
             fill = mpl.colors.to_hex(
                 self.style.colormap(
                     self._color_norm(
-                        nt.equilibrium_probability
+                        nt.probability
                     )
                 )
             )

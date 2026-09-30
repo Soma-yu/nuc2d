@@ -3,7 +3,7 @@ import pytest
 
 from nuc2d._annotation import (
     attach_sequences,
-    attach_equilibrium_probabilities,
+    attach_probabilities,
 )
 from nuc2d._parse import parse
 from nuc2d._structure import iter_nucleotides
@@ -65,7 +65,7 @@ def test_attach_sequences_duplex():
     ]
 
 
-def test_attach_equilibrium_probabilities_hairpin():
+def test_attach_probabilities_hairpin():
     root = parse("(((...)))")
 
     probs = np.zeros((9, 9))
@@ -83,24 +83,24 @@ def test_attach_equilibrium_probabilities_hairpin():
     probs[4, 4] = 0.2
     probs[5, 5] = 0.3
 
-    attach_equilibrium_probabilities(
+    attach_probabilities(
         root,
         probs,
     )
 
     nts = collect_nucleotides(root)
 
-    assert nts[0].equilibrium_probability == 0.9
-    assert nts[1].equilibrium_probability == 0.8
-    assert nts[2].equilibrium_probability == 0.7
+    assert nts[0].probability == 0.9
+    assert nts[1].probability == 0.8
+    assert nts[2].probability == 0.7
 
-    assert nts[3].equilibrium_probability == 0.1
-    assert nts[4].equilibrium_probability == 0.2
-    assert nts[5].equilibrium_probability == 0.3
+    assert nts[3].probability == 0.1
+    assert nts[4].probability == 0.2
+    assert nts[5].probability == 0.3
 
-    assert nts[6].equilibrium_probability == 0.7
-    assert nts[7].equilibrium_probability == 0.8
-    assert nts[8].equilibrium_probability == 0.9
+    assert nts[6].probability == 0.7
+    assert nts[7].probability == 0.8
+    assert nts[8].probability == 0.9
 
 
 @pytest.mark.parametrize(
@@ -172,23 +172,23 @@ def test_attach_probabilities_rejects_a_wrong_shape(size):
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match=r"shape \(9, 9\)"):
-        attach_equilibrium_probabilities(root, np.eye(size))
+        attach_probabilities(root, np.eye(size))
 
 
 def test_attach_probabilities_rejects_a_non_square_matrix():
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match="shape"):
-        attach_equilibrium_probabilities(root, np.zeros((9, 4)))
+        attach_probabilities(root, np.zeros((9, 4)))
 
 
 def test_attach_probabilities_accepts_a_nested_list():
     root = parse("(((...)))")
 
-    attach_equilibrium_probabilities(root, np.eye(9).tolist())
+    attach_probabilities(root, np.eye(9).tolist())
 
     assert all(
-        nt.equilibrium_probability is not None for nt in iter_nucleotides(root)
+        nt.probability is not None for nt in iter_nucleotides(root)
     )
 
 
@@ -217,7 +217,7 @@ def test_attach_probabilities_refuses_a_matrix_that_is_not_numbers(probabilities
     root = parse("(((...)))")
 
     with pytest.raises(TypeError, match="numbers"):
-        attach_equilibrium_probabilities(root, probabilities)
+        attach_probabilities(root, probabilities)
 
 
 def test_attach_probabilities_refuses_nan_where_it_is_read():
@@ -226,7 +226,7 @@ def test_attach_probabilities_refuses_nan_where_it_is_read():
     probs[1, 7] = np.nan
 
     with pytest.raises(ValueError, match=r"probabilities\[1\]\[7\] is NaN"):
-        attach_equilibrium_probabilities(root, probs)
+        attach_probabilities(root, probs)
 
 
 def test_attach_probabilities_passes_over_nan_where_it_is_not_read():
@@ -235,7 +235,7 @@ def test_attach_probabilities_passes_over_nan_where_it_is_not_read():
     probs = np.eye(9)
     probs[np.tril_indices(9, -1)] = np.nan
 
-    attach_equilibrium_probabilities(root, probs)
+    attach_probabilities(root, probs)
 
 
 def test_attach_probabilities_clips_what_lies_outside_zero_to_one():
@@ -246,9 +246,9 @@ def test_attach_probabilities_clips_what_lies_outside_zero_to_one():
     probs[3, 3] = -0.2
     probs[4, 4] = np.inf
 
-    attach_equilibrium_probabilities(root, probs)
+    attach_probabilities(root, probs)
 
     nts = collect_nucleotides(root)
-    assert [nts[i].equilibrium_probability for i in (0, 8, 3, 4)] == [
+    assert [nts[i].probability for i in (0, 8, 3, 4)] == [
         1.0, 1.0, 0.0, 1.0
     ]
