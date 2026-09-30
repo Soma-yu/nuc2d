@@ -169,14 +169,15 @@ class _LayoutState:
 
 # How each setting of RadialLayoutEngine is checked, whenever it is
 # assigned. Every setting is here, so that a name that is not is a
-# misspelt one.
-_RADIAL_SETTINGS: dict[str, Callable[[str, object], None]] = {
+# misspelt one. A check returns what the setting keeps.
+_RADIAL_SETTINGS: dict[str, Callable[[str, object], object]] = {
     "stem_spacing": check_finite_positive,
     "loop_spacing": check_finite_positive,
     "coaxial_stack_deflection": check_finite,
 }
 
 
+@dataclass(kw_only=True, eq=False)
 class RadialLayoutEngine:
     """Layout engine for generating a radial representation of a secondary structure.
 
@@ -228,23 +229,20 @@ class RadialLayoutEngine:
     engine can lay out any number of structures.
     """
 
-    def __init__(
-        self,
-        *,
-        stem_spacing: float = 15.0,
-        loop_spacing: float = 20.0,
-        coaxial_stack_deflection: float = 10.0,
-    ) -> None:
-        self.stem_spacing = stem_spacing
-        self.loop_spacing = loop_spacing
-        self.coaxial_stack_deflection = coaxial_stack_deflection
+    stem_spacing: float = 15.0
+    loop_spacing: float = 20.0
+    coaxial_stack_deflection: float = 10.0
+
+    # An engine is equal only to itself, and has no hash, as a style has
+    # none: a hash given now would rule out comparing engines by their
+    # settings later.
+    __hash__ = None  # type: ignore[assignment]
 
     def __setattr__(self, name: str, value: object) -> None:
-        # The constructor assigns every setting through here as well, so
-        # one check covers both a new engine and a changed one.
+        # The generated __init__ assigns every setting through here as
+        # well, so one check covers both a new engine and a changed one.
         check_attribute(self, name, _RADIAL_SETTINGS)
-        _RADIAL_SETTINGS[name](name, value)
-        super().__setattr__(name, value)
+        super().__setattr__(name, _RADIAL_SETTINGS[name](name, value))
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
         """Join the last two nodes with a straight backbone edge.

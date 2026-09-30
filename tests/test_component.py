@@ -1,5 +1,6 @@
 import dataclasses
 import xml.etree.ElementTree as ET
+from fractions import Fraction
 
 import matplotlib as mpl
 import numpy as np
@@ -23,6 +24,11 @@ PROBS = np.eye(9) * 0.4 + 0.3
 
 def structure(dot_bracket="(((...)))", **kwargs):
     return draw_structure(dot_bracket, **kwargs)
+
+
+def corners(bbox):
+    """Return a box's corners, to compare two boxes by."""
+    return (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax)
 
 
 def count(svg_string, tag):
@@ -103,6 +109,28 @@ def test_an_anchor_of_the_wrong_type_is_a_type_error(anchor, name):
 def test_scale_must_be_positive_and_finite(scale):
     with pytest.raises(ValueError, match="scale"):
         Placement(component=structure(), scale=scale)
+
+
+def test_a_placement_keeps_its_numbers_as_floats():
+    placement = Placement(
+        component=structure(),
+        x=np.int64(3),
+        y=Fraction(1, 2),
+        anchor=(1, np.float32(0.5)),
+        scale=2,
+    )
+
+    kept = (placement.x, placement.y, *placement.anchor, placement.scale)
+    assert kept == (3.0, 0.5, 1.0, 0.5, 2.0)
+    assert all(type(number) is float for number in kept)
+    assert type(placement.anchor) is tuple
+
+
+@pytest.mark.parametrize("name", ["center", np.str_("center")])
+def test_a_named_anchor_is_kept_as_its_name(name):
+    anchor = Placement(component=structure(), anchor=name).anchor
+
+    assert anchor == "center" and type(anchor) is str
 
 
 def test_placements_are_frozen_and_hashable():
@@ -198,7 +226,7 @@ def test_from_placements_encloses_everything_it_places():
 
     panel = Component.from_placements([pa, pb])
 
-    assert panel.bbox == bbox_around([pa.bbox, pb.bbox])
+    assert corners(panel.bbox) == corners(bbox_around([pa.bbox, pb.bbox]))
 
 
 def test_from_placements_of_nothing_is_refused():

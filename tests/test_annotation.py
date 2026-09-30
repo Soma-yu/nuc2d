@@ -206,8 +206,30 @@ def test_attach_sequences_takes_a_list(sequences):
 def test_attach_sequences_refuses_a_sequence_that_is_not_a_string():
     root = parse("(((..+...)))")
 
-    with pytest.raises(TypeError, match="sequence 1"):
+    with pytest.raises(TypeError, match=r"sequences\[1\] must be a string"):
         attach_sequences(root, ["AUGCA", list("UGCCAU")])
+
+
+@pytest.mark.parametrize("character", ["\n", "\t", "\x00", "\u2028", "\ud800"])
+def test_attach_sequences_refuses_what_cannot_be_drawn_on_one_line(character):
+    """Each letter is drawn in its node, as a line of text is drawn.
+
+    Most control characters, and a surrogate, cannot be written in SVG at
+    all, and a line break or a tab is shown as a space.
+    """
+    root = parse("(((...)))")
+
+    with pytest.raises(ValueError, match=r"sequences\[0\] must be a single line"):
+        attach_sequences(root, ["GGG" + character + "AACCC"])
+
+
+def test_attach_sequences_takes_any_letter_that_can_be_drawn():
+    """Such as the one a modified nucleotide is written with."""
+    root = parse("(((...)))")
+
+    attach_sequences(root, ["GGGΨAACCC"])
+
+    assert [nt.base for nt in collect_nucleotides(root)] == list("GGGΨAACCC")
 
 
 @pytest.mark.parametrize(
@@ -236,6 +258,28 @@ def test_attach_probabilities_passes_over_nan_where_it_is_not_read():
     probs[np.tril_indices(9, -1)] = np.nan
 
     attach_probabilities(root, probs)
+
+
+def test_attach_probabilities_reads_only_the_element_each_nucleotide_takes():
+    """Every other element may be NaN, the diagonal of a paired one too.
+
+    The two ends of a stem are also in the loop it leaves, and the loop
+    used to read their diagonal before the stem read their pair.
+    """
+    root = parse("((((...))..((...))))")
+    pairs = [(0, 19), (1, 18), (2, 8), (3, 7), (11, 17), (12, 16)]
+    paired = {i for pair in pairs for i in pair}
+    probs = np.full((20, 20), np.nan)
+    for i, j in pairs:
+        probs[i, j] = 0.25
+    for i in set(range(20)) - paired:
+        probs[i, i] = 0.75
+
+    attach_probabilities(root, probs)
+
+    assert [nt.probability for nt in collect_nucleotides(root)] == [
+        0.25 if i in paired else 0.75 for i in range(20)
+    ]
 
 
 def test_attach_probabilities_clips_what_lies_outside_zero_to_one():

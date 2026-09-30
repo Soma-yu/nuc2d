@@ -118,7 +118,6 @@ class Vec2:
         return (float(self.x), float(self.y))
 
 
-@dataclass(frozen=True)
 class BBox:
     """An axis-aligned bounding box.
 
@@ -142,10 +141,14 @@ class BBox:
     its width and height are zero too.
     """
 
-    xmin: float
-    ymin: float
-    xmax: float
-    ymax: float
+    # The corners are held privately and read through properties, which
+    # have no setter, so a box cannot be changed once it is made.
+    __slots__ = ("_xmin", "_ymin", "_xmax", "_ymax")
+
+    _xmin: float
+    _ymin: float
+    _xmax: float
+    _ymax: float
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         # Nothing public takes a box, so one made by hand would reach
@@ -160,6 +163,26 @@ class BBox:
             f"<{type(self).__name__} xmin={self.xmin!r} ymin={self.ymin!r} "
             f"xmax={self.xmax!r} ymax={self.ymax!r}>"
         )
+
+    @property
+    def xmin(self) -> float:
+        """Smallest x-coordinate, that of the left edge."""
+        return self._xmin
+
+    @property
+    def ymin(self) -> float:
+        """Smallest y-coordinate, that of the top edge."""
+        return self._ymin
+
+    @property
+    def xmax(self) -> float:
+        """Largest x-coordinate, that of the right edge."""
+        return self._xmax
+
+    @property
+    def ymax(self) -> float:
+        """Largest y-coordinate, that of the bottom edge."""
+        return self._ymax
 
     @property
     def width(self) -> float:
@@ -183,11 +206,10 @@ def make_bbox(xmin: float, ymin: float, xmax: float, ymax: float) -> BBox:
     Calling the class does not make a box, so every one is made here.
     """
     bbox = object.__new__(BBox)
-    # The box is frozen, so its fields are filled in past its __setattr__.
-    object.__setattr__(bbox, "xmin", xmin)
-    object.__setattr__(bbox, "ymin", ymin)
-    object.__setattr__(bbox, "xmax", xmax)
-    object.__setattr__(bbox, "ymax", ymax)
+    bbox._xmin = xmin
+    bbox._ymin = ymin
+    bbox._xmax = xmax
+    bbox._ymax = ymax
     return bbox
 
 

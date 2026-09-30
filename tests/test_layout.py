@@ -1,5 +1,7 @@
 import math
+from fractions import Fraction
 
+import numpy as np
 import pytest
 
 from nuc2d._parse import parse
@@ -167,10 +169,14 @@ def test_an_assignment_is_checked_too_and_leaves_the_engine_as_it_was():
     assert engine.stem_spacing == 18.0
 
 
-def test_a_setting_reads_back_as_it_was_given():
-    engine = RadialLayoutEngine(stem_spacing=18)
+@pytest.mark.parametrize(
+    "value", [18, np.int64(18), np.float32(18.0), Fraction(18)]
+)
+def test_a_setting_is_kept_as_a_float(value):
+    """What lays a structure out then computes in floats, whatever was given."""
+    engine = RadialLayoutEngine(stem_spacing=value)
 
-    assert engine.stem_spacing == 18 and type(engine.stem_spacing) is int
+    assert engine.stem_spacing == 18.0 and type(engine.stem_spacing) is float
 
 
 def test_a_misspelt_setting_is_refused_and_the_right_one_named():

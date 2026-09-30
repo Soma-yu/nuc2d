@@ -20,6 +20,7 @@ from ._validation import (
     check_attribute,
     check_finite_non_negative,
     check_font_family,
+    exact_str,
 )
 
 
@@ -40,48 +41,59 @@ _NUMBER = r"(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)"
 _DASHARRAY = re.compile(rf"{_NUMBER}(?:(?:,| +){_NUMBER})*")
 
 
-def _check_color(name: str, value: object) -> None:
-    """Raise unless ``value`` is written the way SVG writes a colour."""
+def _check_color(name: str, value: object) -> str:
+    """Raise unless ``value`` is written the way SVG writes a colour.
+
+    The colour is returned.
+    """
     if not isinstance(value, str):
         raise TypeError(
             f"{name} must be a string, such as 'black'; "
             f"got {type(value).__name__}."
         )
+    color = exact_str(value)
     if not (
-        value == "none"
-        or value in _COLOR_KEYWORDS
-        or _HEX_COLOR.fullmatch(value)
-        or _RGB_INTEGER.fullmatch(value)
-        or _RGB_PERCENTAGE.fullmatch(value)
+        color == "none"
+        or color in _COLOR_KEYWORDS
+        or _HEX_COLOR.fullmatch(color)
+        or _RGB_INTEGER.fullmatch(color)
+        or _RGB_PERCENTAGE.fullmatch(color)
     ):
         raise ValueError(
             f"{name} must be an SVG color: a name such as 'black', "
             f"'#rgb' or '#rrggbb', 'rgb(r, g, b)', or 'none'; got {value!r}."
         )
+    return color
 
 
-def _check_dasharray(name: str, value: object) -> None:
-    """Raise unless ``value`` is 'none' or a list of dash and gap lengths."""
+def _check_dasharray(name: str, value: object) -> str:
+    """Raise unless ``value`` is 'none' or a list of dash and gap lengths.
+
+    The pattern is returned.
+    """
     if not isinstance(value, str):
         raise TypeError(
             f"{name} must be a string, such as 'none' or '1,1'; "
             f"got {type(value).__name__}."
         )
-    if not (value == "none" or _DASHARRAY.fullmatch(value)):
+    pattern = exact_str(value)
+    if not (pattern == "none" or _DASHARRAY.fullmatch(pattern)):
         raise ValueError(
             f"{name} must be 'none', or dash and gap lengths separated by "
             f"commas or by spaces, such as '1,1' or '1 1'; got {value!r}."
         )
+    return pattern
 
 
-def _check_colormap(name: str, value: object) -> None:
+def _check_colormap(name: str, value: object) -> mpl.colors.Colormap:
     """Raise unless ``value`` is a matplotlib colormap.
 
     A name such as ``"turbo"`` is what matplotlib's own functions take,
     so it is the likeliest mistake, and the message names that colormap.
+    The colormap is returned.
     """
     if isinstance(value, mpl.colors.Colormap):
-        return
+        return value
     if isinstance(value, str):
         example, got = value, f"the string {value!r}"
     else:
@@ -93,8 +105,9 @@ def _check_colormap(name: str, value: object) -> None:
 
 
 # How each field is checked, whenever it is assigned. Every field is here,
-# so that a name that is not is a misspelt one.
-_FIELD_CHECKS: dict[str, Callable[[str, object], None]] = {
+# so that a name that is not is a misspelt one. A check returns what the
+# field keeps.
+_FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
     "backbone_color": _check_color,
     "backbone_width": check_finite_non_negative,
     "backbone_dasharray": _check_dasharray,
@@ -110,7 +123,7 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], None]] = {
 }
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, eq=False)
 class DrawingStyle:
     """How a structure looks, and the colors its probabilities are shown in.
 
@@ -221,9 +234,14 @@ class DrawingStyle:
         default_factory=lambda: mpl.colormaps["turbo"]
     )
 
+    # A style is equal only to itself, and has no hash. What can be
+    # changed and is compared by its value has none, as a list has none,
+    # so a hash given now would rule out comparing styles by their fields
+    # later.
+    __hash__ = None  # type: ignore[assignment]
+
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every field through here as well,
         # so one check covers both a new style and a changed one.
         check_attribute(self, name, _FIELD_CHECKS)
-        _FIELD_CHECKS[name](name, value)
-        super().__setattr__(name, value)
+        super().__setattr__(name, _FIELD_CHECKS[name](name, value))

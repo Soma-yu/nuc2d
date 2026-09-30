@@ -1,7 +1,10 @@
 import dataclasses
+import enum
 import inspect
 import pkgutil
+from fractions import Fraction
 
+import numpy as np
 import pytest
 
 import nuc2d
@@ -113,15 +116,24 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     component = nuc2d.draw_text("tRNA")
     placement = nuc2d.Placement(component=component)
 
+    def read(value, attribute):
+        # A placement's box is worked out anew each time it is read, and
+        # boxes are not compared by their corners, so a box is read as
+        # its corners.
+        got = getattr(value, attribute, None)
+        if isinstance(got, nuc2d.BBox):
+            return (got.xmin, got.ymin, got.xmax, got.ymax)
+        return got
+
     for value, name in [(component.bbox, "BBox"), (component, "Component"),
                         (placement, "Placement")]:
         for attribute in [*sorted(PUBLIC_MEMBERS[name]), "not_an_attribute"]:
-            before = getattr(value, attribute, None)
+            before = read(value, attribute)
 
             with pytest.raises(AttributeError):
                 setattr(value, attribute, 1.0)
 
-            assert getattr(value, attribute, None) == before, f"{name}.{attribute}"
+            assert read(value, attribute) == before, f"{name}.{attribute}"
 
 
 # What a caller can reach on each of these, beyond the constructor. A member
@@ -158,9 +170,8 @@ def test_each_value_type_offers_only_what_it_promises(name, members):
 def test_a_layout_engine_offers_only_its_settings():
     """An engine is made to be passed to a drawing function.
 
-    Its settings can be read back as they were given. How it lays a
-    structure out works on types that are not public, so it is not public
-    either.
+    Its settings can be read back, as floats. How it lays a structure
+    out works on types that are not public, so it is not public either.
     """
     engine = nuc2d.RadialLayoutEngine()
     offered = {m for m in dir(engine) if not m.startswith("_")}
@@ -177,6 +188,121 @@ def test_a_box_is_read_rather_than_built(args, kwargs):
     """Nothing public takes a box, so one built by hand would reach nothing."""
     with pytest.raises(TypeError, match="Component.bbox"):
         nuc2d.BBox(*args, **kwargs)
+
+
+@pytest.mark.parametrize("make", [nuc2d.DrawingStyle, nuc2d.RadialLayoutEngine])
+def test_what_can_be_changed_has_no_hash(make):
+    """A style and an engine can be changed, as a list can.
+
+    Were either hashable, comparing them by their values could not be
+    added later, since what can change and is compared by its value must
+    not be hashed. With no hash, that stays open.
+    """
+    with pytest.raises(TypeError, match="unhashable"):
+        hash(make())
+
+
+# Every argument that takes a number, drawn with the number made by the
+# type given. The structure has a coaxial stack, so the deflection shows,
+# and sequences, so the letters do.
+def _structure(**kwargs):
+    return nuc2d.draw_structure(
+        "((+((...))))", sequences=["GG", "GGAAACCCC"], **kwargs
+    )
+
+
+def _style(**kwargs):
+    return nuc2d.Scene(_structure(style=nuc2d.DrawingStyle(**kwargs)))
+
+
+def _engine(**kwargs):
+    return nuc2d.Scene(
+        _structure(layout_engine=nuc2d.RadialLayoutEngine(**kwargs))
+    )
+
+
+def _placed(**kwargs):
+    placement = nuc2d.Placement(component=_structure(), **kwargs)
+    return nuc2d.Scene(nuc2d.Component.from_placements([placement]))
+
+
+NUMBER_ARGUMENTS = {
+    "backbone_width": lambda n: _style(backbone_width=n(3)),
+    "three_prime_arrow_length": lambda n: _style(three_prime_arrow_length=n(9)),
+    "basepair_width": lambda n: _style(basepair_width=n(2)),
+    "node_radius": lambda n: _style(node_radius=n(5)),
+    "node_font_size": lambda n: _style(node_font_size=n(8)),
+    "stem_spacing": lambda n: _engine(stem_spacing=n(18)),
+    "loop_spacing": lambda n: _engine(loop_spacing=n(24)),
+    "coaxial_stack_deflection": lambda n: _engine(coaxial_stack_deflection=n(25)),
+    "x": lambda n: _placed(x=n(3)),
+    "y": lambda n: _placed(y=n(3)),
+    "anchor": lambda n: _placed(anchor=(n(1), n(0))),
+    "scale": lambda n: _placed(scale=n(2)),
+    "width_px": lambda n: nuc2d.Scene(_structure(), width_px=n(300)),
+    "height_px": lambda n: nuc2d.Scene(_structure(), height_px=n(300)),
+    "font_size": lambda n: nuc2d.Scene(nuc2d.draw_text("tRNA", font_size=n(14))),
+}
+
+
+@pytest.mark.parametrize("number", [int, np.int64, np.float32, Fraction])
+@pytest.mark.parametrize(
+    "draw", NUMBER_ARGUMENTS.values(), ids=list(NUMBER_ARGUMENTS)
+)
+def test_a_number_of_any_type_is_drawn_as_the_float_it_equals(draw, number):
+    """A NumPy scalar or a Fraction used to reach the SVG writer as it was.
+
+    The writer refused most of them, when the drawing was made rather
+    than where the number was given, and a NumPy float32 laid a structure
+    out at its own precision.
+    """
+    assert draw(number).to_svg() == draw(float).to_svg()
+
+
+# Every argument that takes a string, drawn with the string made by the
+# kind given.
+STRING_ARGUMENTS = {
+    "dot_bracket": lambda s: nuc2d.draw_svg(s("((+((...))))")),
+    "sequences": lambda s: nuc2d.draw_svg(
+        "((+((...))))", sequences=[s("GG"), s("GGAAACCCC")]
+    ),
+    "colorbar_label": lambda s: nuc2d.draw_svg(
+        "(((...)))", probabilities=np.eye(9) * 0.5, colorbar_label=s("Unpaired")
+    ),
+    "label": lambda s: nuc2d.Scene(nuc2d.draw_colorbar(label=s("Unpaired"))),
+    "text": lambda s: nuc2d.Scene(nuc2d.draw_text(s("tRNA"))),
+    "font_family": lambda s: nuc2d.Scene(
+        nuc2d.draw_text("tRNA", font_family=s("Arial"))
+    ),
+    "backbone_color": lambda s: _style(backbone_color=s("red")),
+    "backbone_dasharray": lambda s: _style(backbone_dasharray=s("2,1")),
+    "basepair_color": lambda s: _style(basepair_color=s("red")),
+    "basepair_dasharray": lambda s: _style(basepair_dasharray=s("2,1")),
+    "node_color": lambda s: _style(node_color=s("red")),
+    "style font_family": lambda s: _style(font_family=s("Arial")),
+    "anchor": lambda s: _placed(anchor=s("center")),
+}
+
+
+def _enum_member(text):
+    """Return a member of an Enum with str mixed in, whose value is text."""
+    return enum.Enum("Named", {"MEMBER": text}, type=str).MEMBER
+
+
+@pytest.mark.parametrize(
+    "string", [np.str_, _enum_member], ids=["np.str_", "str Enum"]
+)
+@pytest.mark.parametrize(
+    "draw", STRING_ARGUMENTS.values(), ids=list(STRING_ARGUMENTS)
+)
+def test_a_string_of_any_kind_is_drawn_as_the_text_it_holds(draw, string):
+    """A subclass of str used to reach the SVG writer as it was.
+
+    The writer asks for its text with str(), and an Enum with str mixed
+    in answers with the member's name: its colour was refused when the
+    drawing was made, and its text was written as Named.MEMBER.
+    """
+    assert draw(string).to_svg() == draw(str).to_svg()
 
 
 def test_a_malformed_structure_is_a_value_error():

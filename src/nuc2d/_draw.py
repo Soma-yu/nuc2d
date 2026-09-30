@@ -15,6 +15,7 @@ from ._validation import (
     check_finite_positive,
     check_font_family,
     check_single_line_text,
+    exact_str,
 )
 from ._component import Component, Placement, fit
 from ._geometry import make_bbox
@@ -31,10 +32,13 @@ from ._svg import render_colorbar, render_structure, render_text
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
 
 
-def _check_label(name: str, label: object) -> None:
-    """Raise unless ``label`` is None or single-line text for a colorbar."""
+def _check_label(name: str, label: object) -> str | None:
+    """Raise unless ``label`` is None or single-line text for a colorbar.
+
+    The label is returned, a string as a str.
+    """
     if label is None:
-        return
+        return None
     if not isinstance(label, str):
         raise TypeError(
             f"{name} must be a string or None; got {type(label).__name__}."
@@ -44,7 +48,7 @@ def _check_label(name: str, label: object) -> None:
             f"{name} is empty; pass None to leave the colorbar without "
             "a label."
         )
-    check_single_line_text(name, label)
+    return check_single_line_text(name, label)
 
 
 def _check_style(name: str, style: object) -> None:
@@ -96,7 +100,7 @@ def draw_colorbar(
         If ``label`` is empty or holds a line break, a tab or another
         control character.
     """
-    _check_label("label", label)
+    label = _check_label("label", label)
     _check_style("style", style)
     return render_colorbar(label=label, style=style)
 
@@ -144,9 +148,9 @@ def draw_text(
     from the font found on this machine. Shown with a different font, the
     text can run a little longer or shorter than its box.
     """
-    check_single_line_text("text", text)
-    check_font_family("font_family", font_family)
-    check_finite_positive("font_size", font_size)
+    text = check_single_line_text("text", text)
+    font_family = check_font_family("font_family", font_family)
+    font_size = check_finite_positive("font_size", font_size)
     return render_text(text, font_family=font_family, font_size=font_size)
 
 
@@ -209,6 +213,7 @@ def draw_structure(
         does not hold numbers.
     ValueError
         If ``sequences`` or ``probabilities`` does not match the structure,
+        a sequence holds a line break, a tab or another control character,
         a probability a nucleotide is colored by is NaN, or
         ``colorbar_label`` is empty or holds a line break, a tab or
         another control character.
@@ -232,9 +237,10 @@ def draw_structure(
             "dot_bracket must be a string, such as '((...))'; "
             f"got {type(dot_bracket).__name__}."
         )
+    dot_bracket = exact_str(dot_bracket)
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
-    _check_label("colorbar_label", colorbar_label)
+    colorbar_label = _check_label("colorbar_label", colorbar_label)
     if not isinstance(add_colorbar, bool):
         raise TypeError(
             "add_colorbar must be True or False; "

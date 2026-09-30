@@ -10,7 +10,6 @@ from typing import Any
 from . import _svg
 from ._validation import check_finite_positive
 from ._component import Component, Placement
-from ._geometry import is_empty_bbox
 
 
 class Scene:
@@ -38,8 +37,8 @@ class Scene:
         If ``component`` is not a :class:`Component`, or a size given is
         not a number.
     ValueError
-        If the component is empty, or a size given is not a positive
-        finite number.
+        If the component has no width or no height, or a size given is
+        not a positive finite number.
 
     Notes
     -----
@@ -72,14 +71,20 @@ class Scene:
                 f"Scene takes a Component; got {type(component).__name__}."
                 + hint
             )
+        # A scene is framed on the component's box, so it has no area to
+        # show without both a width and a height. An empty box has neither.
         bbox = component.bbox
-        if is_empty_bbox(bbox):
-            raise ValueError("Nothing to draw: the component is empty.")
-        for name, size in (("width_px", width_px), ("height_px", height_px)):
-            if size is not None:
-                check_finite_positive(name, size)
+        if bbox.width <= 0 or bbox.height <= 0:
+            raise ValueError(
+                "A scene needs a component wider and taller than 0; this "
+                f"one is {bbox.width!r} wide and {bbox.height!r} tall."
+            )
+        if width_px is not None:
+            width_px = check_finite_positive("width_px", width_px)
+        if height_px is not None:
+            height_px = check_finite_positive("height_px", height_px)
 
-        aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
+        aspect_ratio = bbox.width / bbox.height
         if height_px is None:
             height_px = 500.0 if width_px is None else width_px / aspect_ratio
         if width_px is None:

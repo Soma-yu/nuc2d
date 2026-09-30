@@ -1,6 +1,7 @@
 import dataclasses
 
 import matplotlib as mpl
+import numpy as np
 import pytest
 
 from nuc2d import DrawingStyle, draw_svg
@@ -100,6 +101,24 @@ SIZE_FIELDS = [
 def test_a_size_that_is_negative_or_not_finite_is_refused(field, value):
     with pytest.raises(ValueError, match=field):
         DrawingStyle(**{field: value})
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("node_color", "red"), ("basepair_dasharray", "2,1"), ("font_family", "Arial")],
+)
+def test_a_string_is_kept_as_a_str(field, value):
+    """Rather than as the subclass of str it was given as."""
+    kept = getattr(DrawingStyle(**{field: np.str_(value)}), field)
+
+    assert kept == value and type(kept) is str
+
+
+@pytest.mark.parametrize("value", [10**400, -(10**400)], ids=["positive", "negative"])
+def test_a_size_too_large_for_a_float_is_refused_as_not_finite(value):
+    """float() raises OverflowError for it, which is not what is promised."""
+    with pytest.raises(ValueError, match="node_radius must be a finite number"):
+        DrawingStyle(node_radius=value)
 
 
 @pytest.mark.parametrize("field", SIZE_FIELDS)

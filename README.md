@@ -84,7 +84,8 @@ scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
 </p>
 
 A wrong number of sequences, or a sequence that is not as long as its strand,
-raises `ValueError` rather than drawing something misleading.
+raises `ValueError` rather than drawing something misleading. So does a
+sequence holding a line break, a tab or another control character.
 
 ## Equilibrium probability visualization
 

@@ -16,10 +16,12 @@ from collections import Counter
 import numpy as np
 import numpy.typing as npt
 
+from ._validation import check_single_line_text
 from ._structure import (
     LoopRegion,
-    StemRegion,
+    Nucleotide,
     iter_nucleotides,
+    iter_stems,
 )
 
 
@@ -64,20 +66,22 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
         If ``sequences`` is not a list, or a sequence in it is not a
         string.
     ValueError
-        If the number of sequences does not match the number of strands,
-        or if a sequence is not as long as the strand it describes.
+        If a sequence is empty or holds a line break, a tab or another
+        control character, the number of sequences does not match the
+        number of strands, or a sequence is not as long as the strand it
+        describes.
     """
     if not isinstance(sequences, list):
         raise TypeError(
             "sequences must be a list of strings, one per strand; "
             f"got {type(sequences).__name__}."
         )
-    for index, sequence in enumerate(sequences):
-        if not isinstance(sequence, str):
-            raise TypeError(
-                f"Each sequence must be a string; sequence {index} is "
-                f"{type(sequence).__name__}."
-            )
+    # Each letter is drawn in its node, so a sequence can hold what a
+    # single line of text can, and nothing else.
+    sequences = [
+        check_single_line_text(f"sequences[{index}]", sequence)
+        for index, sequence in enumerate(sequences)
+    ]
 
     strand_lengths = _strand_lengths(root_loop)
 
@@ -158,23 +162,23 @@ def attach_probabilities(
         # whose own colors for values out of range can be anything.
         return min(max(value, 0.0), 1.0)
 
-    def _attach_stem_probs(current_stem: StemRegion) -> None:
-        nucleotides = current_stem.nucleotides
-        for idx in range(len(nucleotides)//2):
-            nt1 = nucleotides[idx]
-            nt2 = nucleotides[-(idx+1)]
-            prob = _probability(nt1.index, nt2.index)
-            nt1.probability = nt2.probability = prob
-        _attach_loop_probs(current_stem.child_loop)
+    # The partner of each paired nucleotide. A stem lists its nucleotides
+    # in the order of the structure, from one outer end in to the loop it
+    # encloses and out again, so its first nucleotide is paired with its
+    # last, its second with the one before that, and so on.
+    partner_of: dict[Nucleotide, Nucleotide] = {}
+    for stem in iter_stems(root_loop):
+        nucleotides = stem.nucleotides
+        for one, other in zip(nucleotides, reversed(nucleotides)):
+            partner_of[one] = other
 
-    def _attach_loop_probs(current_loop: LoopRegion) -> None:
-        if current_loop.is_root:
-            nucleotides = current_loop.nucleotides
-        else:
-            nucleotides = current_loop.nucleotides[1:-1]
-        for nt in nucleotides:
+    # Each nucleotide reads one element and no other: (i, i) if it is
+    # unpaired, and the element of its pair above the diagonal, (i, j)
+    # with i < j, if it is paired.
+    for nt in iter_nucleotides(root_loop):
+        partner = partner_of.get(nt)
+        if partner is None:
             nt.probability = _probability(nt.index, nt.index)
-        for stem in current_loop.child_stems:
-            _attach_stem_probs(stem)
-
-    _attach_loop_probs(root_loop)
+        else:
+            i, j = sorted((nt.index, partner.index))
+            nt.probability = _probability(i, j)

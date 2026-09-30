@@ -22,7 +22,7 @@ nowhere else.
 from dataclasses import dataclass
 from typing import Any, Literal, Union
 
-from ._validation import check_finite, check_finite_positive
+from ._validation import check_finite, check_finite_positive, exact_str
 from ._geometry import BBox, bbox_around, is_empty_bbox, make_bbox
 
 
@@ -54,8 +54,9 @@ _ANCHOR_FRACTIONS: dict[str, tuple[float, float]] = {
 def _fractions(anchor: object) -> tuple[float, float]:
     """Return an anchor as fractions of a box, or raise if it is not one."""
     if isinstance(anchor, str):
+        name = exact_str(anchor)
         try:
-            return _ANCHOR_FRACTIONS[anchor]
+            return _ANCHOR_FRACTIONS[name]
         except KeyError:
             names = ", ".join(map(repr, _ANCHOR_FRACTIONS))
             raise ValueError(
@@ -63,10 +64,8 @@ def _fractions(anchor: object) -> tuple[float, float]:
                 f"the box such as (0.5, 0.0); got {anchor!r}."
             ) from None
     elif isinstance(anchor, tuple) and len(anchor) == 2:
-        for index, fraction in enumerate(anchor):
-            check_finite(f"anchor[{index}]", fraction)
         fx, fy = anchor
-        return float(fx), float(fy)
+        return check_finite("anchor[0]", fx), check_finite("anchor[1]", fy)
     elif isinstance(anchor, tuple):
         # A tuple of another length is another type, tuple[float] or
         # tuple[float, float, float], as it is to os.utime's pair of times.
@@ -193,7 +192,7 @@ class Component:
         )
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True, eq=False)
 class Placement:
     """Where a component goes, and at what size.
 
@@ -245,16 +244,25 @@ class Placement:
     scale: float = 1.0
 
     def __post_init__(self) -> None:
-        # Refuse a bad placement where it is written, not when it is used.
+        # Refuse a bad placement where it is written, not when it is used,
+        # and keep what the checks return. The placement is frozen, so
+        # that is assigned past its __setattr__, as its __init__ does.
         if not isinstance(self.component, Component):
             raise TypeError(
                 "component must be a Component, such as draw_structure "
                 f"returns; got {type(self.component).__name__}."
             )
-        check_finite("x", self.x)
-        check_finite("y", self.y)
-        _fractions(self.anchor)
-        check_finite_positive("scale", self.scale)
+        object.__setattr__(self, "x", check_finite("x", self.x))
+        object.__setattr__(self, "y", check_finite("y", self.y))
+        # A named anchor is kept as its name, and a pair as its fractions.
+        fractions = _fractions(self.anchor)
+        if isinstance(self.anchor, str):
+            object.__setattr__(self, "anchor", exact_str(self.anchor))
+        else:
+            object.__setattr__(self, "anchor", fractions)
+        object.__setattr__(
+            self, "scale", check_finite_positive("scale", self.scale)
+        )
 
     @property
     def bbox(self) -> BBox:
@@ -288,10 +296,11 @@ def fit(
     a corner, as ``Placement`` does, while aligning one inside a box is
     usually done by its centre, so neither default is obvious here.
     """
+    # An empty box has no width or height, so this refuses one too.
     bbox = component.bbox
-    if is_empty_bbox(bbox) or bbox.width <= 0 or bbox.height <= 0:
+    if bbox.width <= 0 or bbox.height <= 0:
         raise ValueError("Cannot fit a component that has no area.")
-    if is_empty_bbox(slot) or slot.width <= 0 or slot.height <= 0:
+    if slot.width <= 0 or slot.height <= 0:
         raise ValueError("Cannot fit a component into a slot that has no area.")
 
     scale = min(slot.width / bbox.width, slot.height / bbox.height)

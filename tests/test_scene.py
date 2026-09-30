@@ -5,7 +5,7 @@ import pytest
 
 from nuc2d import Placement, Scene, draw_colorbar, draw_structure, draw_svg
 from nuc2d._component import make_component
-from nuc2d._geometry import _EMPTY_BBOX
+from nuc2d._geometry import _EMPTY_BBOX, make_bbox
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -98,10 +98,20 @@ def test_any_other_missing_attribute_is_a_plain_attribute_error():
         Scene(structure()).add
 
 
-def test_an_empty_component_cannot_be_drawn():
-    """No public call makes one; the check guards the package itself."""
-    with pytest.raises(ValueError, match="empty"):
-        Scene(make_component(_EMPTY_BBOX))
+@pytest.mark.parametrize(
+    "bbox",
+    [make_bbox(0.0, 0.0, 0.0, 10.0), make_bbox(0.0, 0.0, 10.0, 0.0), _EMPTY_BBOX],
+    ids=["no width", "no height", "empty"],
+)
+@pytest.mark.parametrize("width_px", [None, 100.0])
+def test_a_component_without_area_cannot_be_drawn(bbox, width_px):
+    """A scene is framed on the component's box, so it would show nothing.
+
+    Text of a zero-width space is drawn as a component with no width, and
+    a width_px given was divided by that width.
+    """
+    with pytest.raises(ValueError, match="wider and taller than 0"):
+        Scene(make_component(bbox), width_px=width_px)
 
 
 @pytest.mark.parametrize("size", [0.0, -10.0, float("inf")])
