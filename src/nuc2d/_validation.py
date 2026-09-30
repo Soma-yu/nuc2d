@@ -85,6 +85,10 @@ def check_finite_non_negative(name: str, value: object) -> float:
 # control characters at all, and UTF-8 cannot encode a surrogate.
 _NOT_IN_A_SINGLE_LINE = frozenset({"Cc", "Zl", "Zp", "Cs"})
 
+# XML cannot hold U+FFFE or U+FFFF either. They are noncharacters, which
+# Unicode leaves unassigned for good, so none of those categories has them.
+_NONCHARACTERS_NOT_IN_XML = frozenset({"\ufffe", "\uffff"})
+
 
 def exact_str(value: str) -> str:
     """Return ``value`` as an exact str: of the type str, not a subclass.
@@ -111,7 +115,11 @@ def check_single_line_text(name: str, value: object) -> str:
     text = exact_str(value)
     if not text:
         raise ValueError(f"{name} is empty.")
-    if any(unicodedata.category(c) in _NOT_IN_A_SINGLE_LINE for c in text):
+    if any(
+        unicodedata.category(c) in _NOT_IN_A_SINGLE_LINE
+        or c in _NONCHARACTERS_NOT_IN_XML
+        for c in text
+    ):
         raise ValueError(
             f"{name} must be a single line of text, without line breaks, "
             f"tabs or other control characters; got {value!r}."

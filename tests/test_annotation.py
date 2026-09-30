@@ -210,12 +210,14 @@ def test_attach_sequences_refuses_a_sequence_that_is_not_a_string():
         attach_sequences(root, ["AUGCA", list("UGCCAU")])
 
 
-@pytest.mark.parametrize("character", ["\n", "\t", "\x00", "\u2028", "\ud800"])
+@pytest.mark.parametrize(
+    "character", ["\n", "\t", "\x00", "\u2028", "\ud800", "\ufffe", "\uffff"]
+)
 def test_attach_sequences_refuses_what_cannot_be_drawn_on_one_line(character):
     """Each letter is drawn in its node, as a line of text is drawn.
 
-    Most control characters, and a surrogate, cannot be written in SVG at
-    all, and a line break or a tab is shown as a space.
+    Most control characters, a surrogate, and U+FFFE and U+FFFF cannot be
+    written in SVG at all, and a line break or a tab is shown as a space.
     """
     root = parse("(((...)))")
 

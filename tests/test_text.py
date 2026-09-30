@@ -69,7 +69,8 @@ def test_a_title_can_be_centred_over_a_structure():
     "text",
     ["", "two\nlines", "two\rlines", "two\r\nlines", "trailing\n",
      "a\tb", "form\x0cfeed", "nul\x00", "next\x85line", "line\u2028separator",
-     "paragraph\u2029separator", "lone \ud800 surrogate"],
+     "paragraph\u2029separator", "lone \ud800 surrogate",
+     "noncharacter \ufffe", "noncharacter \uffff"],
 )
 def test_text_that_is_not_a_single_line_is_refused(text):
     """Tabs too: SVG shows one as a space, but it is measured as a tab."""
