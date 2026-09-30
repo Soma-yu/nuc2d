@@ -118,7 +118,7 @@ class Vec2:
         return (float(self.x), float(self.y))
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(frozen=True)
 class BBox:
     """An axis-aligned bounding box.
 
