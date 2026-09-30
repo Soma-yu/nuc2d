@@ -554,7 +554,7 @@ def render_structure(
     drawing = svgwrite.Drawing()
     group, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
-    return make_component(bbox, graphics)
+    return make_component(bbox, graphics=graphics)
 
 
 def render_colorbar(
@@ -581,7 +581,7 @@ def render_colorbar(
     drawing = svgwrite.Drawing()
     group, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
-    return make_component(bbox, graphics)
+    return make_component(bbox, graphics=graphics)
 
 
 def render_text(text: str, *, font_family: str, font_size: float) -> Component:
@@ -624,7 +624,7 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
     )
     bbox = BBox(0.0, 0.0, width, above + below)
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
-    return make_component(bbox, graphics)
+    return make_component(bbox, graphics=graphics)
 
 
 def _definitions_in(drawing: svgwrite.Drawing) -> tuple[Any, ...]:

@@ -11,9 +11,16 @@ with.
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import matplotlib as mpl
+
+from ._validation import (
+    check_attribute,
+    check_finite_non_negative,
+    check_font_family,
+)
 
 
 # The colour keywords SVG 1.1 defines. They are CSS's named colours as they
@@ -32,15 +39,12 @@ _RGB_PERCENTAGE = re.compile(
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)"
 _DASHARRAY = re.compile(rf"{_NUMBER}(?:(?:,| +){_NUMBER})*")
 
-_COLOR_FIELDS = frozenset({"node_color", "backbone_color", "basepair_color"})
-_DASHARRAY_FIELDS = frozenset({"backbone_dasharray", "basepair_dasharray"})
-
 
 def _check_color(name: str, value: object) -> None:
     """Raise unless ``value`` is written the way SVG writes a colour."""
     if not isinstance(value, str):
         raise TypeError(
-            f"{name} must be a string, such as 'crimson' or '#333333'; "
+            f"{name} must be a string, such as 'black'; "
             f"got {type(value).__name__}."
         )
     if not (
@@ -51,7 +55,7 @@ def _check_color(name: str, value: object) -> None:
         or _RGB_PERCENTAGE.fullmatch(value)
     ):
         raise ValueError(
-            f"{name} must be an SVG color: a name such as 'crimson', "
+            f"{name} must be an SVG color: a name such as 'black', "
             f"'#rgb' or '#rrggbb', 'rgb(r, g, b)', or 'none'; got {value!r}."
         )
 
@@ -60,14 +64,50 @@ def _check_dasharray(name: str, value: object) -> None:
     """Raise unless ``value`` is 'none' or a list of dash and gap lengths."""
     if not isinstance(value, str):
         raise TypeError(
-            f"{name} must be a string, such as '4,2' or 'none'; "
+            f"{name} must be a string, such as 'none' or '1,1'; "
             f"got {type(value).__name__}."
         )
     if not (value == "none" or _DASHARRAY.fullmatch(value)):
         raise ValueError(
             f"{name} must be 'none', or dash and gap lengths separated by "
-            f"commas or by spaces, such as '4,2' or '4 2'; got {value!r}."
+            f"commas or by spaces, such as '1,1' or '1 1'; got {value!r}."
         )
+
+
+def _check_colormap(name: str, value: object) -> None:
+    """Raise unless ``value`` is a matplotlib colormap.
+
+    A name such as ``"turbo"`` is what matplotlib's own functions take,
+    so it is the likeliest mistake, and the message names that colormap.
+    """
+    if isinstance(value, mpl.colors.Colormap):
+        return
+    if isinstance(value, str):
+        example, got = value, f"the string {value!r}"
+    else:
+        example, got = "turbo", type(value).__name__
+    raise TypeError(
+        f"{name} must be a matplotlib Colormap, such as "
+        f"mpl.colormaps[{example!r}]; got {got}."
+    )
+
+
+# How each field is checked, whenever it is assigned. Every field is here,
+# so that a name that is not is a misspelt one.
+_FIELD_CHECKS: dict[str, Callable[[str, object], None]] = {
+    "backbone_color": _check_color,
+    "backbone_width": check_finite_non_negative,
+    "backbone_dasharray": _check_dasharray,
+    "three_prime_arrow_length": check_finite_non_negative,
+    "basepair_color": _check_color,
+    "basepair_width": check_finite_non_negative,
+    "basepair_dasharray": _check_dasharray,
+    "node_color": _check_color,
+    "node_radius": check_finite_non_negative,
+    "node_font_size": check_finite_non_negative,
+    "font_family": check_font_family,
+    "colormap": _check_colormap,
+}
 
 
 @dataclass(kw_only=True)
@@ -120,35 +160,48 @@ class DrawingStyle:
         Arial is recommended for consistent rendering in PowerPoint.
     colormap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
         Colormap a probability from 0 to 1 is shown in, on the nodes and
-        on a colorbar drawn with this style.
+        on a colorbar drawn with this style. It is a matplotlib colormap
+        itself, such as ``mpl.colormaps["turbo"]``, not the name of one.
 
     Raises
     ------
     ValueError
-        If a color or a dash pattern is not written as described below.
-        The check runs when the style is made and whenever one of those
-        fields is assigned, so a mistake is reported where it is written
-        rather than when a drawing is made from it.
+        If a color or a dash pattern is not written as described below, a
+        size is negative or not finite, or ``font_family`` is not the name
+        of one font family: empty or blank, holding a line break, a tab or
+        another control character, or a list of families. Every field is
+        checked when the style is made and whenever it is assigned, so a
+        mistake is reported where it is written rather than when a drawing
+        is made from it.
     TypeError
-        If a color or a dash pattern is not a string.
+        If a color, a dash pattern or ``font_family`` is not a string, a
+        size is not a number, or ``colormap`` is not a matplotlib
+        colormap.
+    AttributeError
+        If an attribute that a style does not have is assigned, such as a
+        misspelt one.
 
     Notes
     -----
     A color is written as SVG writes one: one of the color names SVG
-    defines, such as ``"crimson"``; ``"#rgb"`` or ``"#rrggbb"``;
+    defines, such as ``"black"``; ``"#rgb"`` or ``"#rrggbb"``;
     ``"rgb(r, g, b)"`` with integers or percentages; or ``"none"``.
     Matplotlib's own spellings, such as ``"tab:blue"`` or ``"C0"``, are not
     SVG and are refused.
 
     A dash pattern is ``"none"``, or dash and gap lengths separated by
-    commas or by spaces, such as ``"4,2"`` or ``"4 2"``, but not both at
+    commas or by spaces, such as ``"1,1"`` or ``"1 1"``, but not both at
     once. Lengths are plain non-negative numbers, in the units of the
     drawing.
 
-    A structure's box runs 20 units past the centres of its outermost
+    Every size in the style, the two widths, ``three_prime_arrow_length``,
+    ``node_radius`` and ``node_font_size``, is a finite number of at least
+    0, in the units of the drawing.
+
+    A structure's box leaves a margin around the centres of its outermost
     nucleotides, whatever the style. A ``node_radius``,
     ``node_font_size`` or ``three_prime_arrow_length`` large enough to
-    draw past that is cut off at the edge of a scene.
+    draw past it is cut off at the edge of a scene.
     """
     backbone_color: str = "black"
     backbone_width: float = 2.0
@@ -171,8 +224,6 @@ class DrawingStyle:
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every field through here as well,
         # so one check covers both a new style and a changed one.
-        if name in _COLOR_FIELDS:
-            _check_color(name, value)
-        elif name in _DASHARRAY_FIELDS:
-            _check_dasharray(name, value)
+        check_attribute(self, name, _FIELD_CHECKS)
+        _FIELD_CHECKS[name](name, value)
         super().__setattr__(name, value)

@@ -65,10 +65,28 @@ def test_a_title_can_be_centred_over_a_structure():
     )
 
 
-@pytest.mark.parametrize("text", ["", "two\nlines", "two\rlines"])
-def test_text_that_is_not_one_line_is_refused(text):
-    with pytest.raises(ValueError):
+@pytest.mark.parametrize(
+    "text",
+    ["", "two\nlines", "two\rlines", "two\r\nlines", "trailing\n",
+     "a\tb", "form\x0cfeed", "nul\x00", "next\x85line", "line\u2028separator",
+     "paragraph\u2029separator", "lone \ud800 surrogate"],
+)
+def test_text_that_is_not_a_single_line_is_refused(text):
+    """Tabs too: SVG shows one as a space, but it is measured as a tab."""
+    with pytest.raises(ValueError, match="text"):
         draw_text(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["平衡確率", "\u0394G (kcal/mol)", "5\u2032 end", "100 %", "a\\nb",
+     "no\u00a0break", "全角\u3000スペース", "<b>&amp;</b>", " padded "],
+)
+def test_any_other_character_is_drawn_as_written(text):
+    """A backslash is a character like any other: nothing interprets it."""
+    svg = Scene(draw_text(text)).to_svg()
+
+    assert [element.text for element in texts(svg)] == [text]
 
 
 @pytest.mark.parametrize("font_size", [0.0, -1.0, float("inf"), float("nan")])
@@ -83,3 +101,17 @@ def test_text_and_family_must_be_strings(kwargs):
 
     with pytest.raises(TypeError):
         draw_text(text, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "font_family", ["", "  ", "Arial, sans-serif", "Arial\n", "Ari\tal"]
+)
+def test_the_font_family_is_one_family_name(font_family):
+    with pytest.raises(ValueError, match="font_family"):
+        draw_text("tRNA", font_family=font_family)
+
+
+@pytest.mark.parametrize("font_size", ["12", True])
+def test_the_font_size_must_be_a_number(font_size):
+    with pytest.raises(TypeError, match="font_size"):
+        draw_text("tRNA", font_size=font_size)

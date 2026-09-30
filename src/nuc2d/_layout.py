@@ -12,11 +12,17 @@ shapes.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from abc import ABC, abstractmethod
 import math
 
+from ._validation import (
+    check_attribute,
+    check_finite,
+    check_finite_positive,
+)
 from ._structure import Nucleotide, LoopRegion, StemRegion
 from ._geometry import Vec2
 
@@ -177,6 +183,16 @@ class LayoutEngine(ABC):
         pass
 
 
+# How each setting of RadialLayoutEngine is checked, whenever it is
+# assigned. Every setting is here, so that a name that is not is a
+# misspelt one.
+_RADIAL_SETTINGS: dict[str, Callable[[str, object], None]] = {
+    "stem_spacing": check_finite_positive,
+    "loop_spacing": check_finite_positive,
+    "coaxial_stack_deflection": check_finite,
+}
+
+
 class RadialLayoutEngine(LayoutEngine):
     """Layout engine for generating a radial representation of a secondary structure.
 
@@ -186,13 +202,13 @@ class RadialLayoutEngine(LayoutEngine):
 
     Parameters
     ----------
-    stem_spacing : float, default=15
+    stem_spacing : float, default=15.0
         Distance, centre to centre, between adjacent nucleotides along a
         stem, where the backbone runs straight. The same spacing holds
         through a loop whose stems stack coaxially on one another, which
         continues the stem, and along a structure with no base pair at
         all, which is drawn as one straight strand.
-    loop_spacing : float, default=20
+    loop_spacing : float, default=20.0
         Distance, centre to centre, between adjacent nucleotides around a
         loop that is not stacked, measured as the chord of the loop circle.
         It is what sets the radius the loop is drawn on.
@@ -208,24 +224,43 @@ class RadialLayoutEngine(LayoutEngine):
         it: where one strand ends and another begins, or where the two
         ends of one strand meet. The bend shows where the backbone breaks.
 
+    Raises
+    ------
+    TypeError
+        If a setting is not a number.
+    ValueError
+        If ``stem_spacing`` or ``loop_spacing`` is not a positive finite
+        number, or ``coaxial_stack_deflection`` is not finite.
+    AttributeError
+        If an attribute that the engine does not have is assigned, such as
+        a misspelt one.
+
     Notes
     -----
     Each parameter is also an attribute of the same name, which can be
-    read and assigned; a structure is laid out with the values the engine
-    holds when it is drawn. Laying a structure out does not modify any of
-    them, so one engine can lay out any number of structures.
+    read and assigned, and a value assigned is checked as one given here
+    is. A structure is laid out with the values the engine holds when it
+    is drawn. Laying a structure out does not modify any of them, so one
+    engine can lay out any number of structures.
     """
 
     def __init__(
         self,
         *,
-        stem_spacing: float = 15,
-        loop_spacing: float = 20,
+        stem_spacing: float = 15.0,
+        loop_spacing: float = 20.0,
         coaxial_stack_deflection: float = 10.0,
     ) -> None:
         self.stem_spacing = stem_spacing
         self.loop_spacing = loop_spacing
         self.coaxial_stack_deflection = coaxial_stack_deflection
+
+    def __setattr__(self, name: str, value: object) -> None:
+        # The constructor assigns every setting through here as well, so
+        # one check covers both a new engine and a changed one.
+        check_attribute(self, name, _RADIAL_SETTINGS)
+        _RADIAL_SETTINGS[name](name, value)
+        super().__setattr__(name, value)
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
         """Join the last two nodes with a straight backbone edge.

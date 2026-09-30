@@ -98,6 +98,81 @@ def test_placements_are_frozen_and_hashable():
     hash(placement)
 
 
+@pytest.mark.parametrize("component", ["(((...)))", None])
+def test_what_is_placed_must_be_a_component(component):
+    with pytest.raises(TypeError, match="component must be a Component"):
+        Placement(component=component)
+
+
+def test_a_placement_is_not_placed_again_without_making_a_component_of_it():
+    with pytest.raises(TypeError, match="got Placement"):
+        Placement(component=Placement(component=structure()))
+
+
+@pytest.mark.parametrize("name", ["x", "y"])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_x_and_y_must_be_finite(name, value):
+    with pytest.raises(ValueError, match=name):
+        Placement(component=structure(), **{name: value})
+
+
+@pytest.mark.parametrize("name", ["x", "y", "scale"])
+@pytest.mark.parametrize("value", ["1", True, None])
+def test_x_y_and_scale_must_be_numbers(name, value):
+    """True is refused too: it is a mistake, not a coordinate of 1."""
+    with pytest.raises(TypeError, match=name):
+        Placement(component=structure(), **{name: value})
+
+
+def test_numbers_of_any_real_type_are_accepted():
+    placement = Placement(
+        component=structure(), x=np.float32(1.5), y=2, scale=np.int64(3)
+    )
+
+    assert (placement.bbox.xmin, placement.bbox.ymin) == pytest.approx((1.5, 2.0))
+
+
+# ---------------------------------------------------------------- components
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"bbox": BBox(0.0, 0.0, 10.0, 10.0)}]
+)
+def test_a_component_is_not_made_by_calling_the_class(kwargs):
+    """What a component holds is private, so there is nothing to make one of."""
+    with pytest.raises(TypeError, match="draw_structure"):
+        Component(**kwargs)
+
+
+def test_a_component_is_equal_only_to_itself():
+    """Two drawn alike are two components, as two of anything drawn are."""
+    placement = Placement(component=structure())
+    a, b = structure(), structure()
+    c, d = (Component.from_placements([placement]) for _ in range(2))
+
+    assert a == a and c == c
+    assert a != b and c != d
+    assert len({a, b, c, d}) == 4
+
+
+def test_a_component_cannot_be_changed():
+    component = structure()
+    bbox = component.bbox
+
+    with pytest.raises(AttributeError):
+        component.bbox = BBox(0.0, 0.0, 1.0, 1.0)
+    with pytest.raises(AttributeError):
+        component.label = "tRNA"
+
+    assert component.bbox == bbox
+
+
+def test_a_component_shows_its_box():
+    component = structure()
+
+    assert repr(component) == f"<Component bbox={component.bbox!r}>"
+
+
 # ---------------------------------------------------------------- from_placements
 
 
@@ -118,6 +193,33 @@ def test_from_placements_of_nothing_is_empty():
 def test_from_placements_refuses_a_component_that_was_not_placed():
     with pytest.raises(TypeError, match="Placement"):
         Component.from_placements([structure()])
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda p: p,                    # one placement, not in a list
+        lambda p: (p,),
+        lambda p: (q for q in [p]),     # read once, and it used to come out empty
+        lambda p: {p},                  # no order to draw in
+    ],
+)
+def test_from_placements_takes_a_list(make):
+    placement = Placement(component=structure())
+
+    with pytest.raises(TypeError, match="placements must be a list"):
+        Component.from_placements(make(placement))
+
+
+def test_from_placements_is_not_changed_by_changing_the_list_it_was_given():
+    placements = [Placement(component=structure())]
+    component = Component.from_placements(placements)
+    bbox, svg = component.bbox, Scene(component).to_svg()
+
+    placements.append(Placement(component=structure(CLOVERLEAF), x=500.0))
+
+    assert component.bbox == bbox
+    assert Scene(component).to_svg() == svg
 
 
 def first_tag(svg_string, tags):

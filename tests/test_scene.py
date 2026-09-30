@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pytest
 
-from nuc2d import Component, Scene, draw_colorbar, draw_structure, draw_svg
+from nuc2d import Component, Placement, Scene, draw_colorbar, draw_structure, draw_svg
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -120,3 +120,23 @@ def test_the_colorbar_travels_with_its_gradient():
     colorbar = draw_colorbar()
 
     assert count(Scene(colorbar).to_svg(), "linearGradient") == 1
+
+
+@pytest.mark.parametrize("component", ["(((...)))", None])
+def test_a_scene_shows_a_component(component):
+    with pytest.raises(TypeError, match="Scene takes a Component"):
+        Scene(component)
+
+
+def test_a_placement_given_to_a_scene_is_answered_with_what_to_pass():
+    placement = Placement(component=structure())
+
+    with pytest.raises(TypeError, match=r"placement\.component"):
+        Scene(placement)
+
+
+@pytest.mark.parametrize("name", ["width_px", "height_px"])
+@pytest.mark.parametrize("size", ["300", True])
+def test_a_size_must_be_a_number(name, size):
+    with pytest.raises(TypeError, match=name):
+        Scene(structure(), **{name: size})

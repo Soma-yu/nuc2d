@@ -121,3 +121,62 @@ def test_stems_stacked_across_a_break_bend_by_the_angle_in_degrees(degrees):
     ))
 
     assert bend == pytest.approx(degrees)
+
+
+SETTINGS = ["stem_spacing", "loop_spacing", "coaxial_stack_deflection"]
+SPACINGS = ["stem_spacing", "loop_spacing"]
+
+
+def test_the_defaults_are_written_as_the_floats_they_are():
+    engine = RadialLayoutEngine()
+
+    assert [type(getattr(engine, name)) for name in SETTINGS] == [float] * 3
+
+
+@pytest.mark.parametrize("name", SPACINGS)
+@pytest.mark.parametrize("value", [0.0, -1.0, float("nan"), float("inf")])
+def test_a_spacing_must_be_positive_and_finite(name, value):
+    with pytest.raises(ValueError, match=name):
+        RadialLayoutEngine(**{name: value})
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_the_deflection_must_be_finite(value):
+    with pytest.raises(ValueError, match="coaxial_stack_deflection"):
+        RadialLayoutEngine(coaxial_stack_deflection=value)
+
+
+@pytest.mark.parametrize("degrees", [-10.0, 0.0])
+def test_the_deflection_may_be_zero_or_bend_the_other_way(degrees):
+    RadialLayoutEngine(coaxial_stack_deflection=degrees)
+
+
+@pytest.mark.parametrize("name", SETTINGS)
+@pytest.mark.parametrize("value", ["15", None, True])
+def test_a_setting_that_is_not_a_number_is_a_type_error(name, value):
+    with pytest.raises(TypeError, match=name):
+        RadialLayoutEngine(**{name: value})
+
+
+def test_an_assignment_is_checked_too_and_leaves_the_engine_as_it_was():
+    engine = RadialLayoutEngine(stem_spacing=18.0)
+
+    with pytest.raises(ValueError, match="stem_spacing"):
+        engine.stem_spacing = -1.0
+
+    assert engine.stem_spacing == 18.0
+
+
+def test_a_setting_reads_back_as_it_was_given():
+    engine = RadialLayoutEngine(stem_spacing=18)
+
+    assert engine.stem_spacing == 18 and type(engine.stem_spacing) is int
+
+
+def test_a_misspelt_setting_is_refused_and_the_right_one_named():
+    engine = RadialLayoutEngine()
+
+    with pytest.raises(AttributeError, match="Did you mean: 'stem_spacing'"):
+        engine.stem_spcing = 30.0
+
+    assert not hasattr(engine, "stem_spcing")

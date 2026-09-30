@@ -56,8 +56,19 @@ def test_what_is_placed_does_not_know_how_it_is_written():
 
     The module that writes SVG makes components, so it depends on this
     one. Were this one to depend back on it, for putting components
-    together, the two would import each other.
+    together, the two would import each other. The validation of
+    arguments is not a dependency in that sense, since it imports nothing.
     """
     module = importlib.import_module("nuc2d._component")
 
-    assert package_imports_of(module) == {"_geometry"}
+    assert package_imports_of(module) == {"_geometry", "_validation"}
+
+
+def test_the_validation_of_arguments_can_be_used_by_any_module():
+    """It imports nothing from the package.
+
+    So no import cycle can run through it, whichever module uses it.
+    """
+    module = importlib.import_module("nuc2d._validation")
+
+    assert package_imports_of(module) == set()

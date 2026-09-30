@@ -21,10 +21,10 @@ nowhere else.
 
 import math
 import numbers
-from collections.abc import Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass
 from typing import Any, Literal, Union
 
+from ._validation import check_finite, check_finite_positive
 from ._geometry import BBox, bbox_around, is_empty_bbox
 
 
@@ -84,14 +84,13 @@ def _anchor_point(bbox: BBox, anchor: Anchor) -> tuple[float, float]:
     return (bbox.xmin + fx * bbox.width, bbox.ymin + fy * bbox.height)
 
 
-@dataclass(frozen=True, kw_only=True)
 class Component:
     """Something that can be placed: a drawing, or several put together.
 
     Components are made by nuc2d's drawing functions, which draw a
     structure, a colorbar or a line of text, and by
-    :meth:`from_placements`, which puts placed components together. They
-    are not built by hand.
+    :meth:`from_placements`, which puts placed components together.
+    Calling the class itself raises TypeError.
 
     Attributes
     ----------
@@ -103,53 +102,85 @@ class Component:
 
     Notes
     -----
+    A component cannot be changed once it is made. Two components are
+    equal only if they are the same component, however alike they are
+    drawn.
+
     What the component is drawn with is private, and may change in any
     release.
     """
 
-    bbox: BBox
-    # A drawn component holds its graphics: what is drawn, as against bbox,
-    # the room it takes. Only the module that drew them can read them. A
-    # component made of others holds the placements of its children
-    # instead, in the order they are drawn.
-    _graphics: Any = field(default=None, repr=False)
-    _child_placements: tuple["Placement", ...] = field(default=(), repr=False)
+    # A drawn component holds its graphics: what is drawn, as against its
+    # box, the room it takes. Only the module that drew them can read
+    # them. A component made of others holds the placements of its
+    # children instead, in the order they are drawn.
+    __slots__ = ("_bbox", "_graphics", "_child_placements")
+
+    _bbox: BBox
+    _graphics: Any
+    _child_placements: tuple["Placement", ...]
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        # What a component holds is private, so a caller has nothing to
+        # build one from. Say how one is made instead.
+        raise TypeError(
+            "Components are not made by calling Component. Draw one with "
+            "draw_structure, draw_colorbar or draw_text, or put placed "
+            "ones together with Component.from_placements."
+        )
+
+    @property
+    def bbox(self) -> BBox:
+        """Extent of the component in its own coordinate system."""
+        return self._bbox
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} bbox={self._bbox!r}>"
 
     @classmethod
-    def from_placements(cls, placements: Sequence["Placement"]) -> "Component":
+    def from_placements(cls, placements: list["Placement"]) -> "Component":
         """Make one component of several placed components.
 
         Parameters
         ----------
-        placements : Sequence[Placement]
+        placements : list[Placement]
             Components to put together, each with where it goes.
 
         Returns
         -------
         Component
             A component holding every one placed, whose box encloses them
-            all. An empty sequence gives a component with an empty box.
+            all. An empty list gives a component with an empty box.
 
         Raises
         ------
         TypeError
-            If an item is not a :class:`Placement`, such as a component
-            that was not wrapped in one.
+            If ``placements`` is not a list, or an item in it is not a
+            :class:`Placement`, such as a component that was not wrapped
+            in one.
 
         Notes
         -----
         Components are drawn in the order given, so a later one covers an
         earlier one where they overlap. No padding is added between them.
         """
+        if not isinstance(placements, list):
+            raise TypeError(
+                "placements must be a list of Placements; "
+                f"got {type(placements).__name__}."
+            )
         for item in placements:
             if not isinstance(item, Placement):
                 raise TypeError(
                     "from_placements takes Placements; wrap each component as "
                     f"Placement(component=...). Got {type(item).__name__}."
                 )
-        return cls(
-            bbox=bbox_around(p.bbox for p in placements),
-            _child_placements=tuple(placements),
+        # A copy of our own, which nothing else can change afterwards, so
+        # that the box worked out here stays the box of what is held.
+        child_placements = tuple(placements)
+        return make_component(
+            bbox_around(p.bbox for p in child_placements),
+            child_placements=child_placements,
         )
 
 
@@ -188,9 +219,13 @@ class Placement:
 
     Raises
     ------
+    TypeError
+        If ``component`` is not a :class:`Component`, or ``x``, ``y`` or
+        ``scale`` is not a number.
     ValueError
-        If ``anchor`` is neither a name above nor a pair of finite
-        numbers, or ``scale`` is not a positive finite number.
+        If ``x`` or ``y`` is not finite, ``anchor`` is neither a name above
+        nor a pair of finite numbers, or ``scale`` is not a positive finite
+        number.
     """
 
     component: Component
@@ -201,11 +236,15 @@ class Placement:
 
     def __post_init__(self) -> None:
         # Refuse a bad placement where it is written, not when it is used.
-        _fractions(self.anchor)
-        if not (math.isfinite(self.scale) and self.scale > 0):
-            raise ValueError(
-                f"scale must be a positive finite number; got {self.scale!r}."
+        if not isinstance(self.component, Component):
+            raise TypeError(
+                "component must be a Component, such as draw_structure "
+                f"returns; got {type(self.component).__name__}."
             )
+        check_finite("x", self.x)
+        check_finite("y", self.y)
+        _fractions(self.anchor)
+        check_finite_positive("scale", self.scale)
 
     @property
     def bbox(self) -> BBox:
@@ -258,24 +297,43 @@ def fit(
         bbox.ymax + (1 - fy) * spare_y,
     )
     return Placement(
-        component=replace(component, bbox=padded),
+        component=make_component(
+            padded,
+            graphics=component._graphics,
+            child_placements=component._child_placements,
+        ),
         x=slot.xmin,
         y=slot.ymin,
         scale=scale,
     )
 
 
-# For the module that writes SVG, which makes components and reads them
-# through these.
+# Making a component, and reading what it holds. The module that writes
+# SVG makes and reads components through these, and this module makes its
+# own through make_component as well.
 
 
-def make_component(bbox: BBox, graphics: Any) -> Component:
-    """Make a component drawn as ``graphics``, taking up ``bbox``.
+def make_component(
+    bbox: BBox,
+    *,
+    graphics: Any = None,
+    child_placements: tuple[Placement, ...] = (),
+) -> Component:
+    """Make a component taking up ``bbox``.
 
-    ``graphics`` is whatever the module that drew it needs in order to
-    write it; nothing here looks inside.
+    A drawn component is made from its ``graphics``, which are whatever
+    the module that drew them needs in order to write them; nothing here
+    looks inside. One made of others is made from the placements of its
+    children, in the order they are drawn.
+
+    Calling the class does not make a component, so every one is made
+    here, and here is where what it holds is filled in.
     """
-    return Component(bbox=bbox, _graphics=graphics)
+    component = object.__new__(Component)
+    component._bbox = bbox
+    component._graphics = graphics
+    component._child_placements = child_placements
+    return component
 
 
 def graphics_of(component: Component) -> Any:

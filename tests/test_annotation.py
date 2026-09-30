@@ -190,3 +190,65 @@ def test_attach_probabilities_accepts_a_nested_list():
     assert all(
         nt.equilibrium_probability is not None for nt in iter_nucleotides(root)
     )
+
+
+@pytest.mark.parametrize(
+    "sequences", ["AUGCAUGCA", ("AUGCAUGCA",), {"AUGCAUGCA"}, 3]
+)
+def test_attach_sequences_takes_a_list(sequences):
+    """One string above all, which would read as one strand per letter."""
+    root = parse("(((...)))")
+
+    with pytest.raises(TypeError, match="sequences must be a list"):
+        attach_sequences(root, sequences)
+
+
+def test_attach_sequences_refuses_a_sequence_that_is_not_a_string():
+    root = parse("(((..+...)))")
+
+    with pytest.raises(TypeError, match="sequence 1"):
+        attach_sequences(root, ["AUGCA", list("UGCCAU")])
+
+
+@pytest.mark.parametrize(
+    "probabilities", [np.full((9, 9), "0.5"), np.full((9, 9), None)]
+)
+def test_attach_probabilities_refuses_a_matrix_that_is_not_numbers(probabilities):
+    root = parse("(((...)))")
+
+    with pytest.raises(TypeError, match="numbers"):
+        attach_equilibrium_probabilities(root, probabilities)
+
+
+def test_attach_probabilities_refuses_nan_where_it_is_read():
+    root = parse("(((...)))")
+    probs = np.eye(9)
+    probs[1, 7] = np.nan
+
+    with pytest.raises(ValueError, match=r"probabilities\[1\]\[7\] is NaN"):
+        attach_equilibrium_probabilities(root, probs)
+
+
+def test_attach_probabilities_passes_over_nan_where_it_is_not_read():
+    """A matrix drawn as a heatmap often has its other half left as NaN."""
+    root = parse("(((...)))")
+    probs = np.eye(9)
+    probs[np.tril_indices(9, -1)] = np.nan
+
+    attach_equilibrium_probabilities(root, probs)
+
+
+def test_attach_probabilities_clips_what_lies_outside_zero_to_one():
+    """A value just past 0 or 1 is the rounding of a tool that wrote it."""
+    root = parse("(((...)))")
+    probs = np.zeros((9, 9))
+    probs[0, 8] = 1.5
+    probs[3, 3] = -0.2
+    probs[4, 4] = np.inf
+
+    attach_equilibrium_probabilities(root, probs)
+
+    nts = collect_nucleotides(root)
+    assert [nts[i].equilibrium_probability for i in (0, 8, 3, 4)] == [
+        1.0, 1.0, 0.0, 1.0
+    ]

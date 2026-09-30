@@ -10,6 +10,7 @@ allowing structural topology and auxiliary information to remain
 separated.
 """
 
+import math
 from collections import Counter
 
 import numpy as np
@@ -58,10 +59,25 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
 
     Raises
     ------
+    TypeError
+        If ``sequences`` is not a list, or a sequence in it is not a
+        string.
     ValueError
         If the number of sequences does not match the number of strands,
         or if a sequence is not as long as the strand it describes.
     """
+    if not isinstance(sequences, list):
+        raise TypeError(
+            "sequences must be a list of strings, one per strand; "
+            f"got {type(sequences).__name__}."
+        )
+    for index, sequence in enumerate(sequences):
+        if not isinstance(sequence, str):
+            raise TypeError(
+                f"Each sequence must be a string; sequence {index} is "
+                f"{type(sequence).__name__}."
+            )
+
     strand_lengths = _strand_lengths(root_loop)
 
     if len(sequences) != len(strand_lengths):
@@ -98,15 +114,25 @@ def attach_equilibrium_probabilities(
     probabilities : ndarray
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
-        (i, i) how likely nucleotide i is to be left unpaired.
+        (i, i) how likely nucleotide i is to be left unpaired. A value
+        below 0 or above 1 is attached as 0 or 1.
 
     Raises
     ------
+    TypeError
+        If ``probabilities`` does not hold numbers.
     ValueError
-        If ``probabilities`` is not a square matrix whose size matches the number
-        of nucleotides in the structure.
+        If ``probabilities`` is not a square matrix whose size matches the
+        number of nucleotides in the structure, or a probability attached
+        is NaN.
     """
     probs = np.asarray(probabilities)
+    # bool, signed and unsigned integers, and floating point.
+    if probs.dtype.kind not in "biuf":
+        raise TypeError(
+            "probabilities must be a matrix of numbers, such as a NumPy "
+            f"array of floats; got one of dtype {probs.dtype}."
+        )
     size = sum(_strand_lengths(root_loop))
 
     if probs.shape != (size, size):
@@ -115,12 +141,28 @@ def attach_equilibrium_probabilities(
             f"shape ({size}, {size}), but its shape is {probs.shape}."
         )
 
+    def _probability(i: int, j: int) -> float:
+        # Only the elements attached are checked, so that a matrix whose
+        # other half is left as NaN, as one drawn as a heatmap often is,
+        # can be passed as it is.
+        value = float(probs[i][j])
+        if math.isnan(value):
+            raise ValueError(
+                f"probabilities[{i}][{j}] is NaN; a nucleotide cannot be "
+                "colored by a probability that is not a number."
+            )
+        # A tool writing 1 - (sum of the pairing probabilities) can land
+        # just outside [0, 1], and the color of the end it is near is the
+        # right one. It is clipped here rather than left to the colormap,
+        # whose own colors for values out of range can be anything.
+        return min(max(value, 0.0), 1.0)
+
     def _attach_stem_probs(current_stem: StemRegion) -> None:
         nucleotides = current_stem.nucleotides
         for idx in range(len(nucleotides)//2):
             nt1 = nucleotides[idx]
             nt2 = nucleotides[-(idx+1)]
-            prob = probs[nt1.index][nt2.index]
+            prob = _probability(nt1.index, nt2.index)
             nt1.equilibrium_probability = nt2.equilibrium_probability = prob
         _attach_loop_probs(current_stem.child_loop)
 
@@ -130,7 +172,7 @@ def attach_equilibrium_probabilities(
         else:
             nucleotides = current_loop.nucleotides[1:-1]
         for nt in nucleotides:
-            nt.equilibrium_probability = probs[nt.index][nt.index]
+            nt.equilibrium_probability = _probability(nt.index, nt.index)
         for stem in current_loop.child_stems:
             _attach_stem_probs(stem)
 

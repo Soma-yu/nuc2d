@@ -95,14 +95,22 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
 
     A box, a component and a placement are each read by whatever
     consumes them and never read again, so an assignment after the fact
-    reaches nothing. Frozen, it raises where it is written instead of
-    leaving the value and the drawing disagreeing.
+    reaches nothing. It raises where it is written instead of leaving the
+    value and the drawing disagreeing, and so does an assignment to a
+    name that is not there at all.
     """
-    for target in (nuc2d.BBox, nuc2d.Component, nuc2d.Placement):
-        assert dataclasses.is_dataclass(target), f"{target.__name__} is not a dataclass"
-        assert target.__dataclass_params__.frozen, (
-            f"{target.__name__} should be frozen"
-        )
+    component = nuc2d.draw_text("tRNA")
+    placement = nuc2d.Placement(component=component)
+
+    for value, name in [(component.bbox, "BBox"), (component, "Component"),
+                        (placement, "Placement")]:
+        for attribute in [*sorted(PUBLIC_MEMBERS[name]), "not_an_attribute"]:
+            before = getattr(value, attribute, None)
+
+            with pytest.raises(AttributeError):
+                setattr(value, attribute, 1.0)
+
+            assert getattr(value, attribute, None) == before, f"{name}.{attribute}"
 
 
 # What a caller can reach on each of these, beyond the constructor. A member

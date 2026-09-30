@@ -125,7 +125,9 @@ scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probabilities=prob
 
 Each nucleotide is colored by the probability of the state the structure puts
 it in: of pairing with its partner if it is paired, and of being unpaired if it
-is not.
+is not. A probability below 0 or above 1, as rounding in a prediction tool can
+leave one, is shown in the color of 0 or of 1. A NaN raises `ValueError`, since
+there is no color to show it in.
 
 The colorbar is labelled `Equilibrium probability` unless another label is
 given:
@@ -186,10 +188,15 @@ scene = draw_svg(
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/styling.png" width="65%">
 </p>
 
-Colors are written as SVG writes them: a name such as `crimson`, `#rgb` or
+Colors are written as SVG writes them: a name such as `black`, `#rgb` or
 `#rrggbb`, `rgb(r, g, b)`, or `none`. Dash patterns are `none` or lengths such
-as `4,2`. Anything else raises `ValueError` as soon as it is set, rather than
-when something is drawn with the style.
+as `1,1`. Sizes are numbers of at least 0, and spacings are positive. The
+colormap is a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`,
+rather than its name.
+
+Anything else raises an exception as soon as it is set, rather than when
+something is drawn with the style or the engine. So does a misspelt setting,
+such as `style.node_colour = "black"`, which would otherwise be ignored.
 
 ## Combining several structures
 
@@ -252,6 +259,12 @@ take, and the exceptions they raise. Those change only in a major release.
 Everything public is imported from `nuc2d` itself. The modules inside the
 package all begin with an underscore, such as `nuc2d._svg`: they are where the
 code lives, and they can change in any release.
+
+A release that drops a version of Python which has reached its end of life,
+or raises the oldest version of a dependency that it supports, is a minor
+release. pip reads which versions of Python a release supports, so an
+environment with an older Python keeps installing the last release that
+supported it.
 
 The drawing is not part of that promise. A minor release may place a
 nucleotide differently, enclose a structure more tightly, or write the same

@@ -1,6 +1,10 @@
+import dataclasses
+
+import matplotlib as mpl
 import pytest
 
 from nuc2d import DrawingStyle, draw_svg
+from nuc2d._style import _FIELD_CHECKS
 
 
 COLOR_FIELDS = ["node_color", "backbone_color", "basepair_color"]
@@ -83,3 +87,88 @@ def test_other_fields_are_assigned_as_before():
     style.node_radius = 6.0
 
     assert style.node_radius == 6.0
+
+
+SIZE_FIELDS = [
+    "backbone_width", "three_prime_arrow_length", "basepair_width",
+    "node_radius", "node_font_size",
+]
+
+
+@pytest.mark.parametrize("field", SIZE_FIELDS)
+@pytest.mark.parametrize("value", [-1.0, float("nan"), float("inf")])
+def test_a_size_that_is_negative_or_not_finite_is_refused(field, value):
+    with pytest.raises(ValueError, match=field):
+        DrawingStyle(**{field: value})
+
+
+@pytest.mark.parametrize("field", SIZE_FIELDS)
+@pytest.mark.parametrize("value", ["2", None, True])
+def test_a_size_that_is_not_a_number_is_a_type_error(field, value):
+    with pytest.raises(TypeError, match=field):
+        DrawingStyle(**{field: value})
+
+
+@pytest.mark.parametrize("field", SIZE_FIELDS)
+def test_a_size_of_zero_is_drawn(field):
+    """Zero draws nothing of that part, which is a choice and not a mistake."""
+    style = DrawingStyle(**{field: 0})
+
+    draw_svg("(((...)))", sequences=["GCGAAACGC"], style=style).to_svg()
+
+
+def test_a_colormap_given_by_name_is_answered_with_how_to_give_it():
+    """matplotlib's own functions take a name, so this is the likely slip."""
+    with pytest.raises(TypeError, match=r"mpl\.colormaps\['magma'\]"):
+        DrawingStyle(colormap="magma")
+
+
+@pytest.mark.parametrize("value", [None, ["white", "red"]])
+def test_a_colormap_that_is_not_one_is_a_type_error(value):
+    with pytest.raises(TypeError, match=r"colormap.*mpl\.colormaps\['turbo'\]"):
+        DrawingStyle(colormap=value)
+
+
+def test_any_matplotlib_colormap_is_accepted():
+    colormap = mpl.colors.LinearSegmentedColormap.from_list("mine", ["white", "red"])
+
+    assert DrawingStyle(colormap=colormap).colormap is colormap
+
+
+@pytest.mark.parametrize(
+    "value, error",
+    [(3, TypeError), (None, TypeError), ("", ValueError), ("  ", ValueError),
+     ("Arial, sans-serif", ValueError), ("Arial\n", ValueError)],
+)
+def test_the_font_family_is_one_family_name(value, error):
+    with pytest.raises(error, match="font_family"):
+        DrawingStyle(font_family=value)
+
+
+def test_a_list_of_families_is_answered_with_the_first_of_them():
+    with pytest.raises(ValueError, match="'Arial'"):
+        DrawingStyle(font_family="Arial, sans-serif")
+
+
+def test_a_misspelt_attribute_is_refused_and_the_right_one_named():
+    """Assigned, it would otherwise make an attribute that nothing reads."""
+    style = DrawingStyle()
+
+    with pytest.raises(AttributeError, match="Did you mean: 'node_color'"):
+        style.node_colour = "crimson"
+
+    assert not hasattr(style, "node_colour")
+    assert style.node_color == "black"
+
+
+def test_every_field_is_checked_when_it_is_assigned():
+    """A field left out of the checks would be refused as a misspelling."""
+    assert set(_FIELD_CHECKS) == {f.name for f in dataclasses.fields(DrawingStyle)}
+
+
+def test_a_style_can_still_be_copied_with_a_field_changed():
+    style = DrawingStyle(node_color="crimson")
+
+    changed = dataclasses.replace(style, node_radius=6.0)
+
+    assert (changed.node_color, changed.node_radius) == ("crimson", 6.0)

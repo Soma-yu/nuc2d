@@ -1,16 +1,19 @@
 """Drawing secondary structures, from a dot-bracket string to a scene.
 
 :func:`draw_structure`, :func:`draw_colorbar` and :func:`draw_text` each
-draw one component, for a caller to place with others. :func:`draw_svg` draws a structure and
-frames it as a scene in one call: ``draw_svg(...)`` is
-``Scene(draw_structure(...))``, with the same arguments.
+draw one component, for a caller to place with others. :func:`draw_svg`
+draws a structure and frames it as a scene in one call: ``draw_svg(...)``
+is ``Scene(draw_structure(...))``, with the same arguments.
 """
-
-import math
 
 import numpy as np
 
 from ._annotation import attach_equilibrium_probabilities, attach_sequences
+from ._validation import (
+    check_finite_positive,
+    check_font_family,
+    check_single_line_text,
+)
 from ._component import Component, Placement, fit
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine, layout
@@ -26,6 +29,40 @@ from ._svg import render_colorbar, render_structure, render_text
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
 
 
+def _check_label(name: str, label: object) -> None:
+    """Raise unless ``label`` is None or single-line text for a colorbar."""
+    if label is None:
+        return
+    if not isinstance(label, str):
+        raise TypeError(
+            f"{name} must be a string or None; got {type(label).__name__}."
+        )
+    if not label:
+        raise ValueError(
+            f"{name} is empty; pass None to leave the colorbar without "
+            "a label."
+        )
+    check_single_line_text(name, label)
+
+
+def _check_style(style: object) -> None:
+    if style is not None and not isinstance(style, DrawingStyle):
+        raise TypeError(
+            "style must be a DrawingStyle, such as DrawingStyle(); "
+            f"got {type(style).__name__}."
+        )
+
+
+def _check_layout_engine(layout_engine: object) -> None:
+    if layout_engine is not None and not isinstance(
+        layout_engine, RadialLayoutEngine
+    ):
+        raise TypeError(
+            "layout_engine must be a RadialLayoutEngine; "
+            f"got {type(layout_engine).__name__}."
+        )
+
+
 def draw_colorbar(
     *,
     label: str | None = "Equilibrium probability",
@@ -36,9 +73,9 @@ def draw_colorbar(
     Parameters
     ----------
     label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, or None to leave it without
-        one. The colorbar occupies the same box either way, so colorbars
-        with and without a label line up.
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. The colorbar occupies the same box either way, so
+        colorbars with and without a label line up.
     style : DrawingStyle, optional
         Style of the structure the colorbar belongs to. Its colormap and
         font family apply.
@@ -47,7 +84,18 @@ def draw_colorbar(
     -------
     Component
         The colorbar, to be placed with :class:`Placement`.
+
+    Raises
+    ------
+    TypeError
+        If ``label`` is neither a string nor None, or ``style`` is not a
+        :class:`DrawingStyle`.
+    ValueError
+        If ``label`` is empty or holds a line break, a tab or another
+        control character.
     """
+    _check_label("label", label)
+    _check_style(style)
     return render_colorbar(label=label, style=style)
 
 
@@ -81,10 +129,12 @@ def draw_text(
     Raises
     ------
     ValueError
-        If ``text`` is empty or holds a line break, or ``font_size`` is
-        not a positive finite number.
+        If ``text`` is empty or holds a line break, a tab or another
+        control character, ``font_family`` is not the name of one font
+        family, or ``font_size`` is not a positive finite number.
     TypeError
-        If ``text`` or ``font_family`` is not a string.
+        If ``text`` or ``font_family`` is not a string, or ``font_size``
+        is not a number.
 
     Notes
     -----
@@ -92,20 +142,9 @@ def draw_text(
     from the font found on this machine. Shown with a different font, the
     text can run a little longer or shorter than its box.
     """
-    for name, value in (("text", text), ("font_family", font_family)):
-        if not isinstance(value, str):
-            raise TypeError(f"{name} must be a string; got {type(value).__name__}.")
-    if not text:
-        raise ValueError("text is empty, so there is nothing to draw.")
-    if "\n" in text or "\r" in text:
-        raise ValueError(
-            "draw_text draws one line; place one text per line instead. "
-            f"Got {text!r}."
-        )
-    if not (math.isfinite(font_size) and font_size > 0):
-        raise ValueError(
-            f"font_size must be a positive finite number; got {font_size!r}."
-        )
+    check_single_line_text("text", text)
+    check_font_family("font_family", font_family)
+    check_finite_positive("font_size", font_size)
     return render_text(text, font_family=font_family, font_size=font_size)
 
 
@@ -131,25 +170,26 @@ def draw_structure(
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
     probabilities : ndarray, optional
-        Base-pair probability matrix: ``probabilities[i][j]`` is how likely
-        nucleotides ``i`` and ``j`` are to be paired with each other, and
-        ``probabilities[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
-        When given, each nucleotide is colored by it, and a colorbar is
-        set beside the structure.
+        Base-pair probability matrix: ``probabilities[i][j]`` is how
+        likely nucleotides ``i`` and ``j`` are to be paired with each
+        other, and ``probabilities[i][i]`` how likely nucleotide ``i`` is
+        to be left unpaired. When given, each nucleotide is colored by it,
+        and a colorbar is set beside the structure. A value below 0 or
+        above 1 is shown in the color of 0 or of 1.
     style : DrawingStyle, optional
         Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, or None to leave it without
-        one. Has no effect unless ``probabilities`` is given, since the colorbar is
-        drawn only then.
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``probabilities`` is given,
+        since the colorbar is drawn only then.
     add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when ``probabilities`` is
-        given. Passing False colors the nucleotides but leaves the
-        colorbar out, for a caller placing one of its own from
-        :func:`~nuc2d.draw_colorbar`.
+        Whether to set a colorbar beside the structure when
+        ``probabilities`` is given. Passing False colors the nucleotides
+        but leaves the colorbar out, for a caller placing one of its own
+        from :func:`~nuc2d.draw_colorbar`.
 
     Returns
     -------
@@ -161,21 +201,44 @@ def draw_structure(
     ------
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
+    TypeError
+        If an argument is not of the type described above: in particular,
+        if ``sequences`` is not a list of strings, or ``probabilities``
+        does not hold numbers.
     ValueError
-        If ``sequences`` or ``probabilities`` does not match the structure.
+        If ``sequences`` or ``probabilities`` does not match the structure,
+        a probability a nucleotide is colored by is NaN, or
+        ``colorbar_label`` is empty or holds a line break, a tab or
+        another control character.
 
     Notes
     -----
-    The structure's box runs 20 units past the centres of its outermost
-    nucleotides. It is not measured from what is drawn, so nodes, letters
-    or 3' arrows drawn larger than that reach past it, and a scene cuts
-    them off at its edge.
+    The structure's box leaves a margin around the centres of its
+    outermost nucleotides. It is not measured from what is drawn, so
+    nodes, letters or 3' arrows drawn large enough reach past it, and a
+    scene cuts them off at its edge. How the box is drawn around a
+    structure belongs to the drawing rather than to the API, and a minor
+    release may change it.
 
     With a colorbar, the structure is fitted into a square as tall as the
     colorbar and centred in it. The colorbar keeps its own size, so that
     it stays legible beside a structure of any shape, and every structure
     drawn this way takes the same room.
     """
+    if not isinstance(dot_bracket, str):
+        raise TypeError(
+            "dot_bracket must be a string, such as '((...))'; "
+            f"got {type(dot_bracket).__name__}."
+        )
+    _check_style(style)
+    _check_layout_engine(layout_engine)
+    _check_label("colorbar_label", colorbar_label)
+    if not isinstance(add_colorbar, bool):
+        raise TypeError(
+            "add_colorbar must be True or False; "
+            f"got {type(add_colorbar).__name__}."
+        )
+
     root_loop = parse(dot_bracket)
     if sequences is not None:
         attach_sequences(root_loop, sequences)
@@ -229,20 +292,22 @@ def draw_svg(
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
     probabilities : ndarray, optional
-        Base-pair probability matrix: ``probabilities[i][j]`` is how likely
-        nucleotides ``i`` and ``j`` are to be paired with each other, and
-        ``probabilities[i][i]`` how likely nucleotide ``i`` is to be left unpaired.
+        Base-pair probability matrix: ``probabilities[i][j]`` is how
+        likely nucleotides ``i`` and ``j`` are to be paired with each
+        other, and ``probabilities[i][i]`` how likely nucleotide ``i`` is
+        to be left unpaired. A value below 0 or above 1 is shown in the
+        color of 0 or of 1.
     style : DrawingStyle, optional
         Drawing style.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, or None to leave it without
-        one. Has no effect unless ``probabilities`` is given.
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``probabilities`` is given.
     add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when ``probabilities`` is
-        given.
+        Whether to set a colorbar beside the structure when
+        ``probabilities`` is given.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
         from the proportions of the structure.
@@ -261,9 +326,12 @@ def draw_svg(
     ------
     ParseError
         If ``dot_bracket`` is not a well-formed secondary structure.
+    TypeError
+        If an argument is not of the type described above, as for
+        :func:`draw_structure` and :class:`Scene`.
     ValueError
-        If ``sequences`` or ``probabilities`` does not match the structure, or a
-        size is not a positive number.
+        If an argument is refused by :func:`draw_structure`, or a size is
+        not a positive finite number.
     """
     component = draw_structure(
         dot_bracket,

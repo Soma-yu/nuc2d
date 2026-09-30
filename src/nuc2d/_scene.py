@@ -4,12 +4,12 @@ A :class:`Scene` frames a component on its box and gives it a size in
 pixels. How it is written is left to :mod:`nuc2d._svg`.
 """
 
-import math
 import os
 from typing import Any
 
 from . import _svg
-from ._component import Component
+from ._validation import check_finite_positive
+from ._component import Component, Placement
 from ._geometry import is_empty_bbox
 
 
@@ -34,6 +34,9 @@ class Scene:
 
     Raises
     ------
+    TypeError
+        If ``component`` is not a :class:`Component`, or a size given is
+        not a number.
     ValueError
         If the component is empty, or a size given is not a positive
         finite number.
@@ -50,14 +53,27 @@ class Scene:
         width_px: float | None = None,
         height_px: float | None = None,
     ) -> None:
+        if not isinstance(component, Component):
+            # A placement says where a component goes among others. A
+            # scene is framed on the box of what it shows, so where that
+            # was placed makes no difference to it.
+            hint = (
+                " Pass the component itself, placement.component; to show "
+                "several placed components, make one of them with "
+                "Component.from_placements."
+                if isinstance(component, Placement)
+                else ""
+            )
+            raise TypeError(
+                f"Scene takes a Component; got {type(component).__name__}."
+                + hint
+            )
         bbox = component.bbox
         if is_empty_bbox(bbox):
             raise ValueError("Nothing to draw: the component is empty.")
         for name, size in (("width_px", width_px), ("height_px", height_px)):
-            if size is not None and not (math.isfinite(size) and size > 0):
-                raise ValueError(
-                    f"{name} must be a positive finite number; got {size!r}."
-                )
+            if size is not None:
+                check_finite_positive(name, size)
 
         aspect_ratio = bbox.width / bbox.height if bbox.height > 0 else 1.0
         if height_px is None:
