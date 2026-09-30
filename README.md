@@ -248,8 +248,8 @@ component about that point. The point is the upper left corner of the
 component's box unless `anchor` names another: one of `"upper left"`,
 `"upper center"`, `"upper right"`, `"center left"`, `"center"`,
 `"center right"`, `"lower left"`, `"lower center"` and `"lower right"`, or a
-pair of fractions of the box's width and height, such as `(0.5, 0.0)` for the
-middle of its top edge.
+pair of fractions of the box's width and height, each from 0 to 1, such as
+`(0.5, 0.0)` for the middle of its top edge.
 
 ## Versioning
 

@@ -36,7 +36,7 @@ def count(svg_string, tag):
 # ---------------------------------------------------------------- anchors
 
 
-@pytest.mark.parametrize("anchor", [*_ANCHOR_FRACTIONS, (0.25, 0.75), (1.3, -0.2)])
+@pytest.mark.parametrize("anchor", [*_ANCHOR_FRACTIONS, (0.25, 0.75), (0, 1)])
 @pytest.mark.parametrize("scale", [0.5, 1.0, 2.0])
 def test_the_anchor_point_lands_on_x_y(anchor, scale):
     placement = Placement(
@@ -86,6 +86,21 @@ def test_an_anchor_of_the_wrong_value_is_a_value_error(anchor):
 
 @pytest.mark.parametrize(
     "anchor, name",
+    [((1.3, 0.0), r"anchor\[0\]"), ((0.0, -0.2), r"anchor\[1\]"),
+     ((0.1 * 3 / 0.3, 0.0), r"anchor\[0\]"), ((-1e-300, 0.0), r"anchor\[0\]")],
+)
+def test_an_anchor_outside_the_box_is_refused(anchor, name):
+    """An anchor is a point of the box; x and y move a component off it.
+
+    A fraction worked out to land a hair past 1, as 0.1 * 3 / 0.3 does, is
+    refused as well, with its value in the message.
+    """
+    with pytest.raises(ValueError, match=name + " must be a fraction of the box"):
+        Placement(component=structure(), anchor=anchor)
+
+
+@pytest.mark.parametrize(
+    "anchor, name",
     [([0.5, 0.5], "anchor"), (None, "anchor"), (1, "anchor"),
      ((0.5,), "anchor"), ((0.5, 0.5, 0.5), "anchor"),
      (("a", 0.0), r"anchor\[0\]"), ((0.0, "a"), r"anchor\[1\]"),
@@ -122,10 +137,11 @@ def test_a_placement_keeps_its_numbers_as_floats():
 
 
 @pytest.mark.parametrize("name", ["center", np.str_("center")])
-def test_a_named_anchor_is_kept_as_its_name(name):
+def test_a_named_anchor_is_kept_as_the_fractions_it_names(name):
     anchor = Placement(component=structure(), anchor=name).anchor
 
-    assert anchor == "center" and type(anchor) is str
+    assert anchor == (0.5, 0.5)
+    assert type(anchor) is tuple and all(type(f) is float for f in anchor)
 
 
 def test_placements_are_equal_when_they_place_one_component_alike():
@@ -138,12 +154,12 @@ def test_placements_are_equal_when_they_place_one_component_alike():
     assert len({Placement(component=component), Placement(component=component)}) == 1
 
 
-def test_an_anchor_is_compared_as_it_is_given():
+def test_a_name_and_the_pair_it_names_are_one_anchor():
     component = structure()
+    by_name = Placement(component=component, anchor="upper left")
+    by_pair = Placement(component=component, anchor=(0, 0))
 
-    assert Placement(component=component, anchor="upper left") != Placement(
-        component=component, anchor=(0.0, 0.0)
-    )
+    assert by_name == by_pair and hash(by_name) == hash(by_pair)
 
 
 def test_placements_are_frozen_and_hashable():

@@ -35,8 +35,8 @@ AnchorName = Literal[
 
 Anchor = Union[AnchorName, tuple[float, float]]
 """A point of a box: one of its names, or fractions of the box's width and
-height from its upper left corner. ``(0, 0)`` is the upper left, ``(1, 1)``
-the lower right, and values outside ``[0, 1]`` fall outside the box."""
+height from its upper left corner, each from 0 to 1. ``(0, 0)`` is the
+upper left and ``(1, 1)`` the lower right."""
 
 _ANCHOR_FRACTIONS: dict[str, tuple[float, float]] = {
     "upper left": (0.0, 0.0),
@@ -51,6 +51,25 @@ _ANCHOR_FRACTIONS: dict[str, tuple[float, float]] = {
 }
 
 
+def _fraction(name: str, value: object) -> float:
+    """Return one fraction of an anchor, or raise unless it is from 0 to 1.
+
+    An anchor is a point of the box, and moving a component off it is what
+    x and y are for. There is no tolerance: a fraction worked out to land
+    a hair past 0 or 1 is refused with its value in the message, which says
+    what happened, and a tolerance could be added later without breaking
+    anything, while one given now could not be taken back.
+    """
+    fraction = check_finite(name, value)
+    if not 0.0 <= fraction <= 1.0:
+        raise ValueError(
+            f"{name} must be a fraction of the box from 0 to 1; got "
+            f"{value!r}. An anchor is a point of the box; to move the "
+            "component, change x or y instead."
+        )
+    return fraction
+
+
 def _fractions(anchor: object) -> tuple[float, float]:
     """Return an anchor as fractions of a box, or raise if it is not one."""
     if isinstance(anchor, str):
@@ -61,22 +80,23 @@ def _fractions(anchor: object) -> tuple[float, float]:
             names = ", ".join(map(repr, _ANCHOR_FRACTIONS))
             raise ValueError(
                 f"anchor must be one of {names}, or a pair of fractions of "
-                f"the box such as (0.5, 0.0); got {anchor!r}."
+                f"the box from 0 to 1, such as (0.5, 0.0); got {anchor!r}."
             ) from None
     elif isinstance(anchor, tuple) and len(anchor) == 2:
         fx, fy = anchor
-        return check_finite("anchor[0]", fx), check_finite("anchor[1]", fy)
+        return _fraction("anchor[0]", fx), _fraction("anchor[1]", fy)
     elif isinstance(anchor, tuple):
         # A tuple of another length is another type, tuple[float] or
         # tuple[float, float, float], as it is to os.utime's pair of times.
         raise TypeError(
-            "anchor must be a pair of finite numbers such as (0.5, 0.0); "
-            f"got {anchor!r}."
+            "anchor must be a pair of fractions from 0 to 1, such as "
+            f"(0.5, 0.0); got {anchor!r}."
         )
     else:
         raise TypeError(
-            "anchor must be a name such as 'upper left', or a pair of finite "
-            f"numbers such as (0.5, 0.0); got {type(anchor).__name__}."
+            "anchor must be a name such as 'upper left', or a pair of "
+            "fractions from 0 to 1, such as (0.5, 0.0); got "
+            f"{type(anchor).__name__}."
         )
 
 
@@ -208,19 +228,22 @@ class Placement:
     y : float, default=0.0
         Where the anchor point lands along the y-axis. The y-axis points
         down, as in SVG.
-    anchor : str or tuple of float, default="upper left"
+    anchor : str or tuple[float, float], default="upper left"
         The point of the component's box that is placed at ``(x, y)`` and
         stays fixed while it is scaled. One of ``"upper left"``,
         ``"upper center"``, ``"upper right"``, ``"center left"``,
         ``"center"``, ``"center right"``, ``"lower left"``,
         ``"lower center"`` and ``"lower right"``; or a pair of fractions of
-        the box's width and height from its upper left corner, so that
-        ``(0.5, 0.0)`` is the middle of the top edge.
+        the box's width and height from its upper left corner, each from 0
+        to 1, so that ``(0.5, 0.0)`` is the middle of the top edge.
     scale : float, default=1.0
         Uniform scaling factor. Must be positive.
 
     Attributes
     ----------
+    anchor : tuple[float, float]
+        The anchor as a pair of fractions of the box, however it was
+        given: ``"upper left"`` is kept as ``(0.0, 0.0)``.
     bbox : BBox
         Extent of the component once placed. Its ``width`` and ``height``
         give the size of the component once scaled.
@@ -234,14 +257,14 @@ class Placement:
     ValueError
         If ``x`` or ``y`` is not finite; ``scale`` is not a positive finite
         number; or ``anchor`` is a name not listed above, or holds a number
-        that is not finite.
+        that is not from 0 to 1.
 
     Notes
     -----
     Two placements are equal when they place the same component, as
     :class:`Component` compares them, at the same ``x``, ``y``, ``anchor``
-    and ``scale``. An anchor is compared as it is given, so ``"upper left"``
-    and ``(0.0, 0.0)`` are not equal, although they name the same point.
+    and ``scale``. An anchor is compared as the pair it is kept as, so a
+    placement by ``"upper left"`` is equal to one by ``(0.0, 0.0)``.
     """
 
     component: Component
@@ -261,12 +284,9 @@ class Placement:
             )
         object.__setattr__(self, "x", check_finite("x", self.x))
         object.__setattr__(self, "y", check_finite("y", self.y))
-        # A named anchor is kept as its name, and a pair as its fractions.
-        fractions = _fractions(self.anchor)
-        if isinstance(self.anchor, str):
-            object.__setattr__(self, "anchor", exact_str(self.anchor))
-        else:
-            object.__setattr__(self, "anchor", fractions)
+        # A name is only a way of writing a pair of fractions, and is kept
+        # as that pair, so that one point is one anchor however it is given.
+        object.__setattr__(self, "anchor", _fractions(self.anchor))
         object.__setattr__(
             self, "scale", check_finite_positive("scale", self.scale)
         )
