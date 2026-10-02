@@ -45,7 +45,7 @@ from ._component import (
     transform_of,
 )
 from ._geometry import BBox, Vec2, bbox_around, make_bbox
-from ._font import find_font_path, text_width, vertical_center_offset, vertical_extent
+from ._font import find_font, text_width, vertical_center_offset, vertical_extent
 
 
 def _def_id(prefix: str, *parts: object) -> str:
@@ -176,9 +176,9 @@ class _Renderer:
         )
 
         if nt.base is not None:
-            font_path = find_font_path(self.style.font_family)
+            font = find_font(self.style.font_family)
             baseline_offset = vertical_center_offset(
-                font_path,
+                font,
                 self.style.node_font_size,
             )
             text_pos = pos + Vec2(0, baseline_offset)
@@ -607,9 +607,9 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
     Component
         The drawn text.
     """
-    font_path = find_font_path(font_family)
-    above, below = vertical_extent(font_path, font_size)
-    width = text_width(font_path, text, font_size)
+    font = find_font(font_family)
+    above, below = vertical_extent(font, font_size)
+    width = text_width(font, text, font_size)
 
     drawing = svgwrite.Drawing()
     group = drawing.g()

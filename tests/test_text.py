@@ -1,9 +1,13 @@
+import pathlib
 import xml.etree.ElementTree as ET
 
+import matplotlib as mpl
 import pytest
+from fontTools.ttLib import TTCollection, TTFont
+from matplotlib import font_manager
 
 from nuc2d import Component, Placement, Scene, draw_structure, draw_text
-from nuc2d._font import find_font_path, vertical_extent
+from nuc2d._font import find_font, text_width, vertical_extent
 
 
 def texts(svg_string):
@@ -28,7 +32,7 @@ def test_markup_in_the_text_is_written_as_text():
 
 
 def test_the_box_runs_from_the_ascender_to_the_descender():
-    above, below = vertical_extent(find_font_path("Arial"), 20.0)
+    above, below = vertical_extent(find_font("Arial"), 20.0)
 
     bbox = draw_text("Wg", font_size=20.0).bbox
 
@@ -116,3 +120,63 @@ def test_the_font_family_is_one_family_name(font_family):
 def test_the_font_size_must_be_a_number(font_size):
     with pytest.raises(TypeError, match="font_size"):
         draw_text("tRNA", font_size=font_size)
+
+
+# ---------------------------------------------------------------- finding fonts
+
+
+def test_a_family_is_looked_up_by_its_name_and_not_as_a_pattern():
+    """In a fontconfig pattern, "DejaVu Sans:bold" is DejaVu Sans in bold.
+
+    That is what Matplotlib reads a string alone as, so the text was
+    measured in bold while the SVG asked for a family of that name.
+    """
+    path, _ = find_font("DejaVu Sans:bold")
+
+    assert pathlib.Path(path).name != "DejaVuSans-Bold.ttf"
+
+
+@pytest.fixture(scope="module")
+def collection(tmp_path_factory):
+    """Install a font collection whose second font is a family of its own.
+
+    Each is one of the DejaVu fonts Matplotlib ships, under a family name
+    no other font has, so that the second can only be found in here.
+    """
+    ttf_dir = pathlib.Path(mpl.get_data_path()) / "fonts" / "ttf"
+    fonts = []
+    for file, family in [
+        ("DejaVuSans.ttf", "Nuc2D Collected Sans"),
+        ("DejaVuSerif.ttf", "Nuc2D Collected Serif"),
+    ]:
+        font = TTFont(ttf_dir / file)
+        for record in font["name"].names:
+            if record.nameID in (1, 4, 16):
+                record.string = family
+            elif record.nameID == 6:
+                record.string = family.replace(" ", "")
+        fonts.append(font)
+    path = tmp_path_factory.mktemp("fonts") / "collected.ttc"
+    ttc = TTCollection()
+    ttc.fonts = fonts
+    ttc.save(path)
+    font_manager.fontManager.addfont(str(path))
+    return str(path)
+
+
+@pytest.mark.skipif(
+    mpl.__version_info__ < (3, 11),
+    reason="Matplotlib reads only the first font of a collection before 3.11",
+)
+def test_the_font_of_a_collection_that_matched_is_the_one_measured(collection):
+    """It used to be the first font of the file, whichever had matched."""
+    assert find_font("Nuc2D Collected Serif") == (collection, 1)
+
+    def width(index):
+        font = TTFont(collection, fontNumber=index)
+        cmap, units = font.getBestCmap(), font["head"].unitsPerEm
+        return sum(font["hmtx"][cmap[ord(c)]][0] for c in "Hello") / units * 10
+
+    measured = text_width(find_font("Nuc2D Collected Serif"), "Hello", 10)
+
+    assert measured == pytest.approx(width(1)) and width(1) != width(0)

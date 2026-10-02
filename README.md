@@ -259,7 +259,10 @@ pair of fractions of the box's width and height, each from 0 to 1, such as
 
 Nuc2D follows [Semantic Versioning](https://semver.org/). What a version
 promises is the public API: the names the package exports, the arguments they
-take, and the exceptions they raise. Those change only in a major release.
+take, and the type of exception each raises for the mistakes its docstring
+describes. Those change only in a major release. A minor release may raise a
+subclass of that type instead, or accept what was refused before. The text of a
+repr or of an error message is not part of the promise.
 
 Everything public is imported from `nuc2d` itself. The modules inside the
 package all begin with an underscore, such as `nuc2d._svg`: they are where the
