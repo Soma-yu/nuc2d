@@ -8,9 +8,9 @@ import pytest
 
 from nuc2d import (
     Component,
-    DrawingStyle,
     Placement,
     Scene,
+    StructureStyle,
     draw_colorbar,
     draw_structure,
 )
@@ -347,7 +347,7 @@ def test_a_definition_is_written_once_however_many_components_use_it():
 
 def test_different_definitions_are_all_written():
     turbo = draw_colorbar()
-    viridis = draw_colorbar(style=DrawingStyle(colormap=mpl.colormaps["viridis"]))
+    viridis = draw_colorbar(style=StructureStyle(colormap=mpl.colormaps["viridis"]))
     pt = Placement(component=turbo)
 
     svg = Scene(

@@ -30,7 +30,7 @@ from nuc2d import draw_svg
 # A tRNA cloverleaf, split into two strands.
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
 
-scene = draw_svg(dot_bracket=CLOVERLEAF)
+scene = draw_svg(CLOVERLEAF)
 
 scene.save_svg("output.svg")
 ```
@@ -76,7 +76,7 @@ SEQUENCES = [
     "UCUGGAGGUCCUGUGUUCGAUCCACAGAAUUCGCACCA",
 ]
 
-scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
+scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES)
 ```
 
 <p align="center">
@@ -90,14 +90,14 @@ sequence holding a line break, a tab or another control character.
 ## Equilibrium probability visualization
 
 Base-pair probabilities are visualized by passing a symmetric probability
-matrix through the `probabilities` argument. A colorbar is placed beside the structure,
-which is fitted into a square as tall as the colorbar, so that the colorbar
-keeps its size whatever the shape of the structure.
+matrix through the `basepair_probabilities` argument. A colorbar is placed
+beside the structure, which is fitted into a square as tall as the colorbar, so
+that the colorbar keeps its size whatever the shape of the structure.
 
-`probabilities[i][j]` is how likely nucleotides `i` and `j` are to be paired with each
-other, and `probabilities[i][i]` how likely nucleotide `i` is to be left unpaired. A
-real matrix comes from a structure prediction tool; the one below is made up,
-which is enough to see what the drawing does.
+Element `[i][j]` of the matrix is how likely nucleotides `i` and `j` are to be
+paired with each other, and element `[i][i]` how likely nucleotide `i` is to be
+left unpaired. A real matrix comes from a structure prediction tool; the one
+below is made up, which is enough to see what the drawing does.
 
 ```python
 import numpy as np
@@ -117,7 +117,7 @@ for i, char in enumerate(flat):
 # Whatever is left over is the probability of staying unpaired.
 probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
 
-scene = draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probabilities=probs)
+scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs)
 ```
 
 <p align="center">
@@ -135,8 +135,8 @@ given:
 
 ```python
 scene = draw_svg(
-    dot_bracket=CLOVERLEAF,
-    probabilities=probs,
+    CLOVERLEAF,
+    basepair_probabilities=probs,
     colorbar_label="Pairing probability",
 )
 ```
@@ -147,10 +147,10 @@ scene = draw_svg(
 
 ```python
 # One of the two: the other follows from the aspect ratio of the structure.
-scene = draw_svg(dot_bracket=CLOVERLEAF, width_px=600)
+scene = draw_svg(CLOVERLEAF, width_px=600)
 
 # Both: used as written.
-scene = draw_svg(dot_bracket=CLOVERLEAF, width_px=600, height_px=600)
+scene = draw_svg(CLOVERLEAF, width_px=600, height_px=600)
 ```
 
 Giving neither defaults the height to 500 px. Giving both keeps the structure's
@@ -160,23 +160,23 @@ the sides, rather than stretching it to fit.
 ## Layout and style
 
 `RadialLayoutEngine` controls geometry — how far apart nucleotides are placed.
-`DrawingStyle` controls appearance — colors, stroke widths, node size, fonts,
+`StructureStyle` controls appearance — colors, stroke widths, node size, fonts,
 and the colormap used for probabilities.
 
 ```python
 import matplotlib as mpl
 
-from nuc2d import DrawingStyle, RadialLayoutEngine
+from nuc2d import RadialLayoutEngine, StructureStyle
 
 scene = draw_svg(
-    dot_bracket=CLOVERLEAF,
+    CLOVERLEAF,
     sequences=SEQUENCES,
-    probabilities=probs,
+    basepair_probabilities=probs,
     layout_engine=RadialLayoutEngine(
         stem_spacing=18.0,
         loop_spacing=24.0,
     ),
-    style=DrawingStyle(
+    style=StructureStyle(
         backbone_color="#333333",
         basepair_color="crimson",
         node_radius=5.0,
@@ -223,7 +223,9 @@ from nuc2d import Component, Placement, Scene, draw_structure
 
 components = [
     draw_structure(CLOVERLEAF),
-    draw_structure(CLOVERLEAF, sequences=SEQUENCES, probabilities=probs),
+    draw_structure(
+        CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs
+    ),
 ]
 
 # Lay the components out in a row, all as tall as the first, with a gap between.

@@ -249,7 +249,7 @@ def test_attach_probabilities_refuses_nan_where_it_is_read():
     probs = np.eye(9)
     probs[1, 7] = np.nan
 
-    with pytest.raises(ValueError, match=r"probabilities\[1\]\[7\] is NaN"):
+    with pytest.raises(ValueError, match=r"basepair_probabilities\[1\]\[7\] is NaN"):
         attach_probabilities(root, probs)
 
 

@@ -36,7 +36,7 @@ from ._layout import (
     ArrowDecoration,
     LayoutResult,
 )
-from ._style import DrawingStyle
+from ._style import StructureStyle
 from ._component import (
     Component,
     child_placements_of,
@@ -127,8 +127,8 @@ class _Renderer:
 
     Parameters
     ----------
-    style : DrawingStyle, optional
-        Appearance settings. Defaults to ``DrawingStyle()``.
+    style : StructureStyle, optional
+        Appearance settings. Defaults to ``StructureStyle()``.
 
     Notes
     -----
@@ -139,9 +139,9 @@ class _Renderer:
     def __init__(
         self,
         *,
-        style: DrawingStyle | None = None,
+        style: StructureStyle | None = None,
     ) -> None:
-        self.style = style if style is not None else DrawingStyle()
+        self.style = style if style is not None else StructureStyle()
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     def _draw_node(
@@ -535,7 +535,7 @@ class _Graphics:
 def render_structure(
     layout_result: LayoutResult,
     *,
-    style: DrawingStyle | None = None,
+    style: StructureStyle | None = None,
 ) -> Component:
     """Render a laid-out secondary structure.
 
@@ -543,8 +543,8 @@ def render_structure(
     ----------
     layout_result : LayoutResult
         Geometry of the structure.
-    style : DrawingStyle, optional
-        Appearance settings. Defaults to ``DrawingStyle()``.
+    style : StructureStyle, optional
+        Appearance settings. Defaults to ``StructureStyle()``.
 
     Returns
     -------
@@ -560,7 +560,7 @@ def render_structure(
 def render_colorbar(
     *,
     label: str | None = "Equilibrium probability",
-    style: DrawingStyle | None = None,
+    style: StructureStyle | None = None,
 ) -> Component:
     """Render a colorbar.
 
@@ -569,9 +569,9 @@ def render_colorbar(
     label : str or None, default="Equilibrium probability"
         Label written alongside the colorbar, or None to leave it without
         one. The colorbar occupies the same box either way.
-    style : DrawingStyle, optional
+    style : StructureStyle, optional
         Appearance settings, including the colormap. Defaults to
-        ``DrawingStyle()``.
+        ``StructureStyle()``.
 
     Returns
     -------
@@ -699,14 +699,14 @@ def document_string(
 
 
 def save_document(
-    filename: str | os.PathLike[str],
+    path: str | os.PathLike[str],
     component: Component,
     *,
     width_px: float,
     height_px: float,
 ) -> None:
-    """Write a complete SVG document showing ``component`` to ``filename``.
+    """Write a complete SVG document showing ``component`` to ``path``.
 
     The document is the one :func:`document_string` returns.
     """
-    _document(component, width_px=width_px, height_px=height_px).saveas(filename)
+    _document(component, width_px=width_px, height_px=height_px).saveas(path)

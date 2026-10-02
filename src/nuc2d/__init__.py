@@ -22,7 +22,7 @@ from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parse import ParseError
 from ._scene import Scene
-from ._style import DrawingStyle
+from ._style import StructureStyle
 
 try:
     __version__ = _metadata.version("nuc2d")
@@ -32,11 +32,11 @@ except _metadata.PackageNotFoundError:  # pragma: no cover - running from a sour
 __all__ = [
     "BBox",
     "Component",
-    "DrawingStyle",
     "ParseError",
     "Placement",
     "RadialLayoutEngine",
     "Scene",
+    "StructureStyle",
     "__version__",
     "draw_colorbar",
     "draw_structure",

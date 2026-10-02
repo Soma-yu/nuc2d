@@ -15,11 +15,11 @@ import nuc2d
 PUBLIC_NAMES = {
     "BBox",
     "Component",
-    "DrawingStyle",
     "ParseError",
     "Placement",
     "RadialLayoutEngine",
     "Scene",
+    "StructureStyle",
     "__version__",
     "draw_colorbar",
     "draw_structure",
@@ -75,15 +75,15 @@ def test_every_public_name_reports_nuc2d_as_its_module():
 # after them is keyword-only, so a later release can insert an argument
 # where it belongs instead of appending it to keep the order intact.
 POSITIONAL_COUNT = {
-    nuc2d.draw_svg: 1,  # dot_bracket
-    nuc2d.draw_structure: 1,  # dot_bracket
+    nuc2d.draw_svg: 1,  # structure
+    nuc2d.draw_structure: 1,  # structure
     nuc2d.draw_colorbar: 0,
     nuc2d.draw_text: 1,  # text
     nuc2d.Component.from_placements: 1,  # placements
     nuc2d.Scene: 1,  # component
     nuc2d.Placement: 1,  # component
     nuc2d.RadialLayoutEngine: 0,
-    nuc2d.DrawingStyle: 0,
+    nuc2d.StructureStyle: 0,
 }
 
 
@@ -133,15 +133,15 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
 PUBLIC_MEMBERS = {
     "BBox": {"xmin", "ymin", "xmax", "ymax", "width", "height"},
     "Component": {"bbox", "from_placements"},
-    "DrawingStyle": {
+    "Placement": {"component", "x", "y", "anchor", "scale", "bbox"},
+    "Scene": {"to_svg", "save_svg"},
+    "StructureStyle": {
         "backbone_width", "basepair_width",
         "backbone_dasharray", "basepair_dasharray",
         "backbone_color", "basepair_color", "node_color",
         "node_radius", "node_font_size", "font_family",
         "three_prime_arrow_length", "colormap",
     },
-    "Placement": {"component", "x", "y", "anchor", "scale", "bbox"},
-    "Scene": {"to_svg", "save_svg"},
 }
 
 
@@ -181,7 +181,7 @@ def test_a_box_is_read_rather_than_built(args, kwargs):
         nuc2d.BBox(*args, **kwargs)
 
 
-@pytest.mark.parametrize("make", [nuc2d.DrawingStyle, nuc2d.RadialLayoutEngine])
+@pytest.mark.parametrize("make", [nuc2d.StructureStyle, nuc2d.RadialLayoutEngine])
 def test_what_can_be_changed_has_no_hash(make):
     """A style and an engine can be changed, and compare by their values.
 
@@ -202,7 +202,7 @@ def _structure(**kwargs):
 
 
 def _style(**kwargs):
-    return nuc2d.Scene(_structure(style=nuc2d.DrawingStyle(**kwargs)))
+    return nuc2d.Scene(_structure(style=nuc2d.StructureStyle(**kwargs)))
 
 
 def _engine(**kwargs):
@@ -252,12 +252,12 @@ def test_a_number_of_any_type_is_drawn_as_the_float_it_equals(draw, number):
 # Every argument that takes a string, drawn with the string made by the
 # kind given.
 STRING_ARGUMENTS = {
-    "dot_bracket": lambda s: nuc2d.draw_svg(s("((+((...))))")),
+    "structure": lambda s: nuc2d.draw_svg(s("((+((...))))")),
     "sequences": lambda s: nuc2d.draw_svg(
         "((+((...))))", sequences=[s("GG"), s("GGAAACCCC")]
     ),
     "colorbar_label": lambda s: nuc2d.draw_svg(
-        "(((...)))", probabilities=np.eye(9) * 0.5, colorbar_label=s("Unpaired")
+        "(((...)))", basepair_probabilities=np.eye(9) * 0.5, colorbar_label=s("Unpaired")
     ),
     "label": lambda s: nuc2d.Scene(nuc2d.draw_colorbar(label=s("Unpaired"))),
     "text": lambda s: nuc2d.Scene(nuc2d.draw_text(s("tRNA"))),
@@ -289,7 +289,7 @@ def test_a_string_of_any_kind_is_drawn_as_the_text_it_holds(draw, string):
     """A subclass of str used to reach the SVG writer as it was.
 
     The writer asks for its text with str(), and an Enum with str mixed
-    in answers with the member's name: its colour was refused when the
+    in answers with the member's name: its color was refused when the
     drawing was made, and its text was written as Named.MEMBER.
     """
     assert draw(string).to_svg() == draw(str).to_svg()

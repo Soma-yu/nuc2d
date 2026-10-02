@@ -104,7 +104,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
 
 def attach_probabilities(
     root_loop: LoopRegion,
-    probabilities: npt.ArrayLike,
+    basepair_probabilities: npt.ArrayLike,
 ) -> None:
     """Attach an equilibrium probability to every nucleotide.
 
@@ -116,7 +116,7 @@ def attach_probabilities(
     ----------
     root_loop : LoopRegion
         Root loop of the secondary structure.
-    probabilities : array_like
+    basepair_probabilities : array_like
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
         (i, i) how likely nucleotide i is to be left unpaired. A value
@@ -125,25 +125,26 @@ def attach_probabilities(
     Raises
     ------
     TypeError
-        If ``probabilities`` does not hold numbers.
+        If ``basepair_probabilities`` does not hold numbers.
     ValueError
-        If ``probabilities`` is not a square matrix whose size matches the
-        number of nucleotides in the structure, or a probability attached
-        is NaN.
+        If ``basepair_probabilities`` is not a square matrix whose size
+        matches the number of nucleotides in the structure, or a
+        probability attached is NaN.
     """
-    probs = np.asarray(probabilities)
+    probs = np.asarray(basepair_probabilities)
     # bool, signed and unsigned integers, and floating point.
     if probs.dtype.kind not in "biuf":
         raise TypeError(
-            "probabilities must be a matrix of numbers, such as a NumPy "
-            f"array of floats; got one of dtype {probs.dtype}."
+            "basepair_probabilities must be a matrix of numbers, such as a "
+            f"NumPy array of floats; got one of dtype {probs.dtype}."
         )
     size = sum(_strand_lengths(root_loop))
 
     if probs.shape != (size, size):
         raise ValueError(
-            f"The structure has {size} nucleotide(s), so probabilities must have "
-            f"shape ({size}, {size}), but its shape is {probs.shape}."
+            f"The structure has {size} nucleotide(s), so "
+            f"basepair_probabilities must have shape ({size}, {size}), but "
+            f"its shape is {probs.shape}."
         )
 
     def _probability(i: int, j: int) -> float:
@@ -153,8 +154,8 @@ def attach_probabilities(
         value = float(probs[i][j])
         if math.isnan(value):
             raise ValueError(
-                f"probabilities[{i}][{j}] is NaN; a nucleotide cannot be "
-                "colored by a probability that is not a number."
+                f"basepair_probabilities[{i}][{j}] is NaN; a nucleotide "
+                "cannot be colored by a probability that is not a number."
             )
         # A tool writing 1 - (sum of the pairing probabilities) can land
         # just outside [0, 1], and the color of the end it is near is the

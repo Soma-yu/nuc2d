@@ -102,10 +102,10 @@ class Scene:
             height_px=self._height_px,
         )
 
-    def save_svg(self, filename: str | os.PathLike[str]) -> None:
-        """Write the scene to ``filename`` as an SVG file."""
+    def save_svg(self, path: str | os.PathLike[str]) -> None:
+        """Write the scene to ``path`` as an SVG file."""
         _svg.save_document(
-            filename,
+            path,
             self._component,
             width_px=self._width_px,
             height_px=self._height_px,

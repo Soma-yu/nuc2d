@@ -112,7 +112,7 @@ class ArrowDecoration(Decoration):
     direction : Vec2
         Unit vector the arrow points along, leading away from the node.
         How far it reaches is a drawing decision, taken from
-        :attr:`~nuc2d.DrawingStyle.three_prime_arrow_length`.
+        :attr:`~nuc2d.StructureStyle.three_prime_arrow_length`.
     """
     direction: Vec2
 

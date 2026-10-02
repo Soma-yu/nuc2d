@@ -6,7 +6,7 @@ the appearance of graphical elements such as nucleotide nodes,
 backbone and base-pair edges, their letters, and the colormap
 probabilities are shown in.
 
-The main class, DrawingStyle, stores the parameters the renderer draws
+The main class, StructureStyle, stores the parameters the renderer draws
 with.
 """
 
@@ -24,7 +24,7 @@ from ._validation import (
 )
 
 
-# The colour keywords SVG 1.1 defines. They are CSS's named colours as they
+# The color keywords SVG 1.1 defines. They are CSS's named colors as they
 # stood then; rebeccapurple came later and is not one of them.
 _COLOR_KEYWORDS = frozenset(mpl.colors.CSS4_COLORS) - {"rebeccapurple"}
 _HEX_COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
@@ -35,9 +35,9 @@ _DASHARRAY = re.compile(rf"{_NUMBER}(?:,{_NUMBER})*")
 
 
 def _check_color(name: str, value: object) -> str:
-    """Raise unless ``value`` is written the way SVG writes a colour.
+    """Raise unless ``value`` is written the way SVG writes a color.
 
-    The colour is returned.
+    The color is returned.
     """
     if not isinstance(value, str):
         raise TypeError(
@@ -115,13 +115,17 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
 
 
 @dataclass(kw_only=True)
-class DrawingStyle:
+class StructureStyle:
     """How a structure looks, and the colors its probabilities are shown in.
 
     A colorbar is the key to those colors, so it is drawn from the style
     of the structure it belongs to, and takes the colormap and the font
     family from it. How the colorbar itself is laid out is not a style
     setting.
+
+    Where the nucleotides go is not a style setting either: a layout
+    engine, such as :class:`RadialLayoutEngine`, places them, and the style
+    says how they and the edges between them are drawn.
 
     Attributes
     ----------
@@ -148,8 +152,9 @@ class DrawingStyle:
         ``stroke-dasharray`` value.
 
     node_color : str
-        Color a node is drawn in when no probabilities are given. With
-        ``probabilities``, a node takes its color from ``colormap`` instead.
+        Color a node is drawn in when no base-pair probabilities are
+        given. With ``basepair_probabilities``, a node takes its color from
+        ``colormap`` instead.
     node_radius : float
         Radius of nucleotide nodes.
     node_font_size : float

@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from nuc2d import (
-    DrawingStyle,
     RadialLayoutEngine,
+    StructureStyle,
     draw_colorbar,
     draw_structure,
     draw_svg,
@@ -16,10 +16,10 @@ from nuc2d import (
 HAIRPIN = "(((...)))"
 
 
-@pytest.mark.parametrize("dot_bracket", [None, 3, list(HAIRPIN)])
-def test_the_structure_must_be_a_string(dot_bracket):
-    with pytest.raises(TypeError, match="dot_bracket"):
-        draw_structure(dot_bracket)
+@pytest.mark.parametrize("structure", [None, 3, list(HAIRPIN)])
+def test_the_structure_must_be_a_string(structure):
+    with pytest.raises(TypeError, match="structure must be a string"):
+        draw_structure(structure)
 
 
 def test_one_sequence_not_in_a_list_is_refused():
@@ -32,7 +32,7 @@ def test_one_sequence_not_in_a_list_is_refused():
     [
         ({"style": {"node_color": "crimson"}}, "style"),
         ({"style": RadialLayoutEngine()}, "style"),
-        ({"layout_engine": DrawingStyle()}, "layout_engine"),
+        ({"layout_engine": StructureStyle()}, "layout_engine"),
         ({"add_colorbar": "no"}, "add_colorbar"),
         ({"add_colorbar": None}, "add_colorbar"),
         ({"colorbar_label": 3}, "colorbar_label"),
@@ -59,7 +59,7 @@ def test_the_colorbar_takes_a_style_and_nothing_else():
 
 def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
     """Whatever colors the colormap itself keeps for values out of range."""
-    style = DrawingStyle(
+    style = StructureStyle(
         colormap=mpl.colormaps["turbo"].with_extremes(over="magenta", under="cyan")
     )
     # A pair, and the three unpaired nucleotides of the hairpin loop.
@@ -70,8 +70,8 @@ def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
     inside[5, 5], outside[5, 5] = 1.0, np.inf
 
     assert (
-        draw_svg(HAIRPIN, probabilities=outside, style=style).to_svg()
-        == draw_svg(HAIRPIN, probabilities=inside, style=style).to_svg()
+        draw_svg(HAIRPIN, basepair_probabilities=outside, style=style).to_svg()
+        == draw_svg(HAIRPIN, basepair_probabilities=inside, style=style).to_svg()
     )
 
 
@@ -79,8 +79,8 @@ def test_a_nan_probability_is_refused():
     probs = np.eye(9)
     probs[4, 4] = np.nan
 
-    with pytest.raises(ValueError, match=r"probabilities\[4\]\[4\]"):
-        draw_svg(HAIRPIN, probabilities=probs)
+    with pytest.raises(ValueError, match=r"basepair_probabilities\[4\]\[4\]"):
+        draw_svg(HAIRPIN, basepair_probabilities=probs)
 
 
 def test_an_empty_colorbar_label_is_answered_with_none():
@@ -97,6 +97,6 @@ def test_probabilities_are_anything_numpy_makes_an_array_of(as_given):
     probs = np.eye(9) * 0.4 + 0.3
 
     assert (
-        draw_svg(HAIRPIN, probabilities=as_given(probs)).to_svg()
-        == draw_svg(HAIRPIN, probabilities=probs).to_svg()
+        draw_svg(HAIRPIN, basepair_probabilities=as_given(probs)).to_svg()
+        == draw_svg(HAIRPIN, basepair_probabilities=probs).to_svg()
     )

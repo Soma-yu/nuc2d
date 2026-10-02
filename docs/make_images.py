@@ -18,10 +18,10 @@ import numpy as np
 
 from nuc2d import (
     Component,
-    DrawingStyle,
     Placement,
     RadialLayoutEngine,
     Scene,
+    StructureStyle,
     draw_structure,
     draw_svg,
 )
@@ -104,7 +104,9 @@ def example() -> Scene:
     return row(
         [
             draw_structure(CLOVERLEAF),
-            draw_structure(CLOVERLEAF, sequences=SEQUENCES, probabilities=PROBS),
+            draw_structure(
+                CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS
+            ),
         ],
         gap=20.0,
     )
@@ -112,30 +114,30 @@ def example() -> Scene:
 
 def structure() -> Scene:
     """The quick start: a structure on its own."""
-    return draw_svg(dot_bracket=CLOVERLEAF)
+    return draw_svg(CLOVERLEAF)
 
 
 def sequences() -> Scene:
     """Sequence annotation: the same structure with its bases."""
-    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES)
+    return draw_svg(CLOVERLEAF, sequences=SEQUENCES)
 
 
 def probabilities() -> Scene:
-    """Equilibrium probabilities: the same structure, coloured."""
-    return draw_svg(dot_bracket=CLOVERLEAF, sequences=SEQUENCES, probabilities=PROBS)
+    """Equilibrium probabilities: the same structure, colored."""
+    return draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS)
 
 
 def styling() -> Scene:
     """The settings the README's style example uses."""
     return draw_svg(
-        dot_bracket=CLOVERLEAF,
+        CLOVERLEAF,
         sequences=SEQUENCES,
-        probabilities=PROBS,
+        basepair_probabilities=PROBS,
         layout_engine=RadialLayoutEngine(
             stem_spacing=18.0,
             loop_spacing=24.0,
         ),
-        style=DrawingStyle(
+        style=StructureStyle(
             backbone_color="#333333",
             basepair_color="crimson",
             node_radius=5.0,
