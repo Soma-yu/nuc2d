@@ -20,7 +20,7 @@ nowhere else.
 """
 
 from dataclasses import dataclass
-from typing import Any, Literal, Union
+from typing import Any, Literal, Union, final
 
 from ._validation import check_finite, check_finite_positive, exact_str
 from ._geometry import BBox, bbox_around, is_empty_bbox, make_bbox
@@ -108,6 +108,7 @@ def _anchor_point(
     return (bbox.xmin + fx * bbox.width, bbox.ymin + fy * bbox.height)
 
 
+@final
 class Component:
     """Something that can be placed: a drawing, or several put together.
 
@@ -214,6 +215,7 @@ class Component:
         )
 
 
+@final
 @dataclass(frozen=True, kw_only=True, init=False)
 class Placement:
     """Where a component goes, and at what size.
@@ -336,7 +338,7 @@ def fit(
 
     ``anchor`` has no default. Placing a component at a point is done by
     a corner, as ``Placement`` does, while aligning one inside a box is
-    usually done by its centre, so neither default is obvious here.
+    usually done by its center, so neither default is obvious here.
     """
     # An empty box has no width or height, so this refuses one too.
     bbox = component.bbox

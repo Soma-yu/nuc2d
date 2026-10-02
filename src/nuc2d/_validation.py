@@ -153,7 +153,7 @@ def check_font_family(name: str, value: object) -> str:
 def check_attribute(owner: object, name: str, names: Collection[str]) -> None:
     """Raise unless ``name`` is one of the attributes ``owner`` has.
 
-    Assigning to a misspelt attribute would otherwise make a new one that
+    Assigning to a misspelled attribute would otherwise make a new one that
     nothing reads, and the drawing would silently stay as it was.
     """
     if name in names:

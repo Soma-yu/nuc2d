@@ -102,7 +102,7 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
         nt.base = sequences[nt.strand_index][nt.index_in_strand]
 
 
-def attach_probabilities(
+def attach_basepair_probabilities(
     root_loop: LoopRegion,
     basepair_probabilities: npt.ArrayLike,
 ) -> None:
@@ -119,8 +119,10 @@ def attach_probabilities(
     basepair_probabilities : array_like
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
-        (i, i) how likely nucleotide i is to be left unpaired. A value
-        below 0 or above 1 is attached as 0 or 1.
+        (i, i) how likely nucleotide i is to be left unpaired. Only the
+        elements on and above the diagonal are read, so the matrix may be
+        symmetric or have only its upper triangle filled in. A value below
+        0 or above 1 is attached as 0 or 1.
 
     Raises
     ------

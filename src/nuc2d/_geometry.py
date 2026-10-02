@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 import math
+from typing import final
 
 
 @dataclass(frozen=True)
@@ -118,6 +119,7 @@ class Vec2:
         return (float(self.x), float(self.y))
 
 
+@final
 class BBox:
     """An axis-aligned bounding box.
 

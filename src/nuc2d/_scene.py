@@ -5,13 +5,14 @@ pixels. How it is written is left to :mod:`nuc2d._svg`.
 """
 
 import os
-from typing import Any
+from typing import Any, final
 
 from . import _svg
 from ._validation import check_finite_positive
 from ._component import Component, Placement
 
 
+@final
 class Scene:
     """The whole of what is shown: a component, framed and sized.
 
@@ -28,7 +29,7 @@ class Scene:
     height_px : float, optional
         Height of the scene in pixels. Given alone, the width follows
         from the component's proportions. Giving neither sets the height
-        to 500. Giving both keeps the component's proportions and centres
+        to 500. Giving both keeps the component's proportions and centers
         it, rather than stretching it to fit.
 
     Raises

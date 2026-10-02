@@ -112,7 +112,7 @@ def _vertical_extent_ratios(font_path: str) -> tuple[float, float]:
     """Return how far a line of text reaches above and below its baseline.
 
     Both are fractions of the font size, taken from the same ascender and
-    descender :func:`vertical_center_offset` centres on, and both are
+    descender :func:`vertical_center_offset` centers on, and both are
     positive.
     """
     font = _open(font_path)

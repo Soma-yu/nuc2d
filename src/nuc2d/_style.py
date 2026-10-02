@@ -13,6 +13,7 @@ with.
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import final
 
 import matplotlib as mpl
 
@@ -96,7 +97,7 @@ def _check_colormap(name: str, value: object) -> mpl.colors.Colormap:
 
 
 # How each field is checked, whenever it is assigned. Every field is here,
-# so that a name that is not is a misspelt one. A check returns what the
+# so that a name that is not is a misspelled one. A check returns what the
 # field keeps.
 _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
     "backbone_color": _check_color,
@@ -114,6 +115,7 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
 }
 
 
+@final
 @dataclass(kw_only=True)
 class StructureStyle:
     """How a structure looks, and the colors its probabilities are shown in.
@@ -188,7 +190,7 @@ class StructureStyle:
         colormap.
     AttributeError
         If an attribute that a style does not have is assigned, such as a
-        misspelt one.
+        misspelled one.
 
     Notes
     -----
@@ -207,7 +209,7 @@ class StructureStyle:
     ``node_radius`` and ``node_font_size``, is a finite number of at least
     0, in the units of the drawing.
 
-    A structure's box leaves a margin around the centres of its outermost
+    A structure's box leaves a margin around the centers of its outermost
     nucleotides, whatever the style. A ``node_radius``,
     ``node_font_size`` or ``three_prime_arrow_length`` large enough to
     draw past it is cut off at the edge of a scene.

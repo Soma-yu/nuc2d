@@ -89,15 +89,17 @@ sequence holding a line break, a tab or another control character.
 
 ## Equilibrium probability visualization
 
-Base-pair probabilities are visualized by passing a symmetric probability
-matrix through the `basepair_probabilities` argument. A colorbar is placed
+Base-pair probabilities are visualized by passing a probability matrix
+through the `basepair_probabilities` argument. A colorbar is placed
 beside the structure, which is fitted into a square as tall as the colorbar, so
 that the colorbar keeps its size whatever the shape of the structure.
 
 Element `[i][j]` of the matrix is how likely nucleotides `i` and `j` are to be
 paired with each other, and element `[i][i]` how likely nucleotide `i` is to be
-left unpaired. A real matrix comes from a structure prediction tool; the one
-below is made up, which is enough to see what the drawing does.
+left unpaired. Only the elements on and above the diagonal are read, so the
+matrix may be symmetric, as the one below is, or have only its upper triangle
+filled in. A real matrix comes from a structure prediction tool; the one below
+is made up, which is enough to see what the drawing does.
 
 ```python
 import numpy as np
@@ -130,7 +132,7 @@ is not. A probability below 0 or above 1, as rounding in a prediction tool can
 leave one, is shown in the color of 0 or of 1. A NaN raises `ValueError`, since
 there is no color to show it in.
 
-The colorbar is labelled `Equilibrium probability` unless another label is
+The colorbar is labeled `Equilibrium probability` unless another label is
 given:
 
 ```python
@@ -154,7 +156,7 @@ scene = draw_svg(CLOVERLEAF, width_px=600, height_px=600)
 ```
 
 Giving neither defaults the height to 500 px. Giving both keeps the structure's
-own proportions and centres it in the box, with space above and below or at
+own proportions and centers it in the box, with space above and below or at
 the sides, rather than stretching it to fit.
 
 ## Layout and style
@@ -196,7 +198,7 @@ colormap is a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`,
 rather than its name.
 
 Anything else raises an exception as soon as it is set, rather than when
-something is drawn with the engine or the style. So does a misspelt setting,
+something is drawn with the engine or the style. So does a misspelled setting,
 such as `style.node_colour = "black"`, which would otherwise be ignored.
 
 ## Combining several structures
@@ -262,6 +264,11 @@ take, and the exceptions they raise. Those change only in a major release.
 Everything public is imported from `nuc2d` itself. The modules inside the
 package all begin with an underscore, such as `nuc2d._svg`: they are where the
 code lives, and they can change in any release.
+
+The classes are not meant to be subclassed. A type checker reports a subclass
+of one, and what a subclass would rely on is not part of the promise. Nor is
+pickling: what an object holds is private, so one pickled under one version of
+nuc2d may not load under another.
 
 A release that drops a version of Python which has reached its end of life,
 or raises the oldest version of a dependency that it supports, is a minor

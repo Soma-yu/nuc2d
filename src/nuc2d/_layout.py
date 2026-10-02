@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 import math
+from typing import final
 
 from ._validation import (
     check_attribute,
@@ -169,7 +170,7 @@ class _LayoutState:
 
 # How each setting of RadialLayoutEngine is checked, whenever it is
 # assigned. Every setting is here, so that a name that is not is a
-# misspelt one. A check returns what the setting keeps.
+# misspelled one. A check returns what the setting keeps.
 _RADIAL_SETTINGS: dict[str, Callable[[str, object], object]] = {
     "stem_spacing": check_finite_positive,
     "loop_spacing": check_finite_positive,
@@ -177,6 +178,7 @@ _RADIAL_SETTINGS: dict[str, Callable[[str, object], object]] = {
 }
 
 
+@final
 @dataclass(kw_only=True)
 class RadialLayoutEngine:
     """Layout engine for generating a radial representation of a secondary structure.
@@ -188,18 +190,18 @@ class RadialLayoutEngine:
     Parameters
     ----------
     stem_spacing : float, default=15.0
-        Distance, centre to centre, between adjacent nucleotides along a
+        Distance, center to center, between adjacent nucleotides along a
         stem, where the backbone runs straight. The same spacing holds
         through a loop whose stems stack coaxially on one another, which
         continues the stem, and along a structure with no base pair at
         all, which is drawn as one straight strand.
     loop_spacing : float, default=20.0
-        Distance, centre to centre, between adjacent nucleotides around a
+        Distance, center to center, between adjacent nucleotides around a
         loop that is not stacked, measured as the chord of the loop circle.
         It is what sets the radius the loop is drawn on.
 
         It sets the width of every stem as well: the base pair closing a
-        loop joins two nucleotides that are neighbours on that loop's
+        loop joins two nucleotides that are neighbors on that loop's
         circle, so the pair spans one chord, and the two strands of the
         stem then run parallel at that separation.
     coaxial_stack_deflection : float, default=10.0
@@ -218,7 +220,7 @@ class RadialLayoutEngine:
         number, or ``coaxial_stack_deflection`` is not finite.
     AttributeError
         If an attribute that the engine does not have is assigned, such as
-        a misspelt one.
+        a misspelled one.
 
     Notes
     -----

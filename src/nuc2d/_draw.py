@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import numpy.typing as npt
 
-from ._annotation import attach_probabilities, attach_sequences
+from ._annotation import attach_basepair_probabilities, attach_sequences
 from ._validation import (
     check_finite_positive,
     check_font_family,
@@ -179,7 +179,9 @@ def draw_structure(
         Base-pair probability matrix. Element ``(i, j)`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
         element ``(i, i)`` how likely nucleotide ``i`` is to be left
-        unpaired. When given, each nucleotide is colored by it, and a
+        unpaired. Only the elements on and above the diagonal are read,
+        so the matrix may be symmetric or have only its upper triangle
+        filled in. When given, each nucleotide is colored by it, and a
         colorbar is set beside the structure. A value below 0 or above 1
         is shown in the color of 0 or of 1.
     layout_engine : RadialLayoutEngine, optional
@@ -220,7 +222,7 @@ def draw_structure(
 
     Notes
     -----
-    The structure's box leaves a margin around the centres of its
+    The structure's box leaves a margin around the centers of its
     outermost nucleotides. It is not measured from what is drawn, so
     nodes, letters or 3' arrows drawn large enough reach past it, and a
     scene cuts them off at its edge. How the box is drawn around a
@@ -228,7 +230,7 @@ def draw_structure(
     release may change it.
 
     With a colorbar, the structure is fitted into a square as tall as the
-    colorbar and centred in it. The colorbar keeps its own size, so that
+    colorbar and centered in it. The colorbar keeps its own size, so that
     it stays legible beside a structure of any shape, and every structure
     drawn this way takes the same room.
     """
@@ -251,7 +253,7 @@ def draw_structure(
     if sequences is not None:
         attach_sequences(root_loop, sequences)
     if basepair_probabilities is not None:
-        attach_probabilities(root_loop, basepair_probabilities)
+        attach_basepair_probabilities(root_loop, basepair_probabilities)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
     drawn = render_structure(layout(root_loop, engine), style=style)
@@ -303,8 +305,10 @@ def draw_svg(
         Base-pair probability matrix. Element ``(i, j)`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
         element ``(i, i)`` how likely nucleotide ``i`` is to be left
-        unpaired. A value below 0 or above 1 is shown in the color of 0 or
-        of 1.
+        unpaired. Only the elements on and above the diagonal are read,
+        so the matrix may be symmetric or have only its upper triangle
+        filled in. A value below 0 or above 1 is shown in the color of 0
+        or of 1.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.

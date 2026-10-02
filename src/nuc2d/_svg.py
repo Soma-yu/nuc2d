@@ -100,7 +100,7 @@ def _ensure_def(
     drawing.defs.add(build())
 
 
-# The box around a structure runs this far past the centres of its
+# The box around a structure runs this far past the centers of its
 # outermost nodes, which leaves some room around what is drawn there at
 # the default sizes. It is not measured from what is drawn, so a node, a
 # letter or a 3' arrow drawn larger than this reaches past the box.

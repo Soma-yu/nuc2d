@@ -46,7 +46,7 @@ def test_the_box_grows_with_the_text_and_the_size():
     assert larger.height == pytest.approx(short.height * 2)
 
 
-def test_a_title_can_be_centred_over_a_structure():
+def test_a_title_can_be_centered_over_a_structure():
     title = Placement(component=draw_text("tRNA", font_size=15.0), anchor="upper center")
     structure = Placement(
         component=draw_structure("(((...)))"),
@@ -56,10 +56,10 @@ def test_a_title_can_be_centred_over_a_structure():
 
     panel = Component.from_placements([title, structure])
 
-    def centre_x(bbox):
+    def center_x(bbox):
         return (bbox.xmin + bbox.xmax) / 2
 
-    assert centre_x(title.bbox) == pytest.approx(centre_x(structure.bbox))
+    assert center_x(title.bbox) == pytest.approx(center_x(structure.bbox))
     assert panel.bbox.height == pytest.approx(
         title.bbox.height + 10.0 + structure.bbox.height
     )

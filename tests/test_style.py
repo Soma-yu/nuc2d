@@ -172,7 +172,7 @@ def test_a_list_of_families_is_answered_with_the_first_of_them():
         StructureStyle(font_family="Arial, sans-serif")
 
 
-def test_a_misspelt_attribute_is_refused_and_the_right_one_named():
+def test_a_misspelled_attribute_is_refused_and_the_right_one_named():
     """Assigned, it would otherwise make an attribute that nothing reads."""
     style = StructureStyle()
 

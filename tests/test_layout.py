@@ -184,7 +184,7 @@ def test_engines_are_equal_when_their_settings_are():
     assert RadialLayoutEngine() != RadialLayoutEngine(stem_spacing=18.0)
 
 
-def test_a_misspelt_setting_is_refused_and_the_right_one_named():
+def test_a_misspelled_setting_is_refused_and_the_right_one_named():
     engine = RadialLayoutEngine()
 
     with pytest.raises(AttributeError, match="Did you mean: 'stem_spacing'"):

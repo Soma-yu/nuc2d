@@ -3,7 +3,7 @@ import pytest
 
 from nuc2d._annotation import (
     attach_sequences,
-    attach_probabilities,
+    attach_basepair_probabilities,
 )
 from nuc2d._parse import parse
 from nuc2d._structure import iter_nucleotides
@@ -65,7 +65,7 @@ def test_attach_sequences_duplex():
     ]
 
 
-def test_attach_probabilities_hairpin():
+def test_attach_basepair_probabilities_hairpin():
     root = parse("(((...)))")
 
     probs = np.zeros((9, 9))
@@ -83,7 +83,7 @@ def test_attach_probabilities_hairpin():
     probs[4, 4] = 0.2
     probs[5, 5] = 0.3
 
-    attach_probabilities(
+    attach_basepair_probabilities(
         root,
         probs,
     )
@@ -168,24 +168,24 @@ def test_attach_sequences_accepts_matching_sequences():
 
 
 @pytest.mark.parametrize("size", [3, 8, 10])
-def test_attach_probabilities_rejects_a_wrong_shape(size):
+def test_attach_basepair_probabilities_rejects_a_wrong_shape(size):
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match=r"shape \(9, 9\)"):
-        attach_probabilities(root, np.eye(size))
+        attach_basepair_probabilities(root, np.eye(size))
 
 
-def test_attach_probabilities_rejects_a_non_square_matrix():
+def test_attach_basepair_probabilities_rejects_a_non_square_matrix():
     root = parse("(((...)))")
 
     with pytest.raises(ValueError, match="shape"):
-        attach_probabilities(root, np.zeros((9, 4)))
+        attach_basepair_probabilities(root, np.zeros((9, 4)))
 
 
-def test_attach_probabilities_accepts_a_nested_list():
+def test_attach_basepair_probabilities_accepts_a_nested_list():
     root = parse("(((...)))")
 
-    attach_probabilities(root, np.eye(9).tolist())
+    attach_basepair_probabilities(root, np.eye(9).tolist())
 
     assert all(
         nt.probability is not None for nt in iter_nucleotides(root)
@@ -237,32 +237,32 @@ def test_attach_sequences_takes_any_letter_that_can_be_drawn():
 @pytest.mark.parametrize(
     "probabilities", [np.full((9, 9), "0.5"), np.full((9, 9), None)]
 )
-def test_attach_probabilities_refuses_a_matrix_that_is_not_numbers(probabilities):
+def test_attach_basepair_probabilities_refuses_a_matrix_that_is_not_numbers(probabilities):
     root = parse("(((...)))")
 
     with pytest.raises(TypeError, match="numbers"):
-        attach_probabilities(root, probabilities)
+        attach_basepair_probabilities(root, probabilities)
 
 
-def test_attach_probabilities_refuses_nan_where_it_is_read():
+def test_attach_basepair_probabilities_refuses_nan_where_it_is_read():
     root = parse("(((...)))")
     probs = np.eye(9)
     probs[1, 7] = np.nan
 
     with pytest.raises(ValueError, match=r"basepair_probabilities\[1\]\[7\] is NaN"):
-        attach_probabilities(root, probs)
+        attach_basepair_probabilities(root, probs)
 
 
-def test_attach_probabilities_passes_over_nan_where_it_is_not_read():
+def test_attach_basepair_probabilities_passes_over_nan_where_it_is_not_read():
     """A matrix drawn as a heatmap often has its other half left as NaN."""
     root = parse("(((...)))")
     probs = np.eye(9)
     probs[np.tril_indices(9, -1)] = np.nan
 
-    attach_probabilities(root, probs)
+    attach_basepair_probabilities(root, probs)
 
 
-def test_attach_probabilities_reads_only_the_element_each_nucleotide_takes():
+def test_attach_basepair_probabilities_reads_only_the_element_each_nucleotide_takes():
     """Every other element may be NaN, the diagonal of a paired one too.
 
     The two ends of a stem are also in the loop it leaves, and the loop
@@ -277,14 +277,14 @@ def test_attach_probabilities_reads_only_the_element_each_nucleotide_takes():
     for i in set(range(20)) - paired:
         probs[i, i] = 0.75
 
-    attach_probabilities(root, probs)
+    attach_basepair_probabilities(root, probs)
 
     assert [nt.probability for nt in collect_nucleotides(root)] == [
         0.25 if i in paired else 0.75 for i in range(20)
     ]
 
 
-def test_attach_probabilities_clips_what_lies_outside_zero_to_one():
+def test_attach_basepair_probabilities_clips_what_lies_outside_zero_to_one():
     """A value just past 0 or 1 is the rounding of a tool that wrote it."""
     root = parse("(((...)))")
     probs = np.zeros((9, 9))
@@ -292,7 +292,7 @@ def test_attach_probabilities_clips_what_lies_outside_zero_to_one():
     probs[3, 3] = -0.2
     probs[4, 4] = np.inf
 
-    attach_probabilities(root, probs)
+    attach_basepair_probabilities(root, probs)
 
     nts = collect_nucleotides(root)
     assert [nts[i].probability for i in (0, 8, 3, 4)] == [

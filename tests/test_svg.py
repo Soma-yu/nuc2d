@@ -107,7 +107,7 @@ def test_output_is_well_formed_xml(dot_bracket):
 
 
 def node_extent(dot_bracket):
-    """Return the box around the centres of a structure's nodes."""
+    """Return the box around the centers of a structure's nodes."""
     from nuc2d._layout import layout
     from nuc2d._parse import parse
 
@@ -169,10 +169,10 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
         assert with_bar.width == pytest.approx(colorbar.height + colorbar.width)
 
 
-def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
+def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
     """A structure wider than it is tall sits midway up the colorbar."""
     colorbar = draw_colorbar().bbox
-    square_centre = (
+    square_center = (
         colorbar.xmin - colorbar.height / 2, (colorbar.ymin + colorbar.ymax) / 2
     )
 
@@ -191,10 +191,10 @@ def test_the_structure_is_centred_in_its_square_beside_the_colorbar():
         )
         dx, dy, scale, _ = map(float, re.findall(r"-?[\d.]+(?:e-?\d+)?", transform))
 
-        centre_x = (alone.xmin + alone.xmax) / 2
-        centre_y = (alone.ymin + alone.ymax) / 2
-        assert (dx + scale * centre_x, dy + scale * centre_y) == (
-            pytest.approx(square_centre)
+        center_x = (alone.xmin + alone.xmax) / 2
+        center_y = (alone.ymin + alone.ymax) / 2
+        assert (dx + scale * center_x, dy + scale * center_y) == (
+            pytest.approx(square_center)
         )
 
 
@@ -225,11 +225,11 @@ def test_colorbar_label_is_configurable():
 
 
 def test_colorbar_label_none_leaves_the_label_out():
-    labelled = draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
-    unlabelled = draw_svg("(((...)))", basepair_probabilities=PROBS, colorbar_label=None).to_svg()
+    labeled = draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
+    unlabeled = draw_svg("(((...)))", basepair_probabilities=PROBS, colorbar_label=None).to_svg()
 
-    assert "Equilibrium probability" not in collect_texts(unlabelled)
-    assert len(collect_texts(unlabelled)) == len(collect_texts(labelled)) - 1
+    assert "Equilibrium probability" not in collect_texts(unlabeled)
+    assert len(collect_texts(unlabeled)) == len(collect_texts(labeled)) - 1
 
 
 def test_colorbar_keeps_its_box_without_a_label():

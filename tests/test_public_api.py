@@ -2,6 +2,7 @@ import dataclasses
 import enum
 import inspect
 import pkgutil
+import sys
 from fractions import Fraction
 
 import numpy as np
@@ -293,6 +294,29 @@ def test_a_string_of_any_kind_is_drawn_as_the_text_it_holds(draw, string):
     drawing was made, and its text was written as Named.MEMBER.
     """
     assert draw(string).to_svg() == draw(str).to_svg()
+
+
+# Every public class but ParseError. An exception is there to be caught, and
+# a caller may subclass it as it may any exception.
+FINAL_CLASSES = [
+    "BBox", "Component", "Placement", "RadialLayoutEngine", "Scene",
+    "StructureStyle",
+]
+
+
+def test_every_public_class_but_the_exception_is_listed_as_final():
+    classes = {n for n in PUBLIC_NAMES if inspect.isclass(getattr(nuc2d, n))}
+
+    assert classes - {"ParseError"} == set(FINAL_CLASSES)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="final marks a class from Python 3.11"
+)
+@pytest.mark.parametrize("name", FINAL_CLASSES)
+def test_a_class_is_marked_final(name):
+    """Not meant to be subclassed, which a type checker then reports."""
+    assert getattr(nuc2d, name).__final__ is True
 
 
 def test_a_malformed_structure_is_a_value_error():
