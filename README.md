@@ -271,7 +271,10 @@ code lives, and they can change in any release.
 The classes are not meant to be subclassed. A type checker reports a subclass
 of one, and what a subclass would rely on is not part of the promise. Nor is
 pickling: what an object holds is private, so one pickled under one version of
-nuc2d may not load under another.
+nuc2d may not load under another. Some of the classes are dataclasses, but that
+is not promised either: what `dataclasses.fields`, `asdict`, `astuple` and
+`replace` do with them may change, and so may an attribute read from a class
+rather than from an instance, such as `StructureStyle.node_radius`.
 
 A release that drops a version of Python which has reached its end of life,
 or raises the oldest version of a dependency that it supports, is a minor

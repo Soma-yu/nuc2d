@@ -170,6 +170,23 @@ def test_the_component_is_given_by_position_or_by_name():
     assert Placement(component, x=1.0) == Placement(component=component, x=1.0)
 
 
+def test_a_match_statement_takes_a_placement_by_name_only():
+    """A pattern names the fields it looks at; one by position is refused."""
+    placement = Placement(structure(), x=1.0)
+
+    match placement:
+        case Placement(x=1.0, anchor=(0.0, 0.0)):
+            matched = True
+        case _:
+            matched = False
+    assert matched
+
+    with pytest.raises(TypeError, match="positional"):
+        match placement:
+            case Placement(_):
+                pass
+
+
 def test_a_placement_can_be_copied_with_a_field_changed():
     """Its __init__ is written by hand, and replace goes through it."""
     placement = Placement(component=structure(), anchor="center", scale=2.0)

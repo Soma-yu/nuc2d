@@ -216,7 +216,7 @@ class Component:
 
 
 @final
-@dataclass(frozen=True, kw_only=True, init=False)
+@dataclass(frozen=True, init=False, match_args=False)
 class Placement:
     """Where a component goes, and at what size.
 
