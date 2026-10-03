@@ -166,7 +166,7 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
     """
     colorbar = render_colorbar().bbox
 
-    for dot_bracket in ["(((...)))", "." * 40, "((((....))))" * 3]:
+    for dot_bracket in ["(((...)))", ".....", "((((....))))" * 3]:
         with_bar = draw_svg_as_component(
             dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5
         ).bbox
@@ -182,7 +182,7 @@ def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
         colorbar.xmin - colorbar.height / 2, (colorbar.ymin + colorbar.ymax) / 2
     )
 
-    for dot_bracket in ["." * 40, "((((....))))" * 3]:
+    for dot_bracket in [".....", "((((....))))" * 3]:
         alone = draw_svg_as_component(dot_bracket).bbox
         assert alone.width > alone.height
         svg = Scene(
@@ -208,7 +208,7 @@ def test_under_a_title_a_structure_is_as_large_as_beside_a_colorbar():
     """So that the title, at one size, reads the same over any structure."""
     colorbar = render_colorbar().bbox
 
-    for dot_bracket in ["(((...)))", "." * 40, "(" * 30 + "..." + ")" * 30]:
+    for dot_bracket in ["(((...)))", ".....", "(" * 30 + "..." + ")" * 30]:
         bbox = draw_svg_as_component(dot_bracket, title="t").bbox
 
         # The structure runs down from y = 0, and is wider than the title.

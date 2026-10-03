@@ -607,7 +607,10 @@ def render_text(text: str, *, font_size: float) -> Component:
     The text is set on a baseline as far below the top of its box as the
     font's ascender reaches, so that the box runs from the ascender to the
     descender, and from the start of the first character to the end of
-    the last.
+    the last. It is anchored at the middle of the box rather than at its
+    left edge, so that shown in a font of other widths than the one it
+    was measured with, it runs past the box as far on either side, and
+    stays centered on it.
 
     Parameters
     ----------
@@ -630,7 +633,8 @@ def render_text(text: str, *, font_size: float) -> Component:
     group.add(
         drawing.text(
             text,
-            insert=(0.0, above),
+            insert=(width / 2, above),
+            text_anchor="middle",
             font_family=_FONT_FAMILY,
             font_size=font_size,
             fill="black",

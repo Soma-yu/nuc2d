@@ -168,6 +168,11 @@ class _LayoutState:
     vec: Vec2 = Vec2(1, 0)
 
 
+# A structure with no base pair is drawn on a circle from this many
+# nucleotides, and as a straight strand below it.
+_MIN_NUCLEOTIDES_ON_A_CIRCLE = 6
+
+
 # How each setting of RadialLayoutEngine is checked, whenever it is
 # assigned. Every setting is here, so that a name that is not is a
 # misspelled one. A check returns what the setting keeps.
@@ -193,12 +198,15 @@ class RadialLayoutEngine:
         Distance, center to center, between adjacent nucleotides along a
         stem, where the backbone runs straight. The same spacing holds
         through a loop whose stems stack coaxially on one another, which
-        continues the stem, and along a structure with no base pair at
-        all, which is drawn as one straight strand.
+        continues the stem, and along a structure of fewer than six
+        nucleotides with no base pair, which is drawn as one straight
+        strand.
     loop_spacing : float, default=20.0
         Distance, center to center, between adjacent nucleotides around a
         loop that is not stacked, measured as the chord of the loop circle.
-        It is what sets the radius the loop is drawn on.
+        It is what sets the radius the loop is drawn on. A structure of
+        six nucleotides or more with no base pair is drawn on such a
+        circle too, its two ends side by side at the top.
 
         It sets the width of every stem as well: the base pair closing a
         loop joins two nucleotides that are neighbors on that loop's
@@ -431,8 +439,16 @@ class RadialLayoutEngine:
                 state.vec = state.vec.rotated(-delta_angle)
             state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
             self._layout_loop(state, root_loop)
+        elif len(nucleotides) >= _MIN_NUCLEOTIDES_ON_A_CIRCLE:
+            # With no base pair, the strand is drawn as the outermost loop
+            # of a structure with pairs is: on a circle, walked clockwise
+            # from the starting direction, which leaves the two ends side
+            # by side at the top, 5' on the right.
+            state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
+            self._layout_loop(state, root_loop)
         else:
-            # Layout for secondary structures without base pairs
+            # Too short to read as a circle: a few nucleotides around one
+            # look like a loop whose stem is missing. A straight strand.
             state.nodes.append(Node(nucleotide=nucleotides[0], pos=state.pos))
             for nt in nucleotides[1:]:
                 state.pos += self.stem_spacing * state.vec

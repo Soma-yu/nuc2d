@@ -39,6 +39,40 @@ def test_layout_unpaired():
     assert len(result.decorations) == 1
 
 
+def test_a_short_strand_with_no_base_pair_is_drawn_straight():
+    engine = RadialLayoutEngine()
+
+    result = layout(parse("....."), engine)
+
+    xs = [node.pos.x for node in result.nodes]
+    ys = [node.pos.y for node in result.nodes]
+    assert ys == pytest.approx([ys[0]] * 5)
+    assert np.diff(xs) == pytest.approx([engine.stem_spacing] * 4)
+
+
+@pytest.mark.parametrize("n", [6, 7, 12, 40])
+def test_a_longer_strand_with_no_base_pair_is_drawn_on_a_circle(n):
+    """As the outermost loop of a structure with base pairs is."""
+    engine = RadialLayoutEngine()
+
+    result = layout(parse("." * n), engine)
+
+    points = np.array([(node.pos.x, node.pos.y) for node in result.nodes])
+    center = points.mean(axis=0)
+    radii = np.linalg.norm(points - center, axis=1)
+    chords = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    assert radii == pytest.approx(np.full(n, radii[0]))
+    assert chords == pytest.approx(np.full(n - 1, engine.loop_spacing))
+
+    # The two ends side by side at the top, where y is smallest, 5' on
+    # the right; the backbone does not join them.
+    (x5, y5), (x3, y3) = points[0], points[-1]
+    assert y5 == pytest.approx(y3) and y5 < center[1]
+    assert x5 > x3
+    assert get_edge_counts(result) == (n - 1, 0)
+    assert len(result.decorations) == 1
+
+
 def test_layout_hairpin():
     root = parse("(((...)))")
 

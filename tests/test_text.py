@@ -32,6 +32,16 @@ def test_the_text_is_written_as_given():
     assert float(element.attrib["font-size"]) == 12.0
 
 
+def test_the_text_is_anchored_at_the_middle_of_its_box():
+    """Shown in a font of other widths, it stays centered on the box."""
+    component = line("tRNA cloverleaf")
+
+    [element] = texts(Scene(component).to_svg())
+
+    assert element.attrib["text-anchor"] == "middle"
+    assert float(element.attrib["x"]) == pytest.approx(component.bbox.width / 2)
+
+
 def test_markup_in_the_text_is_written_as_text():
     [element] = texts(Scene(line("a < b & c")).to_svg())
 
