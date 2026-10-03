@@ -3,10 +3,10 @@
 :func:`draw_svg` draws a structure and returns a :class:`Scene`, ready to
 save with :meth:`Scene.save_svg` or to show in Jupyter.
 
-To put several parts together, draw each as a :class:`Component` with
-:func:`draw_structure`, :func:`draw_colorbar` or :func:`draw_text`, say
-where each goes with a :class:`Placement`, make one component of them
-with :meth:`Component.from_placements`, and frame the result as a
+To put several structures together, draw each as a :class:`Component`
+with :func:`draw_svg_as_component`, say where each goes with a
+:class:`Placement`, make one component of them with
+:meth:`Component.from_placements`, and frame the result as a
 :class:`Scene`.
 
 Everything public is imported from ``nuc2d`` itself. The modules inside the
@@ -17,7 +17,7 @@ part of what a version promises.
 from importlib import metadata as _metadata
 
 from ._component import Component, Placement
-from ._draw import draw_colorbar, draw_structure, draw_svg, draw_text
+from ._draw import draw_svg, draw_svg_as_component
 from ._geometry import BBox
 from ._layout import RadialLayoutEngine
 from ._parse import ParseError
@@ -38,10 +38,8 @@ __all__ = [
     "Scene",
     "StructureStyle",
     "__version__",
-    "draw_colorbar",
-    "draw_structure",
     "draw_svg",
-    "draw_text",
+    "draw_svg_as_component",
 ]
 
 # Each public name is defined in a private module, which would otherwise show

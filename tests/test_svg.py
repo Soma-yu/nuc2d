@@ -14,10 +14,10 @@ from nuc2d import (
     RadialLayoutEngine,
     Scene,
     StructureStyle,
-    draw_colorbar,
-    draw_structure,
     draw_svg,
+    draw_svg_as_component,
 )
+from nuc2d._svg import render_colorbar
 
 
 def side_by_side(components):
@@ -57,7 +57,7 @@ def test_ids_are_unique_within_one_drawing():
 
 
 def test_ids_stay_unique_across_several_components_in_one_scene():
-    scene = side_by_side([draw_structure("(((...)))", basepair_probabilities=PROBS) for _ in range(3)])
+    scene = side_by_side([draw_svg_as_component("(((...)))", basepair_probabilities=PROBS) for _ in range(3)])
 
     ids = collect_ids(scene.to_svg())
 
@@ -66,7 +66,7 @@ def test_ids_stay_unique_across_several_components_in_one_scene():
 
 def test_differing_styles_get_their_own_definitions():
     scene = side_by_side([
-        draw_structure("(((...)))", basepair_probabilities=PROBS, style=style)
+        draw_svg_as_component("(((...)))", basepair_probabilities=PROBS, style=style)
         for style in [
             StructureStyle(backbone_color="black", colormap=mpl.colormaps["turbo"]),
             StructureStyle(backbone_color="red", colormap=mpl.colormaps["viridis"]),
@@ -80,7 +80,7 @@ def test_differing_styles_get_their_own_definitions():
 
 
 def test_identical_styles_share_one_definition():
-    scene = side_by_side([draw_structure("(((...)))", basepair_probabilities=PROBS) for _ in range(3)])
+    scene = side_by_side([draw_svg_as_component("(((...)))", basepair_probabilities=PROBS) for _ in range(3)])
 
     ids = collect_ids(scene.to_svg())
 
@@ -89,7 +89,7 @@ def test_identical_styles_share_one_definition():
 
 def test_every_reference_resolves():
     scene = side_by_side([
-        draw_structure("(((...)))", basepair_probabilities=PROBS, style=StructureStyle(backbone_color=color))
+        draw_svg_as_component("(((...)))", basepair_probabilities=PROBS, style=StructureStyle(backbone_color=color))
         for color in ["black", "red"]
     ])
 
@@ -120,7 +120,7 @@ def node_extent(dot_bracket):
 def test_the_box_runs_twenty_units_past_the_outermost_nodes():
     xmin, ymin, xmax, ymax = node_extent("(((...)))")
 
-    bbox = draw_structure("(((...)))").bbox
+    bbox = draw_svg_as_component("(((...)))").bbox
 
     assert (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax) == pytest.approx(
         (xmin - 20.0, ymin - 20.0, xmax + 20.0, ymax + 20.0)
@@ -129,18 +129,18 @@ def test_the_box_runs_twenty_units_past_the_outermost_nodes():
 
 def test_the_box_is_not_widened_by_the_style():
     """The box is not measured from what is drawn, so a style leaves it be."""
-    default = draw_structure("(((...)))").bbox
+    default = draw_svg_as_component("(((...)))").bbox
 
     for style in [
         StructureStyle(node_radius=30.0),
         StructureStyle(node_font_size=50.0),
         StructureStyle(three_prime_arrow_length=40.0),
     ]:
-        assert draw_structure("(((...)))", style=style).bbox == default
+        assert draw_svg_as_component("(((...)))", style=style).bbox == default
 
 
 def test_viewbox_frames_exactly_the_component():
-    component = draw_structure("..(((...)))..")
+    component = draw_svg_as_component("..(((...)))..")
 
     svg = draw_svg("..(((...)))..").to_svg()
     viewbox = ET.fromstring(svg).attrib["viewBox"]
@@ -158,10 +158,10 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
     one. Fitted into a square as tall as the colorbar, a structure of any
     shape leaves the colorbar its own size.
     """
-    colorbar = draw_colorbar().bbox
+    colorbar = render_colorbar().bbox
 
     for dot_bracket in ["(((...)))", "." * 40, "((((....))))" * 3]:
-        with_bar = draw_structure(
+        with_bar = draw_svg_as_component(
             dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5
         ).bbox
 
@@ -171,16 +171,16 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
 
 def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
     """A structure wider than it is tall sits midway up the colorbar."""
-    colorbar = draw_colorbar().bbox
+    colorbar = render_colorbar().bbox
     square_center = (
         colorbar.xmin - colorbar.height / 2, (colorbar.ymin + colorbar.ymax) / 2
     )
 
     for dot_bracket in ["." * 40, "((((....))))" * 3]:
-        alone = draw_structure(dot_bracket).bbox
+        alone = draw_svg_as_component(dot_bracket).bbox
         assert alone.width > alone.height
         svg = Scene(
-            draw_structure(dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5)
+            draw_svg_as_component(dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5)
         ).to_svg()
 
         # The structure is placed first, so its transform is the first one.
@@ -233,50 +233,21 @@ def test_colorbar_label_none_leaves_the_label_out():
 
 
 def test_colorbar_keeps_its_box_without_a_label():
-    """So colorbars with and without a label line up when placed."""
-    assert draw_colorbar(label=None).bbox == draw_colorbar().bbox
+    """So structures with and without a label line up when placed."""
+    unlabeled = draw_svg_as_component(
+        "(((...)))", basepair_probabilities=PROBS, colorbar_label=None
+    )
+
+    assert (
+        unlabeled.bbox
+        == draw_svg_as_component("(((...)))", basepair_probabilities=PROBS).bbox
+    )
 
 
 def test_colorbar_label_is_ignored_without_probabilities():
     with_label = draw_svg("(((...)))", colorbar_label="Unpaired probability")
 
     assert with_label.to_svg() == draw_svg("(((...)))").to_svg()
-
-
-def test_the_colorbar_can_be_left_out():
-    """probs colors the nucleotides; the colorbar beside them is optional."""
-    with_bar = draw_structure("(((...)))", basepair_probabilities=PROBS)
-    without_bar = draw_structure("(((...)))", basepair_probabilities=PROBS, add_colorbar=False)
-    plain = draw_structure("(((...)))")
-
-    # The structure itself is unchanged; only the colorbar beside it is gone.
-    assert without_bar.bbox == plain.bbox
-    assert without_bar.bbox.width < with_bar.bbox.width
-    assert "Equilibrium probability" not in collect_texts(
-        draw_svg("(((...)))", basepair_probabilities=PROBS, add_colorbar=False).to_svg()
-    )
-
-
-def test_a_colorbar_can_be_placed_at_a_size_of_its_own():
-    """The point of leaving it out: size it against something else."""
-    structure = draw_structure("(((...)))", basepair_probabilities=PROBS, add_colorbar=False)
-    colorbar = draw_colorbar()
-
-    placed = Placement(component=structure)
-    panel = Component.from_placements([
-        placed,
-        Placement(
-            component=colorbar,
-            x=placed.bbox.xmax,
-            y=(placed.bbox.ymin + placed.bbox.ymax) / 2,
-            anchor="center left",
-            scale=0.5,
-        ),
-    ])
-
-    assert panel.bbox.width == pytest.approx(
-        structure.bbox.width + colorbar.bbox.width * 0.5
-    )
 
 
 def test_a_size_is_read_from_a_bounding_box():
@@ -286,7 +257,7 @@ def test_a_size_is_read_from_a_bounding_box():
     how tall follows from that. Repeating the two on the objects gave the
     same numbers a second spelling, which callers then mixed.
     """
-    component = draw_structure("(((...)))")
+    component = draw_svg_as_component("(((...)))")
     placement = Placement(component=component, x=3.0, y=4.0, scale=2.0)
     scene = Scene(component)
 
@@ -320,8 +291,8 @@ def test_the_sequence_reaches_the_drawing():
 
 
 def test_layout_engine_is_configurable():
-    default = draw_structure("(((...)))")
-    wider = draw_structure(
+    default = draw_svg_as_component("(((...)))")
+    wider = draw_svg_as_component(
         "(((...)))",
         layout_engine=RadialLayoutEngine(stem_spacing=30),
     )

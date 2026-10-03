@@ -1,9 +1,9 @@
 """Drawing secondary structures, from a dot-bracket string to a scene.
 
-:func:`draw_structure`, :func:`draw_colorbar` and :func:`draw_text` each
-draw one component, for a caller to place with others. :func:`draw_svg`
-draws a structure and frames it as a scene in one call: ``draw_svg(...)``
-is ``Scene(draw_structure(...))``, with the same arguments.
+:func:`draw_svg` draws a structure and frames it as a scene, ready to save
+or show. :func:`draw_svg_as_component` draws the same as a component, for
+a caller to place with others: ``draw_svg(...)`` is
+``Scene(draw_svg_as_component(...))``, with the same arguments.
 """
 
 from __future__ import annotations
@@ -11,19 +11,14 @@ from __future__ import annotations
 import numpy.typing as npt
 
 from ._annotation import attach_basepair_probabilities, attach_sequences
-from ._validation import (
-    check_finite_positive,
-    check_font_family,
-    check_single_line_text,
-    exact_str,
-)
+from ._validation import check_single_line_text, exact_str
 from ._component import Component, Placement, fit
 from ._geometry import make_bbox
 from ._layout import RadialLayoutEngine, layout
 from ._parse import parse
 from ._scene import Scene
 from ._style import StructureStyle
-from ._svg import render_colorbar, render_structure, render_text
+from ._svg import render_colorbar, render_structure
 
 
 # The structure beside a colorbar is fitted into a square as tall as the
@@ -69,102 +64,19 @@ def _check_layout_engine(name: str, layout_engine: object) -> None:
         )
 
 
-def draw_colorbar(
-    *,
-    label: str | None = "Equilibrium probability",
-    style: StructureStyle | None = None,
-) -> Component:
-    """Draw a colorbar for the probabilities a structure is colored by.
-
-    Parameters
-    ----------
-    label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. The colorbar occupies the same box either way, so
-        colorbars with and without a label line up.
-    style : StructureStyle, optional
-        Style of the structure the colorbar belongs to. Its colormap and
-        font family apply.
-
-    Returns
-    -------
-    Component
-        The colorbar, to be placed with :class:`Placement`.
-
-    Raises
-    ------
-    TypeError
-        If ``label`` is neither a string nor None, or ``style`` is not a
-        :class:`StructureStyle`.
-    ValueError
-        If ``label`` is empty or holds a line break, a tab or another
-        control character.
-    """
-    label = _check_label("label", label)
-    _check_style("style", style)
-    return render_colorbar(label=label, style=style)
-
-
-def draw_text(
-    text: str,
-    *,
-    font_family: str = "Arial",
-    font_size: float = 12.0,
-) -> Component:
-    """Draw one line of text, such as a title, as a component.
-
-    Parameters
-    ----------
-    text : str
-        The text to draw, on one line.
-    font_family : str, default="Arial"
-        One font family name, not a CSS list. The font is looked up on the
-        machine doing the drawing, and its metrics decide how large the
-        component's box is.
-    font_size : float, default=12.0
-        Font size, in the same units as everything the text is placed
-        with.
-
-    Returns
-    -------
-    Component
-        The text, in a box that runs from the font's ascender to its
-        descender and from the start of the first character to the end of
-        the last, so that it can be placed by any point of that box.
-
-    Raises
-    ------
-    ValueError
-        If ``text`` is empty or holds a line break, a tab or another
-        control character, ``font_family`` is not the name of one font
-        family, or ``font_size`` is not a positive finite number.
-    TypeError
-        If ``text`` or ``font_family`` is not a string, or ``font_size``
-        is not a number.
-
-    Notes
-    -----
-    The box is measured from the font's own widths, without kerning, and
-    from the font found on this machine. Shown with a different font, the
-    text can run a little longer or shorter than its box.
-    """
-    text = check_single_line_text("text", text)
-    font_family = check_font_family("font_family", font_family)
-    font_size = check_finite_positive("font_size", font_size)
-    return render_text(text, font_family=font_family, font_size=font_size)
-
-
-def draw_structure(
+def draw_svg_as_component(
     structure: str,
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
-    add_colorbar: bool = True,
 ) -> Component:
-    """Draw a secondary structure as a component.
+    """Draw a secondary structure as a component, to place with others.
+
+    It draws what :func:`draw_svg` draws, from the same arguments less the
+    size: ``draw_svg(...)`` is ``Scene(draw_svg_as_component(...))``.
 
     Parameters
     ----------
@@ -184,20 +96,15 @@ def draw_structure(
         filled in. When given, each nucleotide is colored by it, and a
         colorbar is set beside the structure. A value below 0 or above 1
         is shown in the color of 0 or of 1.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``basepair_probabilities`` is
+        given, since the colorbar is drawn only then.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given, since the colorbar is drawn only then.
-    add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when
-        ``basepair_probabilities`` is given. Passing False colors the
-        nucleotides but leaves the colorbar out, for a caller placing one
-        of its own from :func:`~nuc2d.draw_colorbar`.
 
     Returns
     -------
@@ -243,11 +150,6 @@ def draw_structure(
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
     colorbar_label = _check_label("colorbar_label", colorbar_label)
-    if not isinstance(add_colorbar, bool):
-        raise TypeError(
-            "add_colorbar must be True or False; "
-            f"got {type(add_colorbar).__name__}."
-        )
 
     root_loop = parse(structure)
     if sequences is not None:
@@ -258,10 +160,10 @@ def draw_structure(
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
     drawn = render_structure(layout(root_loop, engine), style=style)
 
-    if basepair_probabilities is None or not add_colorbar:
+    if basepair_probabilities is None:
         return drawn
 
-    colorbar = draw_colorbar(label=colorbar_label, style=style)
+    colorbar = render_colorbar(label=colorbar_label, style=style)
     colorbar_bbox = colorbar.bbox
     slot = make_bbox(
         colorbar_bbox.xmin - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
@@ -279,18 +181,17 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
-    add_colorbar: bool = True,
     width_px: float | None = None,
     height_px: float | None = None,
 ) -> Scene:
     """Draw a secondary structure as a scene, ready to save or show.
 
-    ``draw_svg(...)`` is ``Scene(draw_structure(...))``: the arguments up
-    to ``add_colorbar`` are those of :func:`draw_structure`, and the last
-    two those of :class:`Scene`.
+    ``draw_svg(...)`` is ``Scene(draw_svg_as_component(...))``: the
+    arguments up to ``style`` are those of :func:`draw_svg_as_component`,
+    and the last two those of :class:`Scene`.
 
     Parameters
     ----------
@@ -309,18 +210,15 @@ def draw_svg(
         so the matrix may be symmetric or have only its upper triangle
         filled in. A value below 0 or above 1 is shown in the color of 0
         or of 1.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``basepair_probabilities`` is
+        given.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given.
-    add_colorbar : bool, default=True
-        Whether to set a colorbar beside the structure when
-        ``basepair_probabilities`` is given.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
         from the proportions of the structure.
@@ -341,18 +239,17 @@ def draw_svg(
         If ``structure`` is not a well-formed secondary structure.
     TypeError
         If an argument is not of the type described above, as for
-        :func:`draw_structure` and :class:`Scene`.
+        :func:`draw_svg_as_component` and :class:`Scene`.
     ValueError
-        If an argument is refused by :func:`draw_structure`, or a size is
-        not a positive finite number.
+        If an argument is refused by :func:`draw_svg_as_component`, or a
+        size is not a positive finite number.
     """
-    component = draw_structure(
+    component = draw_svg_as_component(
         structure,
         sequences=sequences,
         basepair_probabilities=basepair_probabilities,
+        colorbar_label=colorbar_label,
         layout_engine=layout_engine,
         style=style,
-        colorbar_label=colorbar_label,
-        add_colorbar=add_colorbar,
     )
     return Scene(component, width_px=width_px, height_px=height_px)

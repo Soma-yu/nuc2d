@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pytest
 
-from nuc2d import Placement, Scene, draw_colorbar, draw_structure, draw_svg
+from nuc2d import Placement, Scene, draw_svg, draw_svg_as_component
 from nuc2d._component import make_component
 from nuc2d._geometry import _EMPTY_BBOX, make_bbox
 
@@ -13,7 +13,7 @@ PROBS = np.eye(9) * 0.4 + 0.3
 
 
 def structure(dot_bracket="(((...)))", **kwargs):
-    return draw_structure(dot_bracket, **kwargs)
+    return draw_svg_as_component(dot_bracket, **kwargs)
 
 
 def count(svg_string, tag):
@@ -29,14 +29,15 @@ def count(svg_string, tag):
         {},
         {"basepair_probabilities": PROBS},
         {"basepair_probabilities": PROBS, "colorbar_label": None},
-        {"basepair_probabilities": PROBS, "add_colorbar": False},
         {"sequences": ["AUGCAUGCA"]},
     ],
 )
 @pytest.mark.parametrize("size", [{}, {"width_px": 300.0}, {"height_px": 120.0}])
-def test_draw_svg_is_a_scene_of_draw_structure(kwargs, size):
-    """draw_svg(...) is Scene(draw_structure(...)), byte for byte."""
-    expected = Scene(draw_structure("(((...)))", **kwargs), **size).to_svg()
+def test_draw_svg_is_a_scene_of_draw_svg_as_component(kwargs, size):
+    """draw_svg(...) is Scene(draw_svg_as_component(...)), byte for byte."""
+    expected = Scene(
+        draw_svg_as_component("(((...)))", **kwargs), **size
+    ).to_svg()
 
     assert draw_svg("(((...)))", **kwargs, **size).to_svg() == expected
 
@@ -130,9 +131,9 @@ def test_a_scene_can_be_written_more_than_once():
 
 
 def test_the_colorbar_travels_with_its_gradient():
-    colorbar = draw_colorbar()
+    colored = structure(basepair_probabilities=PROBS)
 
-    assert count(Scene(colorbar).to_svg(), "linearGradient") == 1
+    assert count(Scene(colored).to_svg(), "linearGradient") == 1
 
 
 @pytest.mark.parametrize("component", ["(((...)))", None])

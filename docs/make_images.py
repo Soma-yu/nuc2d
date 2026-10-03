@@ -22,8 +22,8 @@ from nuc2d import (
     RadialLayoutEngine,
     Scene,
     StructureStyle,
-    draw_structure,
     draw_svg,
+    draw_svg_as_component,
 )
 
 DOCS = Path(__file__).parent
@@ -103,8 +103,8 @@ def example() -> Scene:
     """
     return row(
         [
-            draw_structure(CLOVERLEAF),
-            draw_structure(
+            draw_svg_as_component(CLOVERLEAF),
+            draw_svg_as_component(
                 CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS
             ),
         ],

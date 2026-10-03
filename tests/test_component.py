@@ -11,11 +11,11 @@ from nuc2d import (
     Placement,
     Scene,
     StructureStyle,
-    draw_colorbar,
-    draw_structure,
+    draw_svg_as_component,
 )
 from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit, make_component
 from nuc2d._geometry import bbox_around, make_bbox
+from nuc2d._svg import render_colorbar
 
 
 CLOVERLEAF = "(((((((..((((........)))).(((((.......+))))).....(((((.......))))))))))))...."
@@ -23,7 +23,7 @@ PROBS = np.eye(9) * 0.4 + 0.3
 
 
 def structure(dot_bracket="(((...)))", **kwargs):
-    return draw_structure(dot_bracket, **kwargs)
+    return draw_svg_as_component(dot_bracket, **kwargs)
 
 
 def count(svg_string, tag):
@@ -246,7 +246,7 @@ def test_numbers_of_any_real_type_are_accepted():
 )
 def test_a_component_is_not_made_by_calling_the_class(kwargs):
     """What a component holds is private, so there is nothing to make one of."""
-    with pytest.raises(TypeError, match="draw_structure"):
+    with pytest.raises(TypeError, match="draw_svg_as_component"):
         Component(**kwargs)
 
 
@@ -341,7 +341,7 @@ def first_tag(svg_string, tags):
 
 def test_components_are_drawn_in_the_order_given():
     """A later one covers an earlier one, as SVG draws in document order."""
-    colorbar = Placement(component=draw_colorbar())  # draws a rect
+    colorbar = Placement(component=render_colorbar())  # draws a rect
     plain = Placement(component=structure())  # draws circles, no rect
 
     def drawn_first(placements):
@@ -353,7 +353,8 @@ def test_components_are_drawn_in_the_order_given():
 
 
 def test_a_definition_is_written_once_however_many_components_use_it():
-    a, b = draw_colorbar(), draw_colorbar()  # each refers to one gradient
+    # Each colorbar refers to one gradient, and the structures to none.
+    a, b = (structure(basepair_probabilities=PROBS) for _ in range(2))
     pa = Placement(component=a)
     panel = Component.from_placements([pa, Placement(component=b, x=pa.bbox.xmax)])
 
@@ -363,8 +364,11 @@ def test_a_definition_is_written_once_however_many_components_use_it():
 
 
 def test_different_definitions_are_all_written():
-    turbo = draw_colorbar()
-    viridis = draw_colorbar(style=StructureStyle(colormap=mpl.colormaps["viridis"]))
+    turbo = structure(basepair_probabilities=PROBS)
+    viridis = structure(
+        basepair_probabilities=PROBS,
+        style=StructureStyle(colormap=mpl.colormaps["viridis"]),
+    )
     pt = Placement(component=turbo)
 
     svg = Scene(

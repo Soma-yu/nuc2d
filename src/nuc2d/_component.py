@@ -150,8 +150,8 @@ class Component:
         # build one from. Say how one is made instead.
         raise TypeError(
             "Components are not made by calling Component. Draw one with "
-            "draw_structure, draw_colorbar or draw_text, or put placed "
-            "ones together with Component.from_placements."
+            "draw_svg_as_component, or put placed ones together with "
+            "Component.from_placements."
         )
 
     @property
@@ -295,8 +295,9 @@ class Placement:
         # field is assigned past its __setattr__.
         if not isinstance(component, Component):
             raise TypeError(
-                "component must be a Component, such as draw_structure "
-                f"returns; got {type(component).__name__}."
+                "component must be a Component, such as "
+                "draw_svg_as_component returns; "
+                f"got {type(component).__name__}."
             )
         object.__setattr__(self, "component", component)
         object.__setattr__(self, "x", check_finite("x", x))

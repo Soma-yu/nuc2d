@@ -108,9 +108,7 @@ _STRUCTURE_MARGIN = 20.0
 
 # The colorbar's own proportions and lettering. They are not style
 # settings: a style says how a structure looks and which colors show its
-# probabilities, and the colorbar is only the key to those colors. A
-# caller wanting other lettering leaves the label out and places one of
-# its own with draw_text.
+# probabilities, and the colorbar is only the key to those colors.
 _COLORBAR_ASPECT_RATIO = 1 / 30  # the bar's width over its height
 _COLORBAR_TICK_LENGTH = 5.0
 _COLORBAR_TICK_FONT_SIZE = 12.0

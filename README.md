@@ -204,16 +204,12 @@ such as `style.node_colour = "black"`, which would otherwise be ignored.
 ## Combining several structures
 
 `draw_svg` draws one structure and frames it as a `Scene`. To put several
-parts in one picture, draw each as a component instead, place the components,
-and frame the result:
+structures in one picture, draw each as a component instead, place the
+components, and frame the result:
 
-- `draw_structure` takes the same arguments as `draw_svg`, less the size, and
-  returns the structure, with its colorbar if it has one, as a `Component`.
-  `draw_svg(...)` is `Scene(draw_structure(...))`.
-- `draw_colorbar` draws a colorbar on its own, for a structure drawn with
-  `add_colorbar=False`.
-- `draw_text` draws a line of text, such as a title, in a box measured from
-  the font, so that it can be placed like anything else.
+- `draw_svg_as_component` takes the same arguments as `draw_svg`, less the
+  size, and returns the structure, with its colorbar if it has one, as a
+  `Component`. `draw_svg(...)` is `Scene(draw_svg_as_component(...))`.
 - `Placement` says where a component goes and at what size, and
   `Component.from_placements` makes one component of several placed ones.
 - `Scene` frames a component, and is what is saved or shown.
@@ -221,11 +217,11 @@ and frame the result:
 This is how the picture at the top of this page is drawn:
 
 ```python
-from nuc2d import Component, Placement, Scene, draw_structure
+from nuc2d import Component, Placement, Scene, draw_svg_as_component
 
 components = [
-    draw_structure(CLOVERLEAF),
-    draw_structure(
+    draw_svg_as_component(CLOVERLEAF),
+    draw_svg_as_component(
         CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs
     ),
 ]

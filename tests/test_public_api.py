@@ -22,10 +22,8 @@ PUBLIC_NAMES = {
     "Scene",
     "StructureStyle",
     "__version__",
-    "draw_colorbar",
-    "draw_structure",
     "draw_svg",
-    "draw_text",
+    "draw_svg_as_component",
 }
 
 
@@ -77,9 +75,7 @@ def test_every_public_name_reports_nuc2d_as_its_module():
 # where it belongs instead of appending it to keep the order intact.
 POSITIONAL_COUNT = {
     nuc2d.draw_svg: 1,  # structure
-    nuc2d.draw_structure: 1,  # structure
-    nuc2d.draw_colorbar: 0,
-    nuc2d.draw_text: 1,  # text
+    nuc2d.draw_svg_as_component: 1,  # structure
     nuc2d.Component.from_placements: 1,  # placements
     nuc2d.Scene: 1,  # component
     nuc2d.Placement: 1,  # component
@@ -114,7 +110,7 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     value and the drawing disagreeing, and so does an assignment to a
     name that is not there at all.
     """
-    component = nuc2d.draw_text("tRNA")
+    component = nuc2d.draw_svg_as_component("(((...)))")
     placement = nuc2d.Placement(component=component)
 
     for value, name in [(component.bbox, "BBox"), (component, "Component"),
@@ -197,7 +193,7 @@ def test_what_can_be_changed_has_no_hash(make):
 # type given. The structure has a coaxial stack, so the deflection shows,
 # and sequences, so the letters do.
 def _structure(**kwargs):
-    return nuc2d.draw_structure(
+    return nuc2d.draw_svg_as_component(
         "((+((...))))", sequences=["GG", "GGAAACCCC"], **kwargs
     )
 
@@ -232,7 +228,6 @@ NUMBER_ARGUMENTS = {
     "scale": lambda n: _placed(scale=n(2)),
     "width_px": lambda n: nuc2d.Scene(_structure(), width_px=n(300)),
     "height_px": lambda n: nuc2d.Scene(_structure(), height_px=n(300)),
-    "font_size": lambda n: nuc2d.Scene(nuc2d.draw_text("tRNA", font_size=n(14))),
 }
 
 
@@ -260,17 +255,12 @@ STRING_ARGUMENTS = {
     "colorbar_label": lambda s: nuc2d.draw_svg(
         "(((...)))", basepair_probabilities=np.eye(9) * 0.5, colorbar_label=s("Unpaired")
     ),
-    "label": lambda s: nuc2d.Scene(nuc2d.draw_colorbar(label=s("Unpaired"))),
-    "text": lambda s: nuc2d.Scene(nuc2d.draw_text(s("tRNA"))),
-    "font_family": lambda s: nuc2d.Scene(
-        nuc2d.draw_text("tRNA", font_family=s("Arial"))
-    ),
     "backbone_color": lambda s: _style(backbone_color=s("red")),
     "backbone_dasharray": lambda s: _style(backbone_dasharray=s("2,1")),
     "basepair_color": lambda s: _style(basepair_color=s("red")),
     "basepair_dasharray": lambda s: _style(basepair_dasharray=s("2,1")),
     "node_color": lambda s: _style(node_color=s("red")),
-    "style font_family": lambda s: _style(font_family=s("Arial")),
+    "font_family": lambda s: _style(font_family=s("Arial")),
     "anchor": lambda s: _placed(anchor=s("center")),
 }
 
