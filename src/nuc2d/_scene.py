@@ -5,7 +5,7 @@ pixels. How it is written is left to :mod:`nuc2d._svg`.
 """
 
 import os
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 from . import _svg
 from ._validation import check_finite_positive
@@ -121,12 +121,17 @@ class Scene:
     # still fails, but says what replaced it.
     _RENAMED = {"tostring": "to_svg", "saveas": "save_svg"}
 
-    def __getattr__(self, name: str) -> Any:
-        if name in self._RENAMED:
+    # Out of a type checker's sight: one that sees __getattr__ takes any
+    # name as an attribute of a scene, so that scene.savesvg would pass.
+    if not TYPE_CHECKING:
+
+        def __getattr__(self, name: str) -> Any:
+            if name in self._RENAMED:
+                raise AttributeError(
+                    f"{type(self).__name__!r} object has no attribute "
+                    f"{name!r}; nuc2d 2.0 renamed it "
+                    f"{self._RENAMED[name]!r}."
+                )
             raise AttributeError(
-                f"{type(self).__name__!r} object has no attribute {name!r}; "
-                f"nuc2d 2.0 renamed it {self._RENAMED[name]!r}."
+                f"{type(self).__name__!r} object has no attribute {name!r}"
             )
-        raise AttributeError(
-            f"{type(self).__name__!r} object has no attribute {name!r}"
-        )

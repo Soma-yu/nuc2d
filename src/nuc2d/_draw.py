@@ -37,10 +37,10 @@ _COLORBAR_HEIGHT = 500.0
 
 
 def _check_label(name: str, value: object, *, without: str) -> str | None:
-    """Raise unless ``value`` is None or one line of text.
+    """Raise unless ``value`` is None or one line of text, not all blank.
 
     ``without`` says what None leaves without the text, for the message
-    an empty string is answered with. The text is returned, as a str.
+    a blank string is answered with. The text is returned, as a str.
     """
     if value is None:
         return None
@@ -48,8 +48,8 @@ def _check_label(name: str, value: object, *, without: str) -> str | None:
         raise TypeError(
             f"{name} must be a string or None; got {type(value).__name__}."
         )
-    if not value:
-        raise ValueError(f"{name} is empty; pass None to leave {without}.")
+    if not value.strip():
+        raise ValueError(f"{name} is blank; pass None to leave {without}.")
     return check_single_line_text(name, value)
 
 
@@ -127,7 +127,8 @@ def draw_svg_as_component(
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
-        How the structure looks.
+        How the structure looks. The title and the colorbar are drawn the
+        same whatever the style.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"
@@ -154,8 +155,8 @@ def draw_svg_as_component(
         If ``sequences`` or ``basepair_probabilities`` does not match the
         structure, a sequence holds a line break, a tab or another control
         character, a probability a nucleotide is colored by is NaN, or
-        ``title`` or ``colorbar_label`` is empty or holds a line break, a
-        tab or another control character.
+        ``title`` or ``colorbar_label`` is empty or only spaces, or holds
+        a line break, a tab or another control character.
 
     Notes
     -----
@@ -283,7 +284,8 @@ def draw_svg(
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
-        How the structure looks.
+        How the structure looks. The title and the colorbar are drawn the
+        same whatever the style.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"

@@ -104,6 +104,14 @@ def test_a_nan_probability_is_refused():
 
 
 @pytest.mark.parametrize("name", ["title", "colorbar_label"])
+@pytest.mark.parametrize("text", [" ", "   ", "\u3000", "\u00a0"])
+def test_a_blank_title_or_colorbar_label_is_refused(name, text):
+    """It would show nothing, and still take the room of a line."""
+    with pytest.raises(ValueError, match=f"{name} is blank; pass None"):
+        draw_svg_as_component(HAIRPIN, **{name: text})
+
+
+@pytest.mark.parametrize("name", ["title", "colorbar_label"])
 def test_an_empty_title_or_colorbar_label_is_answered_with_none(name):
     with pytest.raises(ValueError, match="pass None"):
         draw_svg_as_component(HAIRPIN, **{name: ""})

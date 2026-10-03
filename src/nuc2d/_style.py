@@ -12,7 +12,7 @@ with.
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import final
+from typing import TYPE_CHECKING, final
 
 import matplotlib as mpl
 
@@ -184,8 +184,12 @@ class StructureStyle:
     node_radius: float = 4.2
     node_font_size: float = 6.5
 
-    def __setattr__(self, name: str, value: object) -> None:
-        # The generated __init__ assigns every field through here as well,
-        # so one check covers both a new style and a changed one.
-        check_attribute(self, name, _FIELD_CHECKS)
-        super().__setattr__(name, _FIELD_CHECKS[name](name, value))
+    # Out of a type checker's sight: one that sees __setattr__ takes any
+    # name as one that can be assigned, a misspelled one included.
+    if not TYPE_CHECKING:
+
+        def __setattr__(self, name: str, value: object) -> None:
+            # The generated __init__ assigns every field through here as
+            # well, so one check covers both a new style and a changed one.
+            check_attribute(self, name, _FIELD_CHECKS)
+            super().__setattr__(name, _FIELD_CHECKS[name](name, value))

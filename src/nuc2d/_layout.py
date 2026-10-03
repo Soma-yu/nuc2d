@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 import math
-from typing import final
+from typing import TYPE_CHECKING, final
 
 from ._validation import (
     check_attribute,
@@ -237,11 +237,16 @@ class RadialLayoutEngine:
     loop_spacing: float = 20.0
     coaxial_stack_deflection: float = 10.0
 
-    def __setattr__(self, name: str, value: object) -> None:
-        # The generated __init__ assigns every setting through here as
-        # well, so one check covers both a new engine and a changed one.
-        check_attribute(self, name, _RADIAL_SETTINGS)
-        super().__setattr__(name, _RADIAL_SETTINGS[name](name, value))
+    # Out of a type checker's sight: one that sees __setattr__ takes any
+    # name as one that can be assigned, a misspelled one included.
+    if not TYPE_CHECKING:
+
+        def __setattr__(self, name: str, value: object) -> None:
+            # The generated __init__ assigns every setting through here as
+            # well, so one check covers both a new engine and a changed
+            # one.
+            check_attribute(self, name, _RADIAL_SETTINGS)
+            super().__setattr__(name, _RADIAL_SETTINGS[name](name, value))
 
     def _add_backbone_line(self, state: _LayoutState) -> None:
         """Join the last two nodes with a straight backbone edge.

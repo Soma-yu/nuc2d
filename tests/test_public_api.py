@@ -101,6 +101,18 @@ def test_optional_arguments_are_keyword_only():
         ), f"{target.__name__} takes an argument that is not keyword-only"
 
 
+def test_draw_svg_takes_what_draw_svg_as_component_takes_and_a_size():
+    """draw_svg(...) is Scene(draw_svg_as_component(...)), as the names say.
+
+    An argument added to one of them alone fails here.
+    """
+    as_component = inspect.signature(nuc2d.draw_svg_as_component).parameters
+    as_scene = list(inspect.signature(nuc2d.draw_svg).parameters.values())
+
+    assert as_scene[:-2] == list(as_component.values())
+    assert [p.name for p in as_scene[-2:]] == ["width_px", "height_px"]
+
+
 def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     """These three describe a drawing; they are not part of one.
 
