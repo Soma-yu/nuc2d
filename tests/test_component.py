@@ -10,7 +10,6 @@ from nuc2d import (
     Component,
     Placement,
     Scene,
-    StructureStyle,
     draw_svg_as_component,
 )
 from nuc2d._component import _ANCHOR_FRACTIONS, _anchor_point, fit, make_component
@@ -366,8 +365,7 @@ def test_a_definition_is_written_once_however_many_components_use_it():
 def test_different_definitions_are_all_written():
     turbo = structure(basepair_probabilities=PROBS)
     viridis = structure(
-        basepair_probabilities=PROBS,
-        style=StructureStyle(colormap=mpl.colormaps["viridis"]),
+        basepair_probabilities=PROBS, colormap=mpl.colormaps["viridis"]
     )
     pt = Placement(component=turbo)
 

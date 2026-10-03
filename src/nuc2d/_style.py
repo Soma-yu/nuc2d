@@ -3,8 +3,7 @@
 This module provides classes for configuring the visual appearance of
 rendered secondary structure diagrams. Style parameters control
 the appearance of graphical elements such as nucleotide nodes,
-backbone and base-pair edges, their letters, and the colormap
-probabilities are shown in.
+backbone and base-pair edges, and their letters.
 
 The main class, StructureStyle, stores the parameters the renderer draws
 with.
@@ -12,17 +11,12 @@ with.
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import final
 
 import matplotlib as mpl
 
-from ._validation import (
-    check_attribute,
-    check_finite_non_negative,
-    check_font_family,
-    exact_str,
-)
+from ._validation import check_attribute, check_finite_non_negative, exact_str
 
 
 # The color keywords SVG 1.1 defines. They are CSS's named colors as they
@@ -77,25 +71,6 @@ def _check_dasharray(name: str, value: object) -> str:
     return pattern
 
 
-def _check_colormap(name: str, value: object) -> mpl.colors.Colormap:
-    """Raise unless ``value`` is a matplotlib colormap.
-
-    A name such as ``"turbo"`` is what matplotlib's own functions take,
-    so it is the likeliest mistake, and the message names that colormap.
-    The colormap is returned.
-    """
-    if isinstance(value, mpl.colors.Colormap):
-        return value
-    if isinstance(value, str):
-        example, got = value, f"the string {value!r}"
-    else:
-        example, got = "turbo", type(value).__name__
-    raise TypeError(
-        f"{name} must be a matplotlib Colormap, such as "
-        f"mpl.colormaps[{example!r}]; got {got}."
-    )
-
-
 # How each field is checked, whenever it is assigned. Every field is here,
 # so that a name that is not is a misspelled one. A check returns what the
 # field keeps.
@@ -110,24 +85,17 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
     "node_color": _check_color,
     "node_radius": check_finite_non_negative,
     "node_font_size": check_finite_non_negative,
-    "font_family": check_font_family,
-    "colormap": _check_colormap,
 }
 
 
 @final
 @dataclass(kw_only=True)
 class StructureStyle:
-    """How a structure looks, and the colors its probabilities are shown in.
+    """How a structure looks.
 
-    A colorbar is the key to those colors, so it is drawn from the style
-    of the structure it belongs to, and takes the colormap and the font
-    family from it. How the colorbar itself is laid out is not a style
-    setting.
-
-    Where the nucleotides go is not a style setting either: a layout
-    engine, such as :class:`RadialLayoutEngine`, places them, and the style
-    says how they and the edges between them are drawn.
+    Where the nucleotides go is not a style setting: a layout engine,
+    such as :class:`RadialLayoutEngine`, places them, and the style says
+    how they and the edges between them are drawn.
 
     Attributes
     ----------
@@ -156,38 +124,23 @@ class StructureStyle:
     node_color : str
         Color a node is drawn in when no base-pair probabilities are
         given. With ``basepair_probabilities``, a node takes its color from
-        ``colormap`` instead.
+        the colormap the probabilities are shown in instead.
     node_radius : float
         Radius of nucleotide nodes.
     node_font_size : float
         Font size of the base letter drawn inside a node.
 
-    font_family : str
-        Font family of the letters: those inside the nodes, and those of a
-        colorbar drawn with this style. One family name, not a CSS
-        list: ``"Arial"``, not ``"Arial, sans-serif"``. The font is looked
-        up on the machine doing the drawing, and its metrics decide where
-        the letters sit, so a drawing can differ between machines.
-        Arial is recommended for consistent rendering in PowerPoint.
-    colormap : mpl.colors.Colormap, default=mpl.colormaps["turbo"]
-        Colormap a probability from 0 to 1 is shown in, on the nodes and
-        on a colorbar drawn with this style. It is a matplotlib colormap
-        itself, such as ``mpl.colormaps["turbo"]``, not the name of one.
-
     Raises
     ------
     ValueError
-        If a color or a dash pattern is not written as described below, a
-        size is negative or not finite, or ``font_family`` is not the name
-        of one font family: empty or blank, holding a line break, a tab or
-        another control character, or a list of families. Every field is
-        checked when the style is made and whenever it is assigned, so a
-        mistake is reported where it is written rather than when a drawing
-        is made from it.
+        If a color or a dash pattern is not written as described below,
+        or a size is negative or not finite. Every field is checked when
+        the style is made and whenever it is assigned, so a mistake is
+        reported where it is written rather than when a drawing is made
+        from it.
     TypeError
-        If a color, a dash pattern or ``font_family`` is not a string, a
-        size is not a number, or ``colormap`` is not a matplotlib
-        colormap.
+        If a color or a dash pattern is not a string, or a size is not a
+        number.
     AttributeError
         If an attribute that a style does not have is assigned, such as a
         misspelled one.
@@ -216,7 +169,7 @@ class StructureStyle:
 
     Two styles are equal when their fields are. Colors and dash patterns
     are compared as they are written, so ``"black"`` and ``"#000000"`` are
-    not equal, and colormaps as matplotlib compares them.
+    not equal.
     """
     backbone_color: str = "black"
     backbone_width: float = 2.0
@@ -230,11 +183,6 @@ class StructureStyle:
     node_color: str = "black"
     node_radius: float = 4.2
     node_font_size: float = 6.5
-
-    font_family: str = "Arial"
-    colormap: mpl.colors.Colormap = field(
-        default_factory=lambda: mpl.colormaps["turbo"]
-    )
 
     def __setattr__(self, name: str, value: object) -> None:
         # The generated __init__ assigns every field through here as well,

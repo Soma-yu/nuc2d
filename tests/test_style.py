@@ -1,6 +1,5 @@
 import dataclasses
 
-import matplotlib as mpl
 import numpy as np
 import pytest
 
@@ -108,7 +107,7 @@ def test_a_size_that_is_negative_or_not_finite_is_refused(field, value):
 
 @pytest.mark.parametrize(
     "field, value",
-    [("node_color", "red"), ("basepair_dasharray", "2,1"), ("font_family", "Arial")],
+    [("node_color", "red"), ("basepair_dasharray", "2,1")],
 )
 def test_a_string_is_kept_as_a_str(field, value):
     """Rather than as the subclass of str it was given as."""
@@ -139,39 +138,6 @@ def test_a_size_of_zero_is_drawn(field):
     draw_svg("(((...)))", sequences=["GCGAAACGC"], style=style).to_svg()
 
 
-def test_a_colormap_given_by_name_is_answered_with_how_to_give_it():
-    """matplotlib's own functions take a name, so this is the likely slip."""
-    with pytest.raises(TypeError, match=r"mpl\.colormaps\['magma'\]"):
-        StructureStyle(colormap="magma")
-
-
-@pytest.mark.parametrize("value", [None, ["white", "red"]])
-def test_a_colormap_that_is_not_one_is_a_type_error(value):
-    with pytest.raises(TypeError, match=r"colormap.*mpl\.colormaps\['turbo'\]"):
-        StructureStyle(colormap=value)
-
-
-def test_any_matplotlib_colormap_is_accepted():
-    colormap = mpl.colors.LinearSegmentedColormap.from_list("mine", ["white", "red"])
-
-    assert StructureStyle(colormap=colormap).colormap is colormap
-
-
-@pytest.mark.parametrize(
-    "value, error",
-    [(3, TypeError), (None, TypeError), ("", ValueError), ("  ", ValueError),
-     ("Arial, sans-serif", ValueError), ("Arial\n", ValueError)],
-)
-def test_the_font_family_is_one_family_name(value, error):
-    with pytest.raises(error, match="font_family"):
-        StructureStyle(font_family=value)
-
-
-def test_a_list_of_families_is_answered_with_the_first_of_them():
-    with pytest.raises(ValueError, match="'Arial'"):
-        StructureStyle(font_family="Arial, sans-serif")
-
-
 def test_a_misspelled_attribute_is_refused_and_the_right_one_named():
     """Assigned, it would otherwise make an attribute that nothing reads."""
     style = StructureStyle()
@@ -192,7 +158,6 @@ def test_styles_are_equal_when_their_fields_are():
     assert StructureStyle() == StructureStyle()
     assert StructureStyle(node_radius=5) == StructureStyle(node_radius=5.0)
     assert StructureStyle() != StructureStyle(node_radius=5.0)
-    assert StructureStyle() != StructureStyle(colormap=mpl.colormaps["viridis"])
 
 
 def test_a_color_is_compared_as_it_is_written():

@@ -127,29 +127,6 @@ def check_single_line_text(name: str, value: object) -> str:
     return text
 
 
-def check_font_family(name: str, value: object) -> str:
-    """Raise unless ``value`` is the name of one font family.
-
-    It is single-line text, as :func:`check_single_line_text` checks, and
-    more than blank. The font is looked up by this name to measure the
-    text, so a CSS list such as ``"Arial, sans-serif"`` is refused too: it
-    would be measured with whatever font the lookup falls back to, while
-    the SVG asked for another. The name is returned.
-    """
-    family = check_single_line_text(name, value)
-    if not family.strip():
-        raise ValueError(
-            f"{name} is blank; give a font family, such as 'Arial'."
-        )
-    if "," in family:
-        first = family.split(",")[0].strip()
-        raise ValueError(
-            f"{name} must be one font family, not a list; got {value!r}. "
-            f"Give one name, such as {first!r}."
-        )
-    return family
-
-
 def check_attribute(owner: object, name: str, names: Collection[str]) -> None:
     """Raise unless ``name`` is one of the attributes ``owner`` has.
 

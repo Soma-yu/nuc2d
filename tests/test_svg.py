@@ -64,12 +64,17 @@ def test_ids_stay_unique_across_several_components_in_one_scene():
     assert [i for i, n in Counter(ids).items() if n > 1] == []
 
 
-def test_differing_styles_get_their_own_definitions():
+def test_differing_colormaps_get_their_own_definitions():
     scene = side_by_side([
-        draw_svg_as_component("(((...)))", basepair_probabilities=PROBS, style=style)
-        for style in [
-            StructureStyle(backbone_color="black", colormap=mpl.colormaps["turbo"]),
-            StructureStyle(backbone_color="red", colormap=mpl.colormaps["viridis"]),
+        draw_svg_as_component(
+            "(((...)))",
+            basepair_probabilities=PROBS,
+            colormap=colormap,
+            style=StructureStyle(backbone_color=color),
+        )
+        for color, colormap in [
+            ("black", mpl.colormaps["turbo"]),
+            ("red", mpl.colormaps["viridis"]),
         ]
     ])
 

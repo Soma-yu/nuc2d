@@ -136,8 +136,7 @@ PUBLIC_MEMBERS = {
         "backbone_width", "basepair_width",
         "backbone_dasharray", "basepair_dasharray",
         "backbone_color", "basepair_color", "node_color",
-        "node_radius", "node_font_size", "font_family",
-        "three_prime_arrow_length", "colormap",
+        "node_radius", "node_font_size", "three_prime_arrow_length",
     },
 }
 
@@ -260,7 +259,6 @@ STRING_ARGUMENTS = {
     "basepair_color": lambda s: _style(basepair_color=s("red")),
     "basepair_dasharray": lambda s: _style(basepair_dasharray=s("2,1")),
     "node_color": lambda s: _style(node_color=s("red")),
-    "font_family": lambda s: _style(font_family=s("Arial")),
     "anchor": lambda s: _placed(anchor=s("center")),
 }
 

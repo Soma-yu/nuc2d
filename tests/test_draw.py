@@ -1,5 +1,7 @@
 """What the drawing functions accept, and what they refuse where it is given."""
 
+import xml.etree.ElementTree as ET
+
 import matplotlib as mpl
 import numpy as np
 import pytest
@@ -49,9 +51,7 @@ def test_a_colorbar_label_is_one_line_or_none(label):
 
 def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
     """Whatever colors the colormap itself keeps for values out of range."""
-    style = StructureStyle(
-        colormap=mpl.colormaps["turbo"].with_extremes(over="magenta", under="cyan")
-    )
+    colormap = mpl.colormaps["turbo"].with_extremes(over="magenta", under="cyan")
     # A pair, and the three unpaired nucleotides of the hairpin loop.
     inside, outside = np.zeros((9, 9)), np.zeros((9, 9))
     inside[0, 8], outside[0, 8] = 1.0, 2.0
@@ -60,9 +60,42 @@ def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
     inside[5, 5], outside[5, 5] = 1.0, np.inf
 
     assert (
-        draw_svg(HAIRPIN, basepair_probabilities=outside, style=style).to_svg()
-        == draw_svg(HAIRPIN, basepair_probabilities=inside, style=style).to_svg()
+        draw_svg(HAIRPIN, basepair_probabilities=outside, colormap=colormap).to_svg()
+        == draw_svg(HAIRPIN, basepair_probabilities=inside, colormap=colormap).to_svg()
     )
+
+
+def test_the_colormap_colors_the_nucleotides_and_the_colorbar():
+    colormap = mpl.colors.LinearSegmentedColormap.from_list("mine", ["white", "red"])
+
+    svg = draw_svg(
+        HAIRPIN, basepair_probabilities=np.eye(9) * 0.5, colormap=colormap
+    ).to_svg()
+
+    root = ET.fromstring(svg)
+    fills = {e.attrib["fill"] for e in root.iter() if e.tag.endswith("circle")}
+    stops = [e.attrib["stop-color"] for e in root.iter() if e.tag.endswith("stop")]
+    # The paired nucleotides are colored by 0, the unpaired ones by 0.5.
+    assert fills == {mpl.colors.to_hex(colormap(0.0)), mpl.colors.to_hex(colormap(0.5))}
+    assert (stops[0], stops[-1]) == ("#ffffff", "#ff0000")
+
+
+def test_a_colormap_without_probabilities_changes_nothing():
+    viridis = mpl.colormaps["viridis"]
+
+    assert draw_svg(HAIRPIN, colormap=viridis).to_svg() == draw_svg(HAIRPIN).to_svg()
+
+
+def test_a_colormap_given_by_name_is_answered_with_how_to_give_it():
+    """matplotlib's own functions take a name, so this is the likely slip."""
+    with pytest.raises(TypeError, match=r"mpl\.colormaps\['magma'\]"):
+        draw_svg_as_component(HAIRPIN, colormap="magma")
+
+
+@pytest.mark.parametrize("value", [3, ["white", "red"]])
+def test_a_colormap_that_is_not_one_is_a_type_error(value):
+    with pytest.raises(TypeError, match=r"colormap.*mpl\.colormaps\['turbo'\]"):
+        draw_svg_as_component(HAIRPIN, colormap=value)
 
 
 def test_a_nan_probability_is_refused():

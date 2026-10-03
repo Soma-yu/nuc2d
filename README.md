@@ -145,6 +145,9 @@ scene = draw_svg(
 
 `colorbar_label=None` leaves the colorbar without a label.
 
+The probabilities are shown in the colors of `colormap`: a matplotlib colormap
+itself, such as `mpl.colormaps["turbo"]`, the default, rather than its name.
+
 ## Output size
 
 ```python
@@ -162,8 +165,8 @@ the sides, rather than stretching it to fit.
 ## Layout and style
 
 `RadialLayoutEngine` controls geometry — how far apart nucleotides are placed.
-`StructureStyle` controls appearance — colors, stroke widths, node size, fonts,
-and the colormap used for probabilities.
+`StructureStyle` controls appearance — colors, stroke widths, node size and
+letter size.
 
 ```python
 import matplotlib as mpl
@@ -174,6 +177,7 @@ scene = draw_svg(
     CLOVERLEAF,
     sequences=SEQUENCES,
     basepair_probabilities=probs,
+    colormap=mpl.colormaps["viridis"],
     layout_engine=RadialLayoutEngine(
         stem_spacing=18.0,
         loop_spacing=24.0,
@@ -182,7 +186,6 @@ scene = draw_svg(
         backbone_color="#333333",
         basepair_color="crimson",
         node_radius=5.0,
-        colormap=mpl.colormaps["viridis"],
     ),
 )
 ```
@@ -193,9 +196,7 @@ scene = draw_svg(
 
 Colors are written as SVG writes them: a name such as `black`, `#rrggbb`, or
 `none`. Dash patterns are `none` or lengths separated by commas, such as
-`1,1`. Spacings are positive, and sizes are numbers of at least 0. The
-colormap is a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`,
-rather than its name.
+`1,1`. Spacings are positive, and sizes are numbers of at least 0.
 
 Anything else raises an exception as soon as it is set, rather than when
 something is drawn with the engine or the style. So does a misspelled setting,

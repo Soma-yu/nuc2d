@@ -9,6 +9,7 @@ a caller to place with others: ``draw_svg(...)`` is
 from __future__ import annotations
 
 import numpy.typing as npt
+from matplotlib.colors import Colormap
 
 from ._annotation import attach_basepair_probabilities, attach_sequences
 from ._validation import check_single_line_text, exact_str
@@ -46,6 +47,25 @@ def _check_label(name: str, label: object) -> str | None:
     return check_single_line_text(name, label)
 
 
+def _check_colormap(name: str, value: object) -> Colormap:
+    """Raise unless ``value`` is a matplotlib colormap.
+
+    A name such as ``"turbo"`` is what matplotlib's own functions take,
+    so it is the likeliest mistake, and the message names that colormap.
+    The colormap is returned.
+    """
+    if isinstance(value, Colormap):
+        return value
+    if isinstance(value, str):
+        example, got = value, f"the string {value!r}"
+    else:
+        example, got = "turbo", type(value).__name__
+    raise TypeError(
+        f"{name} must be a matplotlib Colormap, such as "
+        f"mpl.colormaps[{example!r}]; got {got}."
+    )
+
+
 def _check_style(name: str, style: object) -> None:
     if style is not None and not isinstance(style, StructureStyle):
         raise TypeError(
@@ -69,9 +89,10 @@ def draw_svg_as_component(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
+    colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
 ) -> Component:
     """Draw a secondary structure as a component, to place with others.
 
@@ -96,15 +117,20 @@ def draw_svg_as_component(
         filled in. When given, each nucleotide is colored by it, and a
         colorbar is set beside the structure. A value below 0 or above 1
         is shown in the color of 0 or of 1.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given, since the colorbar is drawn only then.
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap a probability from 0 to 1 is shown in, on the nucleotides
+        and on the colorbar. It is a matplotlib colormap itself, such as
+        ``mpl.colormaps["turbo"]``, the default, rather than the name of
+        one. Has no effect unless ``basepair_probabilities`` is given.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``basepair_probabilities`` is
+        given, since the colorbar is drawn only then.
 
     Returns
     -------
@@ -118,8 +144,9 @@ def draw_svg_as_component(
         If ``structure`` is not a well-formed secondary structure.
     TypeError
         If an argument is not of the type described above: in particular,
-        if ``sequences`` is not a list of strings, or
-        ``basepair_probabilities`` does not hold numbers.
+        if ``sequences`` is not a list of strings,
+        ``basepair_probabilities`` does not hold numbers, or ``colormap``
+        is the name of a colormap rather than the colormap itself.
     ValueError
         If ``sequences`` or ``basepair_probabilities`` does not match the
         structure, a sequence holds a line break, a tab or another control
@@ -147,6 +174,8 @@ def draw_svg_as_component(
             f"got {type(structure).__name__}."
         )
     structure = exact_str(structure)
+    if colormap is not None:
+        colormap = _check_colormap("colormap", colormap)
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
     colorbar_label = _check_label("colorbar_label", colorbar_label)
@@ -158,12 +187,14 @@ def draw_svg_as_component(
         attach_basepair_probabilities(root_loop, basepair_probabilities)
 
     engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
-    drawn = render_structure(layout(root_loop, engine), style=style)
+    drawn = render_structure(
+        layout(root_loop, engine), style=style, colormap=colormap
+    )
 
     if basepair_probabilities is None:
         return drawn
 
-    colorbar = render_colorbar(label=colorbar_label, style=style)
+    colorbar = render_colorbar(label=colorbar_label, colormap=colormap)
     colorbar_bbox = colorbar.bbox
     slot = make_bbox(
         colorbar_bbox.xmin - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
@@ -181,17 +212,19 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
+    colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
+    colorbar_label: str | None = "Equilibrium probability",
     width_px: float | None = None,
     height_px: float | None = None,
 ) -> Scene:
     """Draw a secondary structure as a scene, ready to save or show.
 
     ``draw_svg(...)`` is ``Scene(draw_svg_as_component(...))``: the
-    arguments up to ``style`` are those of :func:`draw_svg_as_component`,
-    and the last two those of :class:`Scene`.
+    arguments up to ``colorbar_label`` are those of
+    :func:`draw_svg_as_component`, and the last two those of
+    :class:`Scene`.
 
     Parameters
     ----------
@@ -210,15 +243,20 @@ def draw_svg(
         so the matrix may be symmetric or have only its upper triangle
         filled in. A value below 0 or above 1 is shown in the color of 0
         or of 1.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given.
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap a probability from 0 to 1 is shown in, on the nucleotides
+        and on the colorbar. It is a matplotlib colormap itself, such as
+        ``mpl.colormaps["turbo"]``, the default, rather than the name of
+        one. Has no effect unless ``basepair_probabilities`` is given.
     layout_engine : RadialLayoutEngine, optional
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
+    colorbar_label : str or None, default="Equilibrium probability"
+        Text written alongside the colorbar, on one line, or None to leave
+        it without one. Has no effect unless ``basepair_probabilities`` is
+        given.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
         from the proportions of the structure.
@@ -248,8 +286,9 @@ def draw_svg(
         structure,
         sequences=sequences,
         basepair_probabilities=basepair_probabilities,
-        colorbar_label=colorbar_label,
+        colormap=colormap,
         layout_engine=layout_engine,
         style=style,
+        colorbar_label=colorbar_label,
     )
     return Scene(component, width_px=width_px, height_px=height_px)

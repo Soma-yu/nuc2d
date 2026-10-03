@@ -106,9 +106,14 @@ def _ensure_def(
 # letter or a 3' arrow drawn larger than this reaches past the box.
 _STRUCTURE_MARGIN = 20.0
 
+# Every letter is set in this font: the bases, and the colorbar's numbers
+# and label. It is the family the SVG asks for, and the one looked up on
+# this machine to measure the letters with.
+_FONT_FAMILY = "Arial"
+
 # The colorbar's own proportions and lettering. They are not style
-# settings: a style says how a structure looks and which colors show its
-# probabilities, and the colorbar is only the key to those colors.
+# settings: a style says how a structure looks, and the colorbar is only
+# the key to the colors its probabilities are shown in.
 _COLORBAR_ASPECT_RATIO = 1 / 30  # the bar's width over its height
 _COLORBAR_TICK_LENGTH = 5.0
 _COLORBAR_TICK_FONT_SIZE = 12.0
@@ -121,12 +126,15 @@ class _Renderer:
     Only this module's ``render_*`` functions use it: they hand it a
     drawing of their own, and hand back what it drew together with the
     definitions it registered there. The class is what lets the steps of
-    drawing one part share a style.
+    drawing one part share a style and a colormap.
 
     Parameters
     ----------
     style : StructureStyle, optional
         Appearance settings. Defaults to ``StructureStyle()``.
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap probabilities are shown in. Defaults to
+        ``mpl.colormaps["turbo"]``.
 
     Notes
     -----
@@ -138,8 +146,12 @@ class _Renderer:
         self,
         *,
         style: StructureStyle | None = None,
+        colormap: mpl.colors.Colormap | None = None,
     ) -> None:
         self.style = style if style is not None else StructureStyle()
+        self.colormap = (
+            colormap if colormap is not None else mpl.colormaps["turbo"]
+        )
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     def _draw_node(
@@ -158,7 +170,7 @@ class _Renderer:
             fill = self.style.node_color
         else:
             fill = mpl.colors.to_hex(
-                self.style.colormap(
+                self.colormap(
                     self._color_norm(
                         nt.probability
                     )
@@ -174,7 +186,7 @@ class _Renderer:
         )
 
         if nt.base is not None:
-            font = find_font(self.style.font_family)
+            font = find_font(_FONT_FAMILY)
             baseline_offset = vertical_center_offset(
                 font,
                 self.style.node_font_size,
@@ -185,7 +197,7 @@ class _Renderer:
                     nt.base,
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
-                    font_family=self.style.font_family,
+                    font_family=_FONT_FAMILY,
                     font_size=self.style.node_font_size,
                     fill="black",
                     stroke="black",
@@ -199,7 +211,7 @@ class _Renderer:
                     nt.base,
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
-                    font_family=self.style.font_family,
+                    font_family=_FONT_FAMILY,
                     font_size=self.style.node_font_size,
                     fill="white",
                 )
@@ -443,7 +455,7 @@ class _Renderer:
                 offsets,
                 map(
                     mpl.colors.to_hex,
-                    self.style.colormap(self._color_norm(offsets)),
+                    self.colormap(self._color_norm(offsets)),
                 ),
             )
         )
@@ -491,7 +503,7 @@ class _Renderer:
                 drawing.text(
                     f"{value:.1f}",
                     insert=(bar_x + bar_width + 10, y + 4),
-                    font_family = self.style.font_family,
+                    font_family=_FONT_FAMILY,
                     font_size=_COLORBAR_TICK_FONT_SIZE,
                     fill="black",
                 )
@@ -503,7 +515,7 @@ class _Renderer:
                     label,
                     insert=(100, box_height/2),
                     text_anchor="middle",
-                    font_family=self.style.font_family,
+                    font_family=_FONT_FAMILY,
                     font_size=_COLORBAR_LABEL_FONT_SIZE,
                     fill="black",
                     transform=f"rotate(90, 100, {box_height / 2})",
@@ -534,6 +546,7 @@ def render_structure(
     layout_result: LayoutResult,
     *,
     style: StructureStyle | None = None,
+    colormap: mpl.colors.Colormap | None = None,
 ) -> Component:
     """Render a laid-out secondary structure.
 
@@ -543,6 +556,9 @@ def render_structure(
         Geometry of the structure.
     style : StructureStyle, optional
         Appearance settings. Defaults to ``StructureStyle()``.
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap the probabilities are shown in. Defaults to
+        ``mpl.colormaps["turbo"]``.
 
     Returns
     -------
@@ -550,7 +566,9 @@ def render_structure(
         The drawn structure.
     """
     drawing = svgwrite.Drawing()
-    group, bbox = _Renderer(style=style).render_structure(drawing, layout_result)
+    group, bbox = _Renderer(style=style, colormap=colormap).render_structure(
+        drawing, layout_result
+    )
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
     return make_component(bbox, graphics=graphics)
 
@@ -558,7 +576,7 @@ def render_structure(
 def render_colorbar(
     *,
     label: str | None = "Equilibrium probability",
-    style: StructureStyle | None = None,
+    colormap: mpl.colors.Colormap | None = None,
 ) -> Component:
     """Render a colorbar.
 
@@ -567,9 +585,8 @@ def render_colorbar(
     label : str or None, default="Equilibrium probability"
         Label written alongside the colorbar, or None to leave it without
         one. The colorbar occupies the same box either way.
-    style : StructureStyle, optional
-        Appearance settings, including the colormap. Defaults to
-        ``StructureStyle()``.
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap the bar shows. Defaults to ``mpl.colormaps["turbo"]``.
 
     Returns
     -------
@@ -577,7 +594,9 @@ def render_colorbar(
         The drawn colorbar.
     """
     drawing = svgwrite.Drawing()
-    group, bbox = _Renderer(style=style).render_colorbar(drawing, label=label)
+    group, bbox = _Renderer(colormap=colormap).render_colorbar(
+        drawing, label=label
+    )
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
     return make_component(bbox, graphics=graphics)
 
