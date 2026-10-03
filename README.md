@@ -150,7 +150,8 @@ itself, such as `mpl.colormaps["turbo"]`, the default, rather than its name.
 
 ## Title
 
-`title` writes one line above the structure, centered over it:
+`title` writes one line above the structure and its colorbar, centered over
+them:
 
 ```python
 scene = draw_svg(CLOVERLEAF, title="tRNA")

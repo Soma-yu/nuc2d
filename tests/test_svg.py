@@ -224,23 +224,18 @@ def test_a_title_is_set_above_what_it_is_over():
         assert bbox.ymin == pytest.approx(-_TITLE_GAP - title.height)
 
 
-def test_a_title_is_centered_over_the_structure():
-    """Over its square beside a colorbar, whose center is the same."""
-    wide = "tRNA" * 50
-    colorbar = render_colorbar().bbox
+@pytest.mark.parametrize("kwargs", [{}, {"basepair_probabilities": PROBS}])
+def test_a_title_is_centered_over_the_structure_and_its_colorbar(kwargs):
+    """A title wider than what it is over reaches as far past either side.
 
-    alone = draw_svg_as_component("(((...)))", title="t").bbox
-    titled = draw_svg_as_component("(((...)))", title=wide).bbox
-    assert titled.width > alone.width
-    assert (titled.xmin + titled.xmax) / 2 == pytest.approx(
-        (alone.xmin + alone.xmax) / 2
-    )
+    One narrower than it, as "t" is, leaves the box that of what is below.
+    """
+    below = draw_svg_as_component("(((...)))", title="t", **kwargs)
+    titled = draw_svg_as_component("(((...)))", title="tRNA" * 50, **kwargs)
 
-    titled = draw_svg_as_component(
-        "(((...)))", basepair_probabilities=PROBS, title=wide
-    ).bbox
-    assert (titled.xmin + titled.xmax) / 2 == pytest.approx(
-        colorbar.xmin - colorbar.height / 2
+    assert titled.bbox.width > below.bbox.width
+    assert (titled.bbox.xmin + titled.bbox.xmax) / 2 == pytest.approx(
+        (below.bbox.xmin + below.bbox.xmax) / 2
     )
 
 

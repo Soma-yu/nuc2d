@@ -14,7 +14,7 @@ from matplotlib.colors import Colormap
 from ._annotation import attach_basepair_probabilities, attach_sequences
 from ._validation import check_single_line_text, exact_str
 from ._component import Component, Placement, fit
-from ._geometry import make_bbox
+from ._geometry import bbox_around, make_bbox
 from ._layout import RadialLayoutEngine, layout
 from ._parse import parse
 from ._scene import Scene
@@ -36,7 +36,7 @@ _TITLE_GAP = 10.0  # between the title and what it is set over
 _COLORBAR_HEIGHT = 500.0
 
 
-def _check_line(name: str, value: object, *, without: str) -> str | None:
+def _check_label(name: str, value: object, *, without: str) -> str | None:
     """Raise unless ``value`` is None or one line of text.
 
     ``without`` says what None leaves without the text, for the message
@@ -89,10 +89,10 @@ def draw_svg_as_component(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    title: str | None = None,
     colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
+    title: str | None = None,
     colorbar_label: str | None = "Equilibrium probability",
 ) -> Component:
     """Draw a secondary structure as a component, to place with others.
@@ -118,8 +118,6 @@ def draw_svg_as_component(
         filled in. When given, each nucleotide is colored by it, and a
         colorbar is set beside the structure. A value below 0 or above 1
         is shown in the color of 0 or of 1.
-    title : str, optional
-        Text written above the structure, on one line.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -130,6 +128,8 @@ def draw_svg_as_component(
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
+    title : str, optional
+        Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, on one line, or None to leave
         it without one. Has no effect unless ``basepair_probabilities`` is
@@ -171,10 +171,10 @@ def draw_svg_as_component(
     it stays legible beside a structure of any shape, and every structure
     drawn this way takes the same room.
 
-    A title is set above, centered over the structure, at one size
-    whatever the structure. Under a title with no colorbar, the structure
-    is drawn at the size it takes beside a colorbar, so that the title
-    reads the same over any structure.
+    A title is set above, centered over the structure and its colorbar,
+    at one size whatever the structure. Under a title with no colorbar,
+    the structure is drawn at the size it takes beside a colorbar, so
+    that the title reads the same over any structure.
     """
     if not isinstance(structure, str):
         raise TypeError(
@@ -182,14 +182,14 @@ def draw_svg_as_component(
             f"got {type(structure).__name__}."
         )
     structure = exact_str(structure)
-    title = _check_line(
-        "title", title, without="the structure without a title"
-    )
     if colormap is not None:
         colormap = _check_colormap("colormap", colormap)
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
-    colorbar_label = _check_line(
+    title = _check_label(
+        "title", title, without="the structure without a title"
+    )
+    colorbar_label = _check_label(
         "colorbar_label",
         colorbar_label,
         without="the colorbar without a label",
@@ -225,14 +225,12 @@ def draw_svg_as_component(
         return drawn
 
     if title is not None:
-        # Centered over the structure, or over its square beside the
-        # colorbar, which has the same center.
-        under = placements[0].bbox
+        under = bbox_around(p.bbox for p in placements)
         placements.append(
             Placement(
                 render_text(title, font_size=_TITLE_FONT_SIZE),
                 x=(under.xmin + under.xmax) / 2,
-                y=min(p.bbox.ymin for p in placements) - _TITLE_GAP,
+                y=under.ymin - _TITLE_GAP,
                 anchor="lower center",
             )
         )
@@ -244,10 +242,10 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    title: str | None = None,
     colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
+    title: str | None = None,
     colorbar_label: str | None = "Equilibrium probability",
     width_px: float | None = None,
     height_px: float | None = None,
@@ -276,8 +274,6 @@ def draw_svg(
         so the matrix may be symmetric or have only its upper triangle
         filled in. A value below 0 or above 1 is shown in the color of 0
         or of 1.
-    title : str, optional
-        Text written above the structure, on one line.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -288,6 +284,8 @@ def draw_svg(
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
         How the structure looks.
+    title : str, optional
+        Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"
         Text written alongside the colorbar, on one line, or None to leave
         it without one. Has no effect unless ``basepair_probabilities`` is
@@ -321,10 +319,10 @@ def draw_svg(
         structure,
         sequences=sequences,
         basepair_probabilities=basepair_probabilities,
-        title=title,
         colormap=colormap,
         layout_engine=layout_engine,
         style=style,
+        title=title,
         colorbar_label=colorbar_label,
     )
     return Scene(component, width_px=width_px, height_px=height_px)
