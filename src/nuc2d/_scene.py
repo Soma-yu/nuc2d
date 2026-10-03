@@ -28,9 +28,10 @@ class Scene:
         from the component's proportions.
     height_px : float, optional
         Height of the scene in pixels. Given alone, the width follows
-        from the component's proportions. Giving neither sets the height
-        to 500. Giving both keeps the component's proportions and centers
-        it, rather than stretching it to fit.
+        from the component's proportions. Giving neither draws the
+        component at its own size, one unit of its box to a pixel. Giving
+        both keeps the component's proportions and centers it, rather
+        than stretching it to fit.
 
     Raises
     ------
@@ -87,8 +88,11 @@ class Scene:
 
         aspect_ratio = bbox.width / bbox.height
         if height_px is None:
-            height_px = 500.0 if width_px is None else width_px / aspect_ratio
-        if width_px is None:
+            if width_px is None:
+                width_px, height_px = bbox.width, bbox.height
+            else:
+                height_px = width_px / aspect_ratio
+        elif width_px is None:
             width_px = height_px * aspect_ratio
 
         self._component = component

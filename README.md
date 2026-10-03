@@ -157,8 +157,8 @@ them:
 scene = draw_svg(CLOVERLEAF, title="tRNA")
 ```
 
-The title is drawn at one size, and the structure under it at the size it takes
-beside a colorbar, so that a title reads the same over any structure.
+The title is drawn at one size, over a structure fitted into a square of one
+size, so that a title reads the same over any structure.
 
 ## Output size
 
@@ -170,9 +170,10 @@ scene = draw_svg(CLOVERLEAF, width_px=600)
 scene = draw_svg(CLOVERLEAF, width_px=600, height_px=600)
 ```
 
-Giving neither defaults the height to 500 px. Giving both keeps the structure's
-own proportions and centers it in the box, with space above and below or at
-the sides, rather than stretching it to fit.
+Giving neither draws the figure at its own size, one unit to a pixel: a
+structure alone comes out 500 px square. Giving both keeps the structure's own
+proportions and centers it in the box, with space above and below or at the
+sides, rather than stretching it to fit.
 
 ## Layout and style
 
@@ -293,9 +294,11 @@ environment with an older Python keeps installing the last release that
 supported it.
 
 The drawing is not part of that promise. A minor release may place a
-nucleotide differently, enclose a structure more tightly, or write the same
-shape as different SVG, so a figure regenerated under a newer version can
-come out different. Text is measured with the font installed on the machine,
+nucleotide differently, enclose a structure more tightly, draw a figure at
+another size, or write the same shape as different SVG. A figure regenerated
+under a newer version can then come out different, and so can the box of a
+component, and the size of a scene given neither `width_px` nor `height_px`.
+Text is measured with the font installed on the machine,
 so a drawing can differ between two machines running the same version as
 well. An SVG already saved to disk is of course unaffected.
 

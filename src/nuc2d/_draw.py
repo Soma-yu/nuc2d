@@ -22,18 +22,16 @@ from ._style import StructureStyle
 from ._svg import render_colorbar, render_structure, render_text
 
 
-# The structure beside a colorbar is fitted into a square as tall as the
-# colorbar, so that the colorbar keeps its own size whatever the shape of
-# the structure, and a very wide structure does not shrink it to a sliver.
+# The structure is fitted into a square as tall as a colorbar, whatever
+# is drawn with it, so that every structure drawn takes the same room.
+# The colorbar and the title each keep one size: a very wide structure
+# does not shrink them to a sliver, and structures placed at one size
+# show titles of one size.
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
+_COLORBAR_HEIGHT = 500.0  # as tall as render_colorbar draws one
 
-# A title is set at one size, so that it reads the same over any
-# structure. A structure under a title with no colorbar beside it is
-# drawn at the size it would take beside one: fitted into a square as
-# tall as a colorbar.
 _TITLE_FONT_SIZE = 20.0
 _TITLE_GAP = 10.0  # between the title and what it is set over
-_COLORBAR_HEIGHT = 500.0
 
 
 def _check_label(name: str, value: object, *, without: str) -> str | None:
@@ -167,15 +165,11 @@ def draw_svg_as_component(
     structure belongs to the drawing rather than to the API, and a minor
     release may change it.
 
-    With a colorbar, the structure is fitted into a square as tall as the
-    colorbar and centered in it. The colorbar keeps its own size, so that
-    it stays legible beside a structure of any shape, and every structure
-    drawn this way takes the same room.
-
-    A title is set above, centered over the structure and its colorbar,
-    at one size whatever the structure. Under a title with no colorbar,
-    the structure is drawn at the size it takes beside a colorbar, so
-    that the title reads the same over any structure.
+    The structure is fitted into a square as tall as a colorbar and
+    centered in it, so that every structure drawn takes the same room. A
+    colorbar is set beside the square, and a title above everything,
+    centered over it. Each keeps one size, so that it stays legible beside
+    a structure of any shape.
     """
     if not isinstance(structure, str):
         raise TypeError(
@@ -207,24 +201,16 @@ def draw_svg_as_component(
         layout(root_loop, engine), style=style, colormap=colormap
     )
 
+    slot = make_bbox(
+        0.0,
+        0.0,
+        _COLORBAR_HEIGHT * _STRUCTURE_SLOT_ASPECT_RATIO,
+        _COLORBAR_HEIGHT,
+    )
+    placements = [fit(drawn, slot, anchor="center")]
     if basepair_probabilities is not None:
         colorbar = render_colorbar(label=colorbar_label, colormap=colormap)
-        colorbar_bbox = colorbar.bbox
-        slot = make_bbox(
-            colorbar_bbox.xmin
-            - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
-            colorbar_bbox.ymin,
-            colorbar_bbox.xmin,
-            colorbar_bbox.ymax,
-        )
-        placements = [fit(drawn, slot, anchor="center"), Placement(colorbar)]
-    elif title is not None:
-        bbox = drawn.bbox
-        scale = _COLORBAR_HEIGHT / max(bbox.width, bbox.height)
-        placements = [Placement(drawn, scale=scale)]
-    else:
-        return drawn
-
+        placements.append(Placement(colorbar, x=slot.xmax, y=slot.ymin))
     if title is not None:
         under = bbox_around(p.bbox for p in placements)
         placements.append(
@@ -297,7 +283,8 @@ def draw_svg(
         from the proportions of the structure.
     height_px : float, optional
         Height of the scene in pixels. Given alone, the width follows.
-        Giving neither sets the height to 500.
+        Giving neither draws the scene at the size the structure is drawn
+        at, one unit to a pixel.
 
     Returns
     -------

@@ -18,7 +18,9 @@ from nuc2d import (
     draw_svg_as_component,
 )
 from nuc2d._draw import _TITLE_FONT_SIZE, _TITLE_GAP
-from nuc2d._svg import render_colorbar, render_text
+from nuc2d._layout import layout
+from nuc2d._parse import parse
+from nuc2d._svg import render_colorbar, render_structure, render_text
 
 
 def side_by_side(components):
@@ -114,19 +116,34 @@ def test_output_is_well_formed_xml(dot_bracket):
 
 def node_extent(dot_bracket):
     """Return the box around the centers of a structure's nodes."""
-    from nuc2d._layout import layout
-    from nuc2d._parse import parse
-
     nodes = layout(parse(dot_bracket), RadialLayoutEngine()).nodes
     xs = [node.pos.x for node in nodes]
     ys = [node.pos.y for node in nodes]
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def structure_box(dot_bracket, *, style=None, layout_engine=None):
+    """Return the structure's own box, before it is fitted into its square."""
+    engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
+    return render_structure(layout(parse(dot_bracket), engine), style=style).bbox
+
+
+def test_every_structure_takes_the_same_square():
+    """Whatever its shape, so that structures drawn alike line up."""
+    colorbar = render_colorbar().bbox
+
+    for dot_bracket in ["(((...)))", ".....", "(" * 30 + "..." + ")" * 30]:
+        bbox = draw_svg_as_component(dot_bracket).bbox
+
+        assert (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax) == pytest.approx(
+            (0.0, 0.0, colorbar.height, colorbar.height)
+        )
+
+
 def test_the_box_runs_twenty_units_past_the_outermost_nodes():
     xmin, ymin, xmax, ymax = node_extent("(((...)))")
 
-    bbox = draw_svg_as_component("(((...)))").bbox
+    bbox = structure_box("(((...)))")
 
     assert (bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax) == pytest.approx(
         (xmin - 20.0, ymin - 20.0, xmax + 20.0, ymax + 20.0)
@@ -135,14 +152,14 @@ def test_the_box_runs_twenty_units_past_the_outermost_nodes():
 
 def test_the_box_is_not_widened_by_the_style():
     """The box is not measured from what is drawn, so a style leaves it be."""
-    default = draw_svg_as_component("(((...)))").bbox
+    default = structure_box("(((...)))")
 
     for style in [
         StructureStyle(node_radius=30.0),
         StructureStyle(node_font_size=50.0),
         StructureStyle(three_prime_arrow_length=40.0),
     ]:
-        assert draw_svg_as_component("(((...)))", style=style).bbox == default
+        assert structure_box("(((...)))", style=style) == default
 
 
 def test_viewbox_frames_exactly_the_component():
@@ -178,16 +195,19 @@ def test_the_colorbar_sits_beside_the_structure_at_its_own_size():
 def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
     """A structure wider than it is tall sits midway up the colorbar."""
     colorbar = render_colorbar().bbox
-    square_center = (
-        colorbar.xmin - colorbar.height / 2, (colorbar.ymin + colorbar.ymax) / 2
-    )
 
     for dot_bracket in [".....", "((((....))))" * 3]:
-        alone = draw_svg_as_component(dot_bracket).bbox
+        alone = structure_box(dot_bracket)
         assert alone.width > alone.height
-        svg = Scene(
-            draw_svg_as_component(dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5)
-        ).to_svg()
+        panel = draw_svg_as_component(
+            dot_bracket, basepair_probabilities=np.eye(len(dot_bracket)) * 0.5
+        )
+        svg = Scene(panel).to_svg()
+        # The square is the left of the panel, as tall as the colorbar.
+        square_center = (
+            panel.bbox.xmin + colorbar.height / 2,
+            (panel.bbox.ymin + panel.bbox.ymax) / 2,
+        )
 
         # The structure is placed first, so its transform is the first one.
         transform = next(
@@ -204,15 +224,20 @@ def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
         )
 
 
-def test_under_a_title_a_structure_is_as_large_as_beside_a_colorbar():
-    """So that the title, at one size, reads the same over any structure."""
+def test_under_a_title_a_structure_takes_its_square_beside_a_colorbar():
+    """Structures of any shape with titles take the same room.
+
+    Placed at one size, they then show titles of one size.
+    """
     colorbar = render_colorbar().bbox
 
     for dot_bracket in ["(((...)))", ".....", "(" * 30 + "..." + ")" * 30]:
         bbox = draw_svg_as_component(dot_bracket, title="t").bbox
 
-        # The structure runs down from y = 0, and is wider than the title.
-        assert max(bbox.width, bbox.ymax) == pytest.approx(colorbar.height)
+        # The square runs down from y = 0, and is wider than the title.
+        assert (bbox.width, bbox.ymax) == pytest.approx(
+            (colorbar.height, colorbar.height)
+        )
 
 
 def test_a_title_is_set_above_what_it_is_over():
@@ -344,13 +369,12 @@ def test_the_sequence_reaches_the_drawing():
 
 
 def test_layout_engine_is_configurable():
-    default = draw_svg_as_component("(((...)))")
-    wider = draw_svg_as_component(
-        "(((...)))",
-        layout_engine=RadialLayoutEngine(stem_spacing=30),
+    default = structure_box("(((...)))")
+    wider = structure_box(
+        "(((...)))", layout_engine=RadialLayoutEngine(stem_spacing=30)
     )
 
-    assert wider.bbox.height > default.bbox.height
+    assert wider.height > default.height
 
 
 def tag_of(element):

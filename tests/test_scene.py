@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pytest
 
-from nuc2d import Placement, Scene, draw_svg, draw_svg_as_component
+from nuc2d import Component, Placement, Scene, draw_svg, draw_svg_as_component
 from nuc2d._component import make_component
 from nuc2d._geometry import _EMPTY_BBOX, make_bbox
 
@@ -55,8 +55,11 @@ def test_a_scene_is_framed_on_the_component():
 
 
 def test_the_size_follows_the_component_proportions():
-    component = structure(CLOVERLEAF)
-    aspect = component.bbox.width / component.bbox.height
+    # Placed smaller, so that its size is not that of a structure drawn.
+    colored = structure(CLOVERLEAF, basepair_probabilities=np.eye(76) * 0.5)
+    component = Component.from_placements([Placement(colored, scale=0.4)])
+    bbox = component.bbox
+    aspect = bbox.width / bbox.height
 
     default = ET.fromstring(Scene(component).to_svg()).attrib
     by_width = ET.fromstring(Scene(component, width_px=300.0).to_svg()).attrib
@@ -64,8 +67,10 @@ def test_the_size_follows_the_component_proportions():
         Scene(component, width_px=300.0, height_px=100.0).to_svg()
     ).attrib
 
-    assert default["height"] == "500.0px"
-    assert float(default["width"][:-2]) == pytest.approx(500.0 * aspect)
+    # Given neither, one unit of the component to a pixel.
+    assert (float(default["width"][:-2]), float(default["height"][:-2])) == (
+        pytest.approx((bbox.width, bbox.height))
+    )
     assert float(by_width["height"][:-2]) == pytest.approx(300.0 / aspect)
     assert (both["width"], both["height"]) == ("300.0px", "100.0px")
 
