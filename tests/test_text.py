@@ -21,7 +21,7 @@ def texts(svg_string):
 
 def line(text, font_size=12.0):
     """One line of text, as a component, in the font everything is set in."""
-    return render_text(text, font_family="Arial", font_size=font_size)
+    return render_text(text, font_size=font_size)
 
 
 def test_the_text_is_written_as_given():
@@ -57,13 +57,14 @@ def test_the_box_grows_with_the_text_and_the_size():
     assert larger.height == pytest.approx(short.height * 2)
 
 
-def labeled(label):
-    """A scene whose colorbar carries label."""
+def written(name, text):
+    """A scene with text as its title or as its colorbar label."""
     return draw_svg(
-        "(((...)))", basepair_probabilities=np.eye(9) * 0.5, colorbar_label=label
+        "(((...)))", basepair_probabilities=np.eye(9) * 0.5, **{name: text}
     )
 
 
+@pytest.mark.parametrize("name", ["title", "colorbar_label"])
 @pytest.mark.parametrize(
     "text",
     ["", "two\nlines", "two\rlines", "two\r\nlines", "trailing\n",
@@ -71,20 +72,21 @@ def labeled(label):
      "paragraph\u2029separator", "lone \ud800 surrogate",
      "noncharacter \ufffe", "noncharacter \uffff"],
 )
-def test_text_that_is_not_a_single_line_is_refused(text):
+def test_text_that_is_not_a_single_line_is_refused(name, text):
     """Tabs too: SVG shows one as a space, but it is measured as a tab."""
-    with pytest.raises(ValueError, match="colorbar_label"):
-        labeled(text)
+    with pytest.raises(ValueError, match=name):
+        written(name, text)
 
 
+@pytest.mark.parametrize("name", ["title", "colorbar_label"])
 @pytest.mark.parametrize(
     "text",
     ["平衡確率", "\u0394G (kcal/mol)", "5\u2032 end", "100 %", "a\\nb",
      "no\u00a0break", "全角\u3000スペース", "<b>&amp;</b>", " padded "],
 )
-def test_any_other_character_is_drawn_as_written(text):
+def test_any_other_character_is_drawn_as_written(name, text):
     """A backslash is a character like any other: nothing interprets it."""
-    svg = labeled(text).to_svg()
+    svg = written(name, text).to_svg()
 
     assert text in [element.text for element in texts(svg)]
 

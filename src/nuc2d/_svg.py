@@ -106,9 +106,9 @@ def _ensure_def(
 # letter or a 3' arrow drawn larger than this reaches past the box.
 _STRUCTURE_MARGIN = 20.0
 
-# Every letter is set in this font: the bases, and the colorbar's numbers
-# and label. It is the family the SVG asks for, and the one looked up on
-# this machine to measure the letters with.
+# Every letter is set in this font: the bases, the colorbar's numbers and
+# label, and a title. It is the family the SVG asks for, and the one looked
+# up on this machine to measure the letters with.
 _FONT_FAMILY = "Arial"
 
 # The colorbar's own proportions and lettering. They are not style
@@ -601,8 +601,8 @@ def render_colorbar(
     return make_component(bbox, graphics=graphics)
 
 
-def render_text(text: str, *, font_family: str, font_size: float) -> Component:
-    """Render one line of text.
+def render_text(text: str, *, font_size: float) -> Component:
+    """Render one line of text, in the font every letter is set in.
 
     The text is set on a baseline as far below the top of its box as the
     font's ascender reaches, so that the box runs from the ascender to the
@@ -613,9 +613,6 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
     ----------
     text : str
         The text, on one line.
-    font_family : str
-        One font family name, looked up on this machine to measure the
-        text.
     font_size : float
         Font size of the text.
 
@@ -624,7 +621,7 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
     Component
         The drawn text.
     """
-    font = find_font(font_family)
+    font = find_font(_FONT_FAMILY)
     above, below = vertical_extent(font, font_size)
     width = text_width(font, text, font_size)
 
@@ -634,7 +631,7 @@ def render_text(text: str, *, font_family: str, font_size: float) -> Component:
         drawing.text(
             text,
             insert=(0.0, above),
-            font_family=font_family,
+            font_family=_FONT_FAMILY,
             font_size=font_size,
             fill="black",
         )

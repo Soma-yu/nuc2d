@@ -34,6 +34,7 @@ def test_one_sequence_not_in_a_list_is_refused():
         ({"style": {"node_color": "crimson"}}, "style"),
         ({"style": RadialLayoutEngine()}, "style"),
         ({"layout_engine": StructureStyle()}, "layout_engine"),
+        ({"title": 3}, "title"),
         ({"colorbar_label": 3}, "colorbar_label"),
     ],
 )
@@ -42,11 +43,12 @@ def test_an_argument_of_another_type_is_refused(kwargs, name):
         draw_svg_as_component(HAIRPIN, **kwargs)
 
 
-@pytest.mark.parametrize("label", ["", "two\nlines", "a\tb"])
-def test_a_colorbar_label_is_one_line_or_none(label):
-    """None, not an empty string, is how a colorbar is left without one."""
-    with pytest.raises(ValueError, match="colorbar_label"):
-        draw_svg_as_component(HAIRPIN, colorbar_label=label)
+@pytest.mark.parametrize("name", ["title", "colorbar_label"])
+@pytest.mark.parametrize("text", ["", "two\nlines", "a\tb"])
+def test_a_title_or_a_colorbar_label_is_one_line_or_none(name, text):
+    """None, not an empty string, is how either is left out."""
+    with pytest.raises(ValueError, match=name):
+        draw_svg_as_component(HAIRPIN, **{name: text})
 
 
 def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
@@ -86,14 +88,9 @@ def test_a_colormap_without_probabilities_changes_nothing():
     assert draw_svg(HAIRPIN, colormap=viridis).to_svg() == draw_svg(HAIRPIN).to_svg()
 
 
-def test_a_colormap_given_by_name_is_answered_with_how_to_give_it():
-    """matplotlib's own functions take a name, so this is the likely slip."""
-    with pytest.raises(TypeError, match=r"mpl\.colormaps\['magma'\]"):
-        draw_svg_as_component(HAIRPIN, colormap="magma")
-
-
-@pytest.mark.parametrize("value", [3, ["white", "red"]])
+@pytest.mark.parametrize("value", ["magma", 3, ["white", "red"]])
 def test_a_colormap_that_is_not_one_is_a_type_error(value):
+    """A name too, though matplotlib's own functions take one."""
     with pytest.raises(TypeError, match=r"colormap.*mpl\.colormaps\['turbo'\]"):
         draw_svg_as_component(HAIRPIN, colormap=value)
 
@@ -106,9 +103,10 @@ def test_a_nan_probability_is_refused():
         draw_svg(HAIRPIN, basepair_probabilities=probs)
 
 
-def test_an_empty_colorbar_label_is_answered_with_none():
+@pytest.mark.parametrize("name", ["title", "colorbar_label"])
+def test_an_empty_title_or_colorbar_label_is_answered_with_none(name):
     with pytest.raises(ValueError, match="pass None"):
-        draw_svg_as_component(HAIRPIN, colorbar_label="")
+        draw_svg_as_component(HAIRPIN, **{name: ""})
 
 
 @pytest.mark.parametrize(

@@ -19,7 +19,7 @@ from ._layout import RadialLayoutEngine, layout
 from ._parse import parse
 from ._scene import Scene
 from ._style import StructureStyle
-from ._svg import render_colorbar, render_structure
+from ._svg import render_colorbar, render_structure, render_text
 
 
 # The structure beside a colorbar is fitted into a square as tall as the
@@ -27,43 +27,43 @@ from ._svg import render_colorbar, render_structure
 # the structure, and a very wide structure does not shrink it to a sliver.
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
 
+# A title is set at one size, so that it reads the same over any
+# structure. A structure under a title with no colorbar beside it is
+# drawn at the size it would take beside one: fitted into a square as
+# tall as a colorbar.
+_TITLE_FONT_SIZE = 20.0
+_TITLE_GAP = 10.0  # between the title and what it is set over
+_COLORBAR_HEIGHT = 500.0
 
-def _check_label(name: str, label: object) -> str | None:
-    """Raise unless ``label`` is None or single-line text for a colorbar.
 
-    The label is returned, a string as a str.
+def _check_line(name: str, value: object, *, without: str) -> str | None:
+    """Raise unless ``value`` is None or one line of text.
+
+    ``without`` says what None leaves without the text, for the message
+    an empty string is answered with. The text is returned, as a str.
     """
-    if label is None:
+    if value is None:
         return None
-    if not isinstance(label, str):
+    if not isinstance(value, str):
         raise TypeError(
-            f"{name} must be a string or None; got {type(label).__name__}."
+            f"{name} must be a string or None; got {type(value).__name__}."
         )
-    if not label:
-        raise ValueError(
-            f"{name} is empty; pass None to leave the colorbar without "
-            "a label."
-        )
-    return check_single_line_text(name, label)
+    if not value:
+        raise ValueError(f"{name} is empty; pass None to leave {without}.")
+    return check_single_line_text(name, value)
 
 
 def _check_colormap(name: str, value: object) -> Colormap:
     """Raise unless ``value`` is a matplotlib colormap.
 
-    A name such as ``"turbo"`` is what matplotlib's own functions take,
-    so it is the likeliest mistake, and the message names that colormap.
     The colormap is returned.
     """
-    if isinstance(value, Colormap):
-        return value
-    if isinstance(value, str):
-        example, got = value, f"the string {value!r}"
-    else:
-        example, got = "turbo", type(value).__name__
-    raise TypeError(
-        f"{name} must be a matplotlib Colormap, such as "
-        f"mpl.colormaps[{example!r}]; got {got}."
-    )
+    if not isinstance(value, Colormap):
+        raise TypeError(
+            f"{name} must be a matplotlib Colormap, such as "
+            f"mpl.colormaps['turbo']; got {type(value).__name__}."
+        )
+    return value
 
 
 def _check_style(name: str, style: object) -> None:
@@ -89,6 +89,7 @@ def draw_svg_as_component(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
+    title: str | None = None,
     colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
@@ -117,6 +118,8 @@ def draw_svg_as_component(
         filled in. When given, each nucleotide is colored by it, and a
         colorbar is set beside the structure. A value below 0 or above 1
         is shown in the color of 0 or of 1.
+    title : str, optional
+        Text written above the structure, on one line.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -135,8 +138,8 @@ def draw_svg_as_component(
     Returns
     -------
     Component
-        The structure, with its colorbar if one is drawn, to be placed
-        with :class:`Placement` or shown with :class:`Scene`.
+        The structure, with its title and its colorbar if they are drawn,
+        to be placed with :class:`Placement` or shown with :class:`Scene`.
 
     Raises
     ------
@@ -151,8 +154,8 @@ def draw_svg_as_component(
         If ``sequences`` or ``basepair_probabilities`` does not match the
         structure, a sequence holds a line break, a tab or another control
         character, a probability a nucleotide is colored by is NaN, or
-        ``colorbar_label`` is empty or holds a line break, a tab or
-        another control character.
+        ``title`` or ``colorbar_label`` is empty or holds a line break, a
+        tab or another control character.
 
     Notes
     -----
@@ -167,6 +170,11 @@ def draw_svg_as_component(
     colorbar and centered in it. The colorbar keeps its own size, so that
     it stays legible beside a structure of any shape, and every structure
     drawn this way takes the same room.
+
+    A title is set above, centered over the structure, at one size
+    whatever the structure. Under a title with no colorbar, the structure
+    is drawn at the size it takes beside a colorbar, so that the title
+    reads the same over any structure.
     """
     if not isinstance(structure, str):
         raise TypeError(
@@ -174,11 +182,18 @@ def draw_svg_as_component(
             f"got {type(structure).__name__}."
         )
     structure = exact_str(structure)
+    title = _check_line(
+        "title", title, without="the structure without a title"
+    )
     if colormap is not None:
         colormap = _check_colormap("colormap", colormap)
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
-    colorbar_label = _check_label("colorbar_label", colorbar_label)
+    colorbar_label = _check_line(
+        "colorbar_label",
+        colorbar_label,
+        without="the colorbar without a label",
+    )
 
     root_loop = parse(structure)
     if sequences is not None:
@@ -191,20 +206,37 @@ def draw_svg_as_component(
         layout(root_loop, engine), style=style, colormap=colormap
     )
 
-    if basepair_probabilities is None:
+    if basepair_probabilities is not None:
+        colorbar = render_colorbar(label=colorbar_label, colormap=colormap)
+        colorbar_bbox = colorbar.bbox
+        slot = make_bbox(
+            colorbar_bbox.xmin
+            - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
+            colorbar_bbox.ymin,
+            colorbar_bbox.xmin,
+            colorbar_bbox.ymax,
+        )
+        placements = [fit(drawn, slot, anchor="center"), Placement(colorbar)]
+    elif title is not None:
+        bbox = drawn.bbox
+        scale = _COLORBAR_HEIGHT / max(bbox.width, bbox.height)
+        placements = [Placement(drawn, scale=scale)]
+    else:
         return drawn
 
-    colorbar = render_colorbar(label=colorbar_label, colormap=colormap)
-    colorbar_bbox = colorbar.bbox
-    slot = make_bbox(
-        colorbar_bbox.xmin - colorbar_bbox.height * _STRUCTURE_SLOT_ASPECT_RATIO,
-        colorbar_bbox.ymin,
-        colorbar_bbox.xmin,
-        colorbar_bbox.ymax,
-    )
-    return Component.from_placements(
-        [fit(drawn, slot, anchor="center"), Placement(colorbar)]
-    )
+    if title is not None:
+        # Centered over the structure, or over its square beside the
+        # colorbar, which has the same center.
+        under = placements[0].bbox
+        placements.append(
+            Placement(
+                render_text(title, font_size=_TITLE_FONT_SIZE),
+                x=(under.xmin + under.xmax) / 2,
+                y=min(p.bbox.ymin for p in placements) - _TITLE_GAP,
+                anchor="lower center",
+            )
+        )
+    return Component.from_placements(placements)
 
 
 def draw_svg(
@@ -212,6 +244,7 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
+    title: str | None = None,
     colormap: Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
@@ -243,6 +276,8 @@ def draw_svg(
         so the matrix may be symmetric or have only its upper triangle
         filled in. A value below 0 or above 1 is shown in the color of 0
         or of 1.
+    title : str, optional
+        Text written above the structure, on one line.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -286,6 +321,7 @@ def draw_svg(
         structure,
         sequences=sequences,
         basepair_probabilities=basepair_probabilities,
+        title=title,
         colormap=colormap,
         layout_engine=layout_engine,
         style=style,

@@ -251,6 +251,7 @@ STRING_ARGUMENTS = {
     "sequences": lambda s: nuc2d.draw_svg(
         "((+((...))))", sequences=[s("GG"), s("GGAAACCCC")]
     ),
+    "title": lambda s: nuc2d.draw_svg("(((...)))", title=s("tRNA")),
     "colorbar_label": lambda s: nuc2d.draw_svg(
         "(((...)))", basepair_probabilities=np.eye(9) * 0.5, colorbar_label=s("Unpaired")
     ),

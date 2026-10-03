@@ -17,7 +17,8 @@ from nuc2d import (
     draw_svg,
     draw_svg_as_component,
 )
-from nuc2d._svg import render_colorbar
+from nuc2d._draw import _TITLE_FONT_SIZE, _TITLE_GAP
+from nuc2d._svg import render_colorbar, render_text
 
 
 def side_by_side(components):
@@ -201,6 +202,58 @@ def test_the_structure_is_centered_in_its_square_beside_the_colorbar():
         assert (dx + scale * center_x, dy + scale * center_y) == (
             pytest.approx(square_center)
         )
+
+
+def test_under_a_title_a_structure_is_as_large_as_beside_a_colorbar():
+    """So that the title, at one size, reads the same over any structure."""
+    colorbar = render_colorbar().bbox
+
+    for dot_bracket in ["(((...)))", "." * 40, "(" * 30 + "..." + ")" * 30]:
+        bbox = draw_svg_as_component(dot_bracket, title="t").bbox
+
+        # The structure runs down from y = 0, and is wider than the title.
+        assert max(bbox.width, bbox.ymax) == pytest.approx(colorbar.height)
+
+
+def test_a_title_is_set_above_what_it_is_over():
+    title = render_text("tRNA", font_size=_TITLE_FONT_SIZE).bbox
+
+    for kwargs in [{}, {"basepair_probabilities": PROBS}]:
+        bbox = draw_svg_as_component("(((...)))", title="tRNA", **kwargs).bbox
+
+        assert bbox.ymin == pytest.approx(-_TITLE_GAP - title.height)
+
+
+def test_a_title_is_centered_over_the_structure():
+    """Over its square beside a colorbar, whose center is the same."""
+    wide = "tRNA" * 50
+    colorbar = render_colorbar().bbox
+
+    alone = draw_svg_as_component("(((...)))", title="t").bbox
+    titled = draw_svg_as_component("(((...)))", title=wide).bbox
+    assert titled.width > alone.width
+    assert (titled.xmin + titled.xmax) / 2 == pytest.approx(
+        (alone.xmin + alone.xmax) / 2
+    )
+
+    titled = draw_svg_as_component(
+        "(((...)))", basepair_probabilities=PROBS, title=wide
+    ).bbox
+    assert (titled.xmin + titled.xmax) / 2 == pytest.approx(
+        colorbar.xmin - colorbar.height / 2
+    )
+
+
+def test_the_title_is_written_in_the_font_of_every_letter():
+    svg = draw_svg("(((...)))", title="tRNA").to_svg()
+
+    [element] = [
+        element
+        for element in ET.fromstring(svg).iter()
+        if element.tag.endswith("text") and element.text == "tRNA"
+    ]
+    assert element.attrib["font-family"] == "Arial"
+    assert float(element.attrib["font-size"]) == _TITLE_FONT_SIZE
 
 
 def collect_texts(svg_string):

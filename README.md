@@ -148,6 +148,17 @@ scene = draw_svg(
 The probabilities are shown in the colors of `colormap`: a matplotlib colormap
 itself, such as `mpl.colormaps["turbo"]`, the default, rather than its name.
 
+## Title
+
+`title` writes one line above the structure, centered over it:
+
+```python
+scene = draw_svg(CLOVERLEAF, title="tRNA")
+```
+
+The title is drawn at one size, and the structure under it at the size it takes
+beside a colorbar, so that a title reads the same over any structure.
+
 ## Output size
 
 ```python
@@ -209,8 +220,9 @@ structures in one picture, draw each as a component instead, place the
 components, and frame the result:
 
 - `draw_svg_as_component` takes the same arguments as `draw_svg`, less the
-  size, and returns the structure, with its colorbar if it has one, as a
-  `Component`. `draw_svg(...)` is `Scene(draw_svg_as_component(...))`.
+  size, and returns the structure, with its title and its colorbar if it has
+  them, as a `Component`. `draw_svg(...)` is
+  `Scene(draw_svg_as_component(...))`.
 - `Placement` says where a component goes and at what size, and
   `Component.from_placements` makes one component of several placed ones.
 - `Scene` frames a component, and is what is saved or shown.

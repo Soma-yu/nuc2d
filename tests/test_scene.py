@@ -29,6 +29,8 @@ def count(svg_string, tag):
         {},
         {"basepair_probabilities": PROBS},
         {"basepair_probabilities": PROBS, "colorbar_label": None},
+        {"title": "tRNA"},
+        {"title": "tRNA", "basepair_probabilities": PROBS},
         {"sequences": ["AUGCAUGCA"]},
     ],
 )
