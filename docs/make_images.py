@@ -104,7 +104,10 @@ def example() -> Scene:
         [
             draw_svg_as_component(CLOVERLEAF),
             draw_svg_as_component(
-                CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS
+                CLOVERLEAF,
+                sequences=SEQUENCES,
+                basepair_probabilities=PROBS,
+                colorbar_label="Base-pair probability",
             ),
         ],
         gap=20.0,
@@ -123,7 +126,12 @@ def sequences() -> Scene:
 
 def probabilities() -> Scene:
     """Base-pair probabilities: the same structure, colored."""
-    return draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS)
+    return draw_svg(
+        CLOVERLEAF,
+        sequences=SEQUENCES,
+        basepair_probabilities=PROBS,
+        colorbar_label="Base-pair probability",
+    )
 
 
 def styling() -> Scene:
@@ -142,6 +150,7 @@ def styling() -> Scene:
             basepair_color="crimson",
             nucleotide_radius=5.0,
         ),
+        colorbar_label="Base-pair probability",
     )
 
 

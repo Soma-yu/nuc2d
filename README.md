@@ -51,7 +51,8 @@ scene
 
 Anywhere else in a cell, `display(scene)` from `IPython.display` shows it.
 
-An input that is not a well-formed structure raises `ParseError`:
+An input that is not a well-formed structure raises `ParseError`, a subclass
+of `ValueError`:
 
 ```python
 from nuc2d import ParseError
@@ -61,9 +62,6 @@ try:
 except ParseError as error:
     print(error)
 ```
-
-`ParseError` is a `ValueError`, so `except ValueError` catches it too, along
-with the mismatched sequences and probabilities described below.
 
 ## Sequence annotation
 
@@ -84,15 +82,13 @@ scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES)
 </p>
 
 A wrong number of sequences, or a sequence longer or shorter than its strand,
-raises `ValueError` rather than drawing something misleading. So does a
-sequence holding a line break, a tab or another control character.
+raises `ValueError` rather than drawing something misleading.
 
 ## Base-pair probability visualization
 
 Base-pair probabilities are visualized by passing a probability matrix
-through the `basepair_probabilities` argument. A colorbar is placed
-beside the structure, which is fitted into a square as tall as the colorbar, so
-that the colorbar keeps its size whatever the shape of the structure.
+through the `basepair_probabilities` argument. A colorbar is placed beside the
+structure.
 
 Element `[i][j]` of the matrix is how likely nucleotides `i` and `j` are to be
 paired with each other. Only the elements above the diagonal are read, so the
@@ -115,7 +111,12 @@ for i, char in enumerate(flat):
         # Made up: the acceptor and anticodon stems are the certain ones.
         probs[left][i] = probs[i][left] = 0.9 if left < 8 or 25 < left < 32 else 0.45
 
-scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs)
+scene = draw_svg(
+    CLOVERLEAF,
+    sequences=SEQUENCES,
+    basepair_probabilities=probs,
+    colorbar_label="Base-pair probability",
+)
 ```
 
 <p align="center">
@@ -124,35 +125,22 @@ scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs)
 
 Each nucleotide is colored by the probability of the state the structure puts
 it in: of pairing with its partner if it is paired, and of being unpaired if it
-is not. The probability of being unpaired is 1 minus the sum of its
-probabilities of pairing. A probability below 0 or above 1, as rounding can
-leave one, is shown in the color of 0 or of 1. A NaN raises `ValueError`, since
-there is no color to show it in.
+is not. A probability below 0 or above 1, as rounding can leave one, is shown
+in the color of 0 or of 1. A NaN raises `ValueError`, since there is no color
+to show it in.
 
-`colorbar_label` writes a label alongside the colorbar:
-
-```python
-scene = draw_svg(
-    CLOVERLEAF,
-    basepair_probabilities=probs,
-    colorbar_label="Pairing probability",
-)
-```
-
-The probabilities are shown in the colors of `colormap`: a matplotlib colormap
-itself, such as `mpl.colormaps["turbo"]`, the default, rather than its name.
+The `colorbar_label` argument labels the colorbar. The `colormap` argument sets
+the colors: a matplotlib colormap itself, such as `mpl.colormaps["turbo"]`, the
+default, rather than its name.
 
 ## Title
 
-`title` writes one line above the structure and its colorbar, centered over
-them:
+The `title` argument writes one line above the structure and its colorbar,
+centered over them:
 
 ```python
 scene = draw_svg(CLOVERLEAF, title="tRNA")
 ```
-
-The title is drawn at one size, over a structure fitted into a square of one
-size, so that a title reads the same over any structure.
 
 ## Output size
 
@@ -164,16 +152,16 @@ scene = draw_svg(CLOVERLEAF, width_px=600)
 scene = draw_svg(CLOVERLEAF, width_px=600, height_px=600)
 ```
 
-Giving neither draws the figure at its own size, one unit to a pixel: a
-structure alone comes out 500 px square. Giving both keeps the structure's own
-proportions and centers it in the box, with space above and below or at the
-sides, rather than stretching it to fit.
+Giving neither `width_px` nor `height_px` draws the structure at its own
+size. Giving both keeps the structure's proportions and centers it, rather than
+stretching it to fit.
 
 ## Layout and style
 
-`RadialLayoutEngine` controls geometry — how far apart nucleotides are placed.
-`StructureStyle` controls appearance — colors, stroke widths, nucleotide size
-and letter size.
+`RadialLayoutEngine`, passed as the `layout_engine` argument, controls
+geometry — how far apart nucleotides are placed. `StructureStyle`, passed as
+the `style` argument, controls appearance — colors, stroke widths, nucleotide
+size and letter size.
 
 ```python
 import matplotlib as mpl
@@ -194,6 +182,7 @@ scene = draw_svg(
         basepair_color="crimson",
         nucleotide_radius=5.0,
     ),
+    colorbar_label="Base-pair probability",
 )
 ```
 
@@ -217,7 +206,7 @@ components, and frame the result:
 
 - `draw_svg_as_component` takes the same arguments as `draw_svg`, less the
   size, and returns the structure, with its title and its colorbar if it has
-  them, as a `Component`. `draw_svg(...)` is
+  them, as a `Component`. `draw_svg(...)` is equivalent to
   `Scene(draw_svg_as_component(...))`.
 - `Placement` says where a component goes and at what size, and
   `Component.from_placements` makes one component of several placed ones.
@@ -231,7 +220,10 @@ from nuc2d import Component, Placement, Scene, draw_svg_as_component
 components = [
     draw_svg_as_component(CLOVERLEAF),
     draw_svg_as_component(
-        CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs
+        CLOVERLEAF,
+        sequences=SEQUENCES,
+        basepair_probabilities=probs,
+        colorbar_label="Base-pair probability",
     ),
 ]
 
@@ -252,13 +244,14 @@ Scene(Component.from_placements(placements)).save_svg("panel.svg")
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/example.png" width="100%">
 </p>
 
-`Placement` puts one point of a component at `x` and `y`, and scales the
-component about that point. The point is the upper left corner of the
-component's box unless `anchor` names another: one of `"upper left"`,
-`"upper center"`, `"upper right"`, `"center left"`, `"center"`,
-`"center right"`, `"lower left"`, `"lower center"` and `"lower right"`, or a
-tuple of two fractions of the box's width and height, each from 0 to 1, such
-as `(0.5, 0.0)` for the middle of its top edge.
+`Placement` puts one point of a component at the point its `x` and `y`
+arguments give, and scales the component about that point by its `scale`
+argument. The point is the upper left corner of the component's box unless the
+`anchor` argument names another: one of `"upper left"`, `"upper center"`,
+`"upper right"`, `"center left"`, `"center"`, `"center right"`, `"lower left"`,
+`"lower center"` and `"lower right"`, or a tuple of two fractions of the box's
+width and height, each from 0 to 1, such as `(0.5, 0.0)` for the middle of its
+top edge.
 
 ## Versioning
 
@@ -267,7 +260,8 @@ promises is the public API: the names the package exports, the arguments they
 take, and the type of exception each raises for the mistakes its docstring
 describes. Those change only in a major release. A minor release may raise a
 subclass of that type instead, or accept what was refused before. The text of a
-repr or of an error message is not part of the promise.
+repr or of an error message is not part of the promise, and neither are
+warnings.
 
 Everything public is imported from `nuc2d` itself. The modules inside the
 package all begin with an underscore, such as `nuc2d._svg`: they are where the
