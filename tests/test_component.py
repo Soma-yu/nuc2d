@@ -135,7 +135,7 @@ def test_scale_must_be_positive_and_finite(scale):
 )
 def test_a_placement_whose_box_is_not_finite_is_refused(kwargs):
     """A finite scale can still take the box past the largest float."""
-    with pytest.raises(ValueError, match="would not have a finite box"):
+    with pytest.raises(ValueError, match="placed box would not be finite"):
         Placement(component=structure(), **kwargs)
 
 
