@@ -267,7 +267,8 @@ class Placement:
     ValueError
         If ``anchor`` is a name not listed above, or holds a number that
         is not from 0 to 1; ``x`` or ``y`` is not finite; ``scale`` is not
-        a positive finite number; or ``bbox`` would not be finite.
+        a positive finite number; ``bbox`` would not be finite; or
+        ``scale`` is too large for where the component's box lies.
 
     Notes
     -----
@@ -319,6 +320,15 @@ class Placement:
         if not is_empty_bbox(placed) and not all(map(math.isfinite, corners)):
             raise ValueError(
                 f"The placed box would not be finite; got {placed!r}."
+            )
+        # A finite box far from the origin, scaled up, is drawn by a move
+        # that is not finite.
+        dx, dy, _ = transform_of(self)
+        if not (math.isfinite(dx) and math.isfinite(dy)):
+            raise ValueError(
+                "The component's box lies too far from the origin to be "
+                f"scaled by {self.scale!r}; it would be moved by "
+                f"({dx!r}, {dy!r})."
             )
 
     @property

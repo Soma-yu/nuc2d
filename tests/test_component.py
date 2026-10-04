@@ -139,6 +139,15 @@ def test_a_placement_whose_box_is_not_finite_is_refused(kwargs):
         Placement(component=structure(), **kwargs)
 
 
+def test_a_box_too_far_from_the_origin_to_scale_is_refused():
+    far = Component.from_placements(
+        [Placement(structure(), x=1e300, scale=1e290)]
+    )
+
+    with pytest.raises(ValueError, match="too far from the origin"):
+        Placement(far, scale=1e10)
+
+
 @pytest.mark.parametrize("axis", ["x", "y"])
 def test_placements_too_far_apart_to_put_together_are_refused(axis):
     """Each edge of the box around them is finite, but not its size."""
