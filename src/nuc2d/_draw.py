@@ -8,8 +8,8 @@ a caller to place with others: ``draw_svg(...)`` is
 
 from __future__ import annotations
 
-import matplotlib as mpl
-import numpy.typing as npt
+import matplotlib.colors
+import numpy.typing
 
 from ._annotation import attach_basepair_probabilities, attach_sequences
 from ._validation import check_single_line_text, exact_str
@@ -57,7 +57,7 @@ def _check_label(name: str, value: object, *, without: str) -> str | None:
 
 def _check_colormap(name: str, colormap: object) -> None:
     if colormap is not None and not isinstance(
-        colormap, mpl.colors.Colormap
+        colormap, matplotlib.colors.Colormap
     ):
         raise TypeError(
             f"{name} must be a matplotlib Colormap, such as "
@@ -87,8 +87,8 @@ def draw_svg_as_component(
     structure: str,
     *,
     sequences: list[str] | None = None,
-    basepair_probabilities: npt.ArrayLike | None = None,
-    colormap: mpl.colors.Colormap | None = None,
+    basepair_probabilities: numpy.typing.ArrayLike | None = None,
+    colormap: matplotlib.colors.Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
@@ -108,7 +108,7 @@ def draw_svg_as_component(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    basepair_probabilities : array_like, optional
+    basepair_probabilities : numpy.typing.ArrayLike, optional
         Base-pair probability matrix. Element ``(i, j)`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
         element ``(i, i)`` how likely nucleotide ``i`` is to be left
@@ -211,8 +211,8 @@ def draw_svg(
     structure: str,
     *,
     sequences: list[str] | None = None,
-    basepair_probabilities: npt.ArrayLike | None = None,
-    colormap: mpl.colors.Colormap | None = None,
+    basepair_probabilities: numpy.typing.ArrayLike | None = None,
+    colormap: matplotlib.colors.Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
@@ -236,7 +236,7 @@ def draw_svg(
     sequences : list[str], optional
         Nucleotide sequences, one per strand, in the order the strands
         appear in the structure.
-    basepair_probabilities : array_like, optional
+    basepair_probabilities : numpy.typing.ArrayLike, optional
         Base-pair probability matrix. Element ``(i, j)`` is how likely
         nucleotides ``i`` and ``j`` are to be paired with each other, and
         element ``(i, i)`` how likely nucleotide ``i`` is to be left

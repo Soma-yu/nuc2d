@@ -116,7 +116,7 @@ def attach_basepair_probabilities(
     ----------
     root_loop : LoopRegion
         Root loop of the secondary structure.
-    basepair_probabilities : array_like
+    basepair_probabilities : numpy.typing.ArrayLike
         Base-pair probability matrix. Element (i, j) is how likely
         nucleotides i and j are to be paired with each other, and element
         (i, i) how likely nucleotide i is to be left unpaired. Only the
