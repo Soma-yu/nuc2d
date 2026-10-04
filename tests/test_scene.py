@@ -1,3 +1,4 @@
+import io
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -84,6 +85,51 @@ def test_save_svg_writes_the_same_document(tmp_path):
     text = path.read_text(encoding="utf-8")
     assert text.startswith("<?xml")
     assert text.endswith(scene.to_svg())
+
+
+def _far_apart(component, **kwargs):
+    """Two copies of a component, placed as far apart as a float allows."""
+    return Component.from_placements(
+        [Placement(component, x=-8e307, **kwargs),
+         Placement(component, x=8e307, **kwargs)]
+    )
+
+
+@pytest.mark.parametrize(
+    "make, size",
+    [
+        # 1.6e308 wide and 500 tall: the width would pass the largest float.
+        (lambda: _far_apart(structure()), {"height_px": 600}),
+        # A colorbar makes it wider than tall: 1.3 times 1.5e308.
+        (lambda: structure(basepair_probabilities=PROBS), {"height_px": 1.5e308}),
+        # Too much wider than tall for a float: the height would fall to 0.
+        (lambda: _far_apart(structure(), scale=1e-300), {"width_px": 600}),
+    ],
+)
+def test_a_size_worked_out_must_be_positive_and_finite(make, size):
+    with pytest.raises(ValueError, match="positive and finite"):
+        Scene(make(), **size)
+
+
+def test_save_svg_takes_a_string(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    scene = Scene(structure())
+
+    scene.save_svg("structure.svg")
+
+    assert (tmp_path / "structure.svg").read_text(encoding="utf-8").endswith(
+        scene.to_svg()
+    )
+
+
+@pytest.mark.parametrize("path", [b"structure.svg", 1, None, io.StringIO()])
+def test_save_svg_takes_only_a_string_or_a_path(path, tmp_path, monkeypatch):
+    """bytes would be opened too, and an int as a file descriptor."""
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(TypeError, match="path must be a string or a path-like"):
+        Scene(structure()).save_svg(path)
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_jupyter_displays_the_scene():

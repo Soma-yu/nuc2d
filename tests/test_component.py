@@ -116,10 +116,40 @@ def test_an_anchor_of_the_wrong_type_is_a_type_error(anchor, name):
         Placement(component=structure(), anchor=anchor)
 
 
+@pytest.mark.parametrize("anchor", [[0.5, 0.5], (0.5,), None])
+def test_an_anchor_that_is_not_a_name_is_asked_for_as_a_tuple(anchor):
+    with pytest.raises(TypeError, match="tuple of two fractions"):
+        Placement(component=structure(), anchor=anchor)
+
+
 @pytest.mark.parametrize("scale", [0.0, -1.0, float("inf"), float("nan")])
 def test_scale_must_be_positive_and_finite(scale):
     with pytest.raises(ValueError, match="scale"):
         Placement(component=structure(), scale=scale)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"scale": 1e306}, {"scale": 1e308, "anchor": "center"},
+     {"x": 1.7e308, "scale": 2e304}],
+)
+def test_a_placement_whose_box_is_not_finite_is_refused(kwargs):
+    """A finite scale can still take the box past the largest float."""
+    with pytest.raises(ValueError, match="would not have a finite box"):
+        Placement(component=structure(), **kwargs)
+
+
+@pytest.mark.parametrize("axis", ["x", "y"])
+def test_placements_too_far_apart_to_put_together_are_refused(axis):
+    """Each edge of the box around them is finite, but not its size."""
+    component = structure()
+    placements = [
+        Placement(component, **{axis: -1e308}),
+        Placement(component, **{axis: 1e308}),
+    ]
+
+    with pytest.raises(ValueError, match="would not be finite"):
+        Component.from_placements(placements)
 
 
 def test_a_placement_keeps_its_numbers_as_floats():

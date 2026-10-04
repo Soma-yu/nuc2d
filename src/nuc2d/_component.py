@@ -19,6 +19,7 @@ component through them, so that the private fields are touched here and
 nowhere else.
 """
 
+import math
 from dataclasses import dataclass
 from typing import Any, Literal, Union, final
 
@@ -79,8 +80,8 @@ def _fractions(anchor: object) -> tuple[float, float]:
         except KeyError:
             names = ", ".join(map(repr, _ANCHOR_FRACTIONS))
             raise ValueError(
-                f"anchor must be one of {names}, or a pair of fractions of "
-                f"the box from 0 to 1, such as (0.5, 0.0); got {anchor!r}."
+                f"anchor must be one of {names}, or a tuple of two fractions "
+                f"of the box from 0 to 1, such as (0.5, 0.0); got {anchor!r}."
             ) from None
     elif isinstance(anchor, tuple) and len(anchor) == 2:
         fx, fy = anchor
@@ -89,12 +90,12 @@ def _fractions(anchor: object) -> tuple[float, float]:
         # A tuple of another length is another type, tuple[float] or
         # tuple[float, float, float], as it is to os.utime's pair of times.
         raise TypeError(
-            "anchor must be a pair of fractions from 0 to 1, such as "
+            "anchor must be a tuple of two fractions from 0 to 1, such as "
             f"(0.5, 0.0); got {anchor!r}."
         )
     else:
         raise TypeError(
-            "anchor must be a name such as 'upper left', or a pair of "
+            "anchor must be a name such as 'upper left', or a tuple of two "
             "fractions from 0 to 1, such as (0.5, 0.0); got "
             f"{type(anchor).__name__}."
         )
@@ -182,7 +183,8 @@ class Component:
             :class:`Placement`, such as a component that was not wrapped
             in one.
         ValueError
-            If ``placements`` is empty.
+            If ``placements`` is empty, or the box around them would not
+            have a finite width and height.
 
         Notes
         -----
@@ -207,10 +209,15 @@ class Component:
         # A copy of our own, which nothing else can change afterwards, so
         # that the box worked out here stays the box of what is held.
         child_placements = tuple(placements)
-        return make_component(
-            bbox_around(p.bbox for p in child_placements),
-            child_placements=child_placements,
-        )
+        bbox = bbox_around(p.bbox for p in child_placements)
+        # Each placed box is finite, but placements far enough apart make
+        # one around them wider or taller than the largest float.
+        if not (math.isfinite(bbox.width) and math.isfinite(bbox.height)):
+            raise ValueError(
+                "The box around the placements would not be finite: "
+                f"{bbox.width!r} wide and {bbox.height!r} tall."
+            )
+        return make_component(bbox, child_placements=child_placements)
 
 
 @final
@@ -230,9 +237,10 @@ class Placement:
         stays fixed while it is scaled. One of ``"upper left"``,
         ``"upper center"``, ``"upper right"``, ``"center left"``,
         ``"center"``, ``"center right"``, ``"lower left"``,
-        ``"lower center"`` and ``"lower right"``; or a pair of fractions of
-        the box's width and height from its upper left corner, each from 0
-        to 1, so that ``(0.5, 0.0)`` is the middle of the top edge.
+        ``"lower center"`` and ``"lower right"``; or a tuple of two
+        fractions of the box's width and height from its upper left corner,
+        each from 0 to 1, so that ``(0.5, 0.0)`` is the middle of the top
+        edge.
     x : float, default=0.0
         Where the anchor point lands along the x-axis.
     y : float, default=0.0
@@ -244,7 +252,7 @@ class Placement:
     Attributes
     ----------
     anchor : tuple[float, float]
-        The anchor as a pair of fractions of the box, however it was
+        The anchor as a tuple of two fractions of the box, however it was
         given: ``"upper left"`` is kept as ``(0.0, 0.0)``.
     bbox : BBox
         Extent of the component once placed. Its ``width`` and ``height``
@@ -254,12 +262,12 @@ class Placement:
     ------
     TypeError
         If ``component`` is not a :class:`Component`; ``anchor`` is
-        neither a string nor a pair, or holds something other than a
-        number; or ``x``, ``y`` or ``scale`` is not a number.
+        neither a string nor a tuple of two, or holds something other than
+        a number; or ``x``, ``y`` or ``scale`` is not a number.
     ValueError
         If ``anchor`` is a name not listed above, or holds a number that
-        is not from 0 to 1; ``x`` or ``y`` is not finite; or ``scale`` is
-        not a positive finite number.
+        is not from 0 to 1; ``x`` or ``y`` is not finite; ``scale`` is not
+        a positive finite number; or ``bbox`` would not be finite.
 
     Notes
     -----
@@ -304,6 +312,17 @@ class Placement:
         object.__setattr__(
             self, "scale", check_finite_positive("scale", scale)
         )
+        # A box past the largest float, as a very large scale makes, is
+        # infinite or NaN.
+        placed = self.bbox
+        corners = (placed.xmin, placed.ymin, placed.xmax, placed.ymax)
+        if not is_empty_bbox(placed) and not all(map(math.isfinite, corners)):
+            bbox = component.bbox
+            raise ValueError(
+                f"A component {bbox.width!r} wide and {bbox.height!r} tall, "
+                f"placed at x={self.x!r} and y={self.y!r} with "
+                f"scale={self.scale!r}, would not have a finite box."
+            )
 
     @property
     def bbox(self) -> BBox:

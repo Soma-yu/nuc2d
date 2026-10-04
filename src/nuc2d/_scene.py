@@ -4,6 +4,7 @@ A :class:`Scene` frames a component on its box and gives it a size in
 pixels. How it is written is left to :mod:`nuc2d._svg`.
 """
 
+import math
 import os
 from typing import TYPE_CHECKING, Any, final
 
@@ -39,8 +40,9 @@ class Scene:
         If ``component`` is not a :class:`Component`, or ``width_px`` or
         ``height_px`` is neither a number nor None.
     ValueError
-        If the component has no width or no height, or ``width_px`` or
-        ``height_px`` is a number that is not positive and finite.
+        If the component has no width or no height, ``width_px`` or
+        ``height_px`` is a number that is not positive and finite, or the
+        one worked out from the other would not be.
 
     Notes
     -----
@@ -97,6 +99,14 @@ class Scene:
                 height_px = width_px / aspect_ratio
         elif width_px is None:
             width_px = height_px * aspect_ratio
+        # One worked out from the other can pass the largest float, or
+        # fall to 0, for a component very much wider than it is tall, or
+        # the other way round.
+        if not all(0 < size < math.inf for size in (width_px, height_px)):
+            raise ValueError(
+                f"The scene would be {width_px!r} px wide and {height_px!r} "
+                "px tall; both must be positive and finite."
+            )
 
         self._component = component
         self._width_px = width_px
@@ -111,7 +121,24 @@ class Scene:
         )
 
     def save_svg(self, path: str | os.PathLike[str]) -> None:
-        """Write the scene to ``path`` as an SVG file."""
+        """Write the scene to ``path`` as an SVG file.
+
+        Raises
+        ------
+        TypeError
+            If ``path`` is not a string or a path-like object, such as a
+            :class:`pathlib.Path`.
+        """
+        # What the file is opened with would also take bytes, or an int as
+        # a file descriptor, which it would close when done.
+        if not (
+            isinstance(path, (str, os.PathLike))
+            and isinstance(os.fspath(path), str)
+        ):
+            raise TypeError(
+                "path must be a string or a path-like object, such as "
+                f"'scene.svg'; got {type(path).__name__}."
+            )
         _svg.save_document(
             path,
             self._component,
