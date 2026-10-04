@@ -60,7 +60,6 @@ def demo_probs(dot_bracket: str) -> np.ndarray:
             left = stack.pop()
             probs[left][i] = probs[i][left] = 0.9 if left < 8 or 25 < left < 32 else 0.45
 
-    probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
     return probs
 
 
@@ -123,7 +122,7 @@ def sequences() -> Scene:
 
 
 def probabilities() -> Scene:
-    """Equilibrium probabilities: the same structure, colored."""
+    """Base-pair probabilities: the same structure, colored."""
     return draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=PROBS)
 
 
@@ -141,7 +140,7 @@ def styling() -> Scene:
         style=StructureStyle(
             backbone_color="#333333",
             basepair_color="crimson",
-            node_radius=5.0,
+            nucleotide_radius=5.0,
         ),
     )
 

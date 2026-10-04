@@ -148,8 +148,9 @@ PUBLIC_MEMBERS = {
     "StructureStyle": {
         "backbone_width", "basepair_width",
         "backbone_dasharray", "basepair_dasharray",
-        "backbone_color", "basepair_color", "node_color",
-        "node_radius", "node_font_size", "three_prime_arrow_length",
+        "backbone_color", "basepair_color", "nucleotide_color",
+        "nucleotide_radius", "nucleotide_font_size",
+        "three_prime_arrow_length",
     },
 }
 
@@ -229,8 +230,8 @@ NUMBER_ARGUMENTS = {
     "backbone_width": lambda n: _style(backbone_width=n(3)),
     "three_prime_arrow_length": lambda n: _style(three_prime_arrow_length=n(9)),
     "basepair_width": lambda n: _style(basepair_width=n(2)),
-    "node_radius": lambda n: _style(node_radius=n(5)),
-    "node_font_size": lambda n: _style(node_font_size=n(8)),
+    "nucleotide_radius": lambda n: _style(nucleotide_radius=n(5)),
+    "nucleotide_font_size": lambda n: _style(nucleotide_font_size=n(8)),
     "stem_spacing": lambda n: _engine(stem_spacing=n(18)),
     "loop_spacing": lambda n: _engine(loop_spacing=n(24)),
     "coaxial_stack_deflection": lambda n: _engine(coaxial_stack_deflection=n(25)),
@@ -272,7 +273,7 @@ STRING_ARGUMENTS = {
     "backbone_dasharray": lambda s: _style(backbone_dasharray=s("2,1")),
     "basepair_color": lambda s: _style(basepair_color=s("red")),
     "basepair_dasharray": lambda s: _style(basepair_dasharray=s("2,1")),
-    "node_color": lambda s: _style(node_color=s("red")),
+    "nucleotide_color": lambda s: _style(nucleotide_color=s("red")),
     "anchor": lambda s: _placed(anchor=s("center")),
 }
 

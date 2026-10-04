@@ -2,7 +2,7 @@
 
 This module provides functions for adding biological or visualization-
 related annotations to parsed secondary structure objects. Examples
-include nucleotide sequences, equilibrium probabilities, and other
+include nucleotide sequences, base-pair probabilities, and other
 metadata associated with nucleotides or structural elements.
 
 Annotations are applied after parsing and before layout or rendering,
@@ -106,11 +106,12 @@ def attach_basepair_probabilities(
     root_loop: LoopRegion,
     basepair_probabilities: npt.ArrayLike,
 ) -> None:
-    """Attach an equilibrium probability to every nucleotide.
+    """Attach a probability to every nucleotide.
 
     Each nucleotide is given the probability of the state the structure
     puts it in: of pairing with its partner if it is paired, and of
-    being unpaired if it is not.
+    being unpaired if it is not. The probability of being unpaired is
+    1 minus the sum of its probabilities of pairing.
 
     Parameters
     ----------
@@ -118,11 +119,10 @@ def attach_basepair_probabilities(
         Root loop of the secondary structure.
     basepair_probabilities : numpy.typing.ArrayLike
         Base-pair probability matrix. Element (i, j) is how likely
-        nucleotides i and j are to be paired with each other, and element
-        (i, i) how likely nucleotide i is to be left unpaired. Only the
-        elements on and above the diagonal are read, so the matrix may be
-        symmetric or have only its upper triangle filled in. A value below
-        0 or above 1 is attached as 0 or 1.
+        nucleotides i and j are to be paired with each other. Only the
+        elements above the diagonal are read, so the matrix may be
+        symmetric or have only its upper triangle filled in. A value
+        below 0 or above 1 is attached as 0 or 1.
 
     Raises
     ------
@@ -157,21 +157,13 @@ def attach_basepair_probabilities(
             f"its shape is {probs.shape}."
         )
 
-    def _probability(i: int, j: int) -> float:
-        # Only the elements attached are checked, so that a matrix whose
-        # other half is left as NaN, as one drawn as a heatmap often is,
-        # can be passed as it is.
-        value = float(probs[i][j])
-        if math.isnan(value):
-            raise ValueError(
-                f"basepair_probabilities[{i}][{j}] is NaN; a nucleotide "
-                "cannot be colored by a probability that is not a number."
-            )
-        # A tool writing 1 - (sum of the pairing probabilities) can land
-        # just outside [0, 1], and the color of the end it is near is the
-        # right one. It is clipped here rather than left to the colormap,
-        # whose own colors for values out of range can be anything.
-        return min(max(value, 0.0), 1.0)
+    # Only the elements above the diagonal are read: whatever is on or
+    # below it, NaN included, is left out.
+    with np.errstate(invalid="ignore", over="ignore"):
+        upper = np.triu(probs.astype(np.float64), k=1)
+        # Row i holds the pairs of i with the nucleotides after it, and
+        # column i those with the nucleotides before it.
+        unpaired = 1.0 - (upper.sum(axis=0) + upper.sum(axis=1))
 
     # The partner of each paired nucleotide. A stem lists its nucleotides
     # in the order of the structure, from one outer end in to the loop it
@@ -183,13 +175,28 @@ def attach_basepair_probabilities(
         for one, other in zip(nucleotides, reversed(nucleotides)):
             partner_of[one] = other
 
-    # Each nucleotide reads one element and no other: (i, i) if it is
-    # unpaired, and the element of its pair above the diagonal, (i, j)
-    # with i < j, if it is paired.
     for nt in iter_nucleotides(root_loop):
         partner = partner_of.get(nt)
         if partner is None:
-            nt.probability = _probability(nt.index, nt.index)
+            value = unpaired[nt.index]
+            if math.isnan(value):
+                raise ValueError(
+                    f"The probability that nucleotide {nt.index} is "
+                    f"unpaired, 1 minus the sum of row {nt.index} and column "
+                    f"{nt.index} of basepair_probabilities above the "
+                    "diagonal, is NaN."
+                )
         else:
             i, j = sorted((nt.index, partner.index))
-            nt.probability = _probability(i, j)
+            value = upper[i, j]
+            if math.isnan(value):
+                raise ValueError(
+                    f"basepair_probabilities[{i}][{j}] is NaN; a nucleotide "
+                    "cannot be colored by a probability that is not a number."
+                )
+        # A value just outside [0, 1] is the rounding of the tool that
+        # wrote the matrix, or of the sum above, and the color of the end
+        # it is near is the right one. It is clipped here rather than left
+        # to the colormap, whose own colors for values out of range can be
+        # anything.
+        nt.probability = min(max(float(value), 0.0), 1.0)

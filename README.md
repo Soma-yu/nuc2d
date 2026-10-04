@@ -87,7 +87,7 @@ A wrong number of sequences, or a sequence longer or shorter than its strand,
 raises `ValueError` rather than drawing something misleading. So does a
 sequence holding a line break, a tab or another control character.
 
-## Equilibrium probability visualization
+## Base-pair probability visualization
 
 Base-pair probabilities are visualized by passing a probability matrix
 through the `basepair_probabilities` argument. A colorbar is placed
@@ -95,8 +95,7 @@ beside the structure, which is fitted into a square as tall as the colorbar, so
 that the colorbar keeps its size whatever the shape of the structure.
 
 Element `[i][j]` of the matrix is how likely nucleotides `i` and `j` are to be
-paired with each other, and element `[i][i]` how likely nucleotide `i` is to be
-left unpaired. Only the elements on and above the diagonal are read, so the
+paired with each other. Only the elements above the diagonal are read, so the
 matrix may be symmetric, as the one below is, or have only its upper triangle
 filled in. A real matrix comes from a structure prediction tool; the one below
 is made up, which is enough to see what the drawing does.
@@ -116,9 +115,6 @@ for i, char in enumerate(flat):
         # Made up: the acceptor and anticodon stems are the certain ones.
         probs[left][i] = probs[i][left] = 0.9 if left < 8 or 25 < left < 32 else 0.45
 
-# Whatever is left over is the probability of staying unpaired.
-probs[np.diag_indices_from(probs)] = 1.0 - probs.sum(axis=1)
-
 scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs)
 ```
 
@@ -128,12 +124,12 @@ scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES, basepair_probabilities=probs)
 
 Each nucleotide is colored by the probability of the state the structure puts
 it in: of pairing with its partner if it is paired, and of being unpaired if it
-is not. A probability below 0 or above 1, as rounding in a prediction tool can
+is not. The probability of being unpaired is 1 minus the sum of its
+probabilities of pairing. A probability below 0 or above 1, as rounding can
 leave one, is shown in the color of 0 or of 1. A NaN raises `ValueError`, since
 there is no color to show it in.
 
-The colorbar is labeled `Equilibrium probability` unless another label is
-given:
+`colorbar_label` writes a label alongside the colorbar:
 
 ```python
 scene = draw_svg(
@@ -142,8 +138,6 @@ scene = draw_svg(
     colorbar_label="Pairing probability",
 )
 ```
-
-`colorbar_label=None` leaves the colorbar without a label.
 
 The probabilities are shown in the colors of `colormap`: a matplotlib colormap
 itself, such as `mpl.colormaps["turbo"]`, the default, rather than its name.
@@ -178,8 +172,8 @@ sides, rather than stretching it to fit.
 ## Layout and style
 
 `RadialLayoutEngine` controls geometry — how far apart nucleotides are placed.
-`StructureStyle` controls appearance — colors, stroke widths, node size and
-letter size.
+`StructureStyle` controls appearance — colors, stroke widths, nucleotide size
+and letter size.
 
 ```python
 import matplotlib as mpl
@@ -198,7 +192,7 @@ scene = draw_svg(
     style=StructureStyle(
         backbone_color="#333333",
         basepair_color="crimson",
-        node_radius=5.0,
+        nucleotide_radius=5.0,
     ),
 )
 ```
@@ -213,7 +207,7 @@ Colors are written as SVG writes them: a name such as `black`, `#rrggbb`, or
 
 Anything else raises an exception as soon as it is set, rather than when
 something is drawn with the engine or the style. So does a misspelled setting,
-such as `style.node_colour = "black"`, which would otherwise be ignored.
+such as `style.nucleotide_colour = "black"`, which would otherwise be ignored.
 
 ## Combining several structures
 
@@ -285,7 +279,7 @@ pickling: what an object holds is private, so one pickled under one version of
 nuc2d may not load under another. Some of the classes are dataclasses, but that
 is not promised either: what `dataclasses.fields`, `asdict`, `astuple` and
 `replace` do with them may change, and so may an attribute read from a class
-rather than from an instance, such as `StructureStyle.node_radius`.
+rather than from an instance, such as `StructureStyle.nucleotide_radius`.
 
 A release that drops a version of Python which has reached its end of life,
 or raises the oldest version of a dependency that it supports, is a minor
@@ -295,7 +289,9 @@ supported it.
 
 The drawing is not part of that promise. A minor release may place a
 nucleotide differently, enclose a structure more tightly, draw a figure at
-another size, or write the same shape as different SVG. A figure regenerated
+another size, write the same shape as different SVG, or change a default that
+sets how a figure looks: a value `StructureStyle` or `RadialLayoutEngine`
+starts with, or the colormap used when none is given. A figure regenerated
 under a newer version can then come out different, and so can the box of a
 component, and the size of a scene given neither `width_px` nor `height_px`.
 Text is measured with the font installed on the machine,

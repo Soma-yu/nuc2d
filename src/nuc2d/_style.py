@@ -82,9 +82,9 @@ _FIELD_CHECKS: dict[str, Callable[[str, object], object]] = {
     "basepair_color": _check_color,
     "basepair_width": check_finite_non_negative,
     "basepair_dasharray": _check_dasharray,
-    "node_color": _check_color,
-    "node_radius": check_finite_non_negative,
-    "node_font_size": check_finite_non_negative,
+    "nucleotide_color": _check_color,
+    "nucleotide_radius": check_finite_non_negative,
+    "nucleotide_font_size": check_finite_non_negative,
 }
 
 
@@ -118,14 +118,14 @@ class StructureStyle:
         Dash pattern used for base-pair edges, specified as an SVG
         ``stroke-dasharray`` value.
 
-    node_color : str
-        Color a node is drawn in when no base-pair probabilities are
-        given. With ``basepair_probabilities``, a node takes its color from
-        the colormap the probabilities are shown in instead.
-    node_radius : float
-        Radius of nucleotide nodes.
-    node_font_size : float
-        Font size of the base letter drawn inside a node.
+    nucleotide_color : str
+        Color a nucleotide is drawn in when no base-pair probabilities are
+        given. With ``basepair_probabilities``, a nucleotide takes its color
+        from the colormap the probabilities are shown in instead.
+    nucleotide_radius : float
+        Radius of the circle a nucleotide is drawn as.
+    nucleotide_font_size : float
+        Font size of the base letter drawn on a nucleotide.
 
     Raises
     ------
@@ -156,8 +156,8 @@ class StructureStyle:
     as ``1`` or ``0.5``, in the units of the drawing.
 
     Every size in the style, the two widths, ``three_prime_arrow_length``,
-    ``node_radius`` and ``node_font_size``, is a finite number of at least
-    0, in the units of the drawing.
+    ``nucleotide_radius`` and ``nucleotide_font_size``, is a finite number
+    of at least 0, in the units of the drawing.
     """
     backbone_color: str = "black"
     backbone_width: float = 2.0
@@ -168,9 +168,9 @@ class StructureStyle:
     basepair_width: float = 1.5
     basepair_dasharray: str = "1,1"
 
-    node_color: str = "black"
-    node_radius: float = 4.2
-    node_font_size: float = 6.5
+    nucleotide_color: str = "black"
+    nucleotide_radius: float = 4.2
+    nucleotide_font_size: float = 6.5
 
     # Out of a type checker's sight: one that sees __setattr__ takes any
     # name as one that can be assigned, a misspelled one included.

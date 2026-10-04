@@ -31,7 +31,7 @@ def test_one_sequence_not_in_a_list_is_refused():
 @pytest.mark.parametrize(
     "kwargs, name",
     [
-        ({"style": {"node_color": "crimson"}}, "style"),
+        ({"style": {"nucleotide_color": "crimson"}}, "style"),
         ({"style": RadialLayoutEngine()}, "style"),
         ({"layout_engine": StructureStyle()}, "layout_engine"),
         ({"title": 3}, "title"),
@@ -57,9 +57,11 @@ def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
     # A pair, and the three unpaired nucleotides of the hairpin loop.
     inside, outside = np.zeros((9, 9)), np.zeros((9, 9))
     inside[0, 8], outside[0, 8] = 1.0, 2.0
-    inside[3, 3], outside[3, 3] = 0.0, -0.5
-    inside[4, 4], outside[4, 4] = 1.0, 1.5
-    inside[5, 5], outside[5, 5] = 1.0, np.inf
+    inside[1, 7], outside[1, 7] = 1.0, np.inf
+    # The probability that 3 and 4 are unpaired: 0, or -0.5.
+    inside[3, 4], outside[3, 4] = 1.0, 1.5
+    # The probability that 5 is unpaired: 1, or 1.5.
+    inside[2, 5], outside[2, 5] = 0.0, -0.5
 
     assert (
         draw_svg(HAIRPIN, basepair_probabilities=outside, colormap=colormap).to_svg()
@@ -70,8 +72,10 @@ def test_a_probability_outside_zero_to_one_takes_the_color_of_the_end():
 def test_the_colormap_colors_the_nucleotides_and_the_colorbar():
     colormap = mpl.colors.LinearSegmentedColormap.from_list("mine", ["white", "red"])
 
+    probs = np.zeros((9, 9))
+    probs[0, 4] = probs[3, 5] = 0.5
     svg = draw_svg(
-        HAIRPIN, basepair_probabilities=np.eye(9) * 0.5, colormap=colormap
+        HAIRPIN, basepair_probabilities=probs, colormap=colormap
     ).to_svg()
 
     root = ET.fromstring(svg)
@@ -105,9 +109,9 @@ def test_rows_of_different_lengths_are_refused_as_the_wrong_shape():
 
 def test_a_nan_probability_is_refused():
     probs = np.eye(9)
-    probs[4, 4] = np.nan
+    probs[2, 6] = np.nan
 
-    with pytest.raises(ValueError, match=r"basepair_probabilities\[4\]\[4\]"):
+    with pytest.raises(ValueError, match=r"basepair_probabilities\[2\]\[6\]"):
         draw_svg(HAIRPIN, basepair_probabilities=probs)
 
 

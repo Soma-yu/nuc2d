@@ -92,7 +92,7 @@ def draw_svg_as_component(
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
+    colorbar_label: str | None = None,
 ) -> Component:
     """Draw a secondary structure as a component, to place with others.
 
@@ -110,13 +110,12 @@ def draw_svg_as_component(
         appear in the structure.
     basepair_probabilities : numpy.typing.ArrayLike, optional
         Base-pair probability matrix. Element ``(i, j)`` is how likely
-        nucleotides ``i`` and ``j`` are to be paired with each other, and
-        element ``(i, i)`` how likely nucleotide ``i`` is to be left
-        unpaired. Only the elements on and above the diagonal are read,
-        so the matrix may be symmetric or have only its upper triangle
-        filled in. When given, each nucleotide is colored by it, and a
-        colorbar is set beside the structure. A value below 0 or above 1
-        is shown in the color of 0 or of 1.
+        nucleotides ``i`` and ``j`` are to be paired with each other. Only
+        the elements above the diagonal are read, so the matrix may be
+        symmetric or have only its upper triangle filled in. When given,
+        each nucleotide is colored by it, and a colorbar is set beside the
+        structure. A value below 0 or above 1 is shown in the color of 0
+        or of 1.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -129,10 +128,10 @@ def draw_svg_as_component(
         How the structure looks.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given, since the colorbar is drawn only then.
+    colorbar_label : str, optional
+        Text written alongside the colorbar, on one line. Has no effect
+        unless ``basepair_probabilities`` is given, since the colorbar is
+        drawn only then.
 
     Returns
     -------
@@ -216,7 +215,7 @@ def draw_svg(
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
-    colorbar_label: str | None = "Equilibrium probability",
+    colorbar_label: str | None = None,
     width_px: float | None = None,
     height_px: float | None = None,
 ) -> Scene:
@@ -238,12 +237,10 @@ def draw_svg(
         appear in the structure.
     basepair_probabilities : numpy.typing.ArrayLike, optional
         Base-pair probability matrix. Element ``(i, j)`` is how likely
-        nucleotides ``i`` and ``j`` are to be paired with each other, and
-        element ``(i, i)`` how likely nucleotide ``i`` is to be left
-        unpaired. Only the elements on and above the diagonal are read,
-        so the matrix may be symmetric or have only its upper triangle
-        filled in. A value below 0 or above 1 is shown in the color of 0
-        or of 1.
+        nucleotides ``i`` and ``j`` are to be paired with each other. Only
+        the elements above the diagonal are read, so the matrix may be
+        symmetric or have only its upper triangle filled in. A value below
+        0 or above 1 is shown in the color of 0 or of 1.
     colormap : matplotlib.colors.Colormap, optional
         Colormap a probability from 0 to 1 is shown in, on the nucleotides
         and on the colorbar. It is a matplotlib colormap itself, such as
@@ -256,10 +253,9 @@ def draw_svg(
         How the structure looks.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
-    colorbar_label : str or None, default="Equilibrium probability"
-        Text written alongside the colorbar, on one line, or None to leave
-        it without one. Has no effect unless ``basepair_probabilities`` is
-        given.
+    colorbar_label : str, optional
+        Text written alongside the colorbar, on one line. Has no effect
+        unless ``basepair_probabilities`` is given.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
         from the proportions of the structure.

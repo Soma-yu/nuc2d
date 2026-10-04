@@ -170,7 +170,7 @@ class _Renderer:
         group = drawing.g()
 
         if nt.probability is None:
-            fill = self.style.node_color
+            fill = self.style.nucleotide_color
         else:
             fill = mpl.colors.to_hex(
                 self.colormap(
@@ -183,7 +183,7 @@ class _Renderer:
         group.add(
             drawing.circle(
                 center=pos.to_tuple(),
-                r=self.style.node_radius,
+                r=self.style.nucleotide_radius,
                 fill=fill,
             )
         )
@@ -192,7 +192,7 @@ class _Renderer:
             font = find_font(_FONT_FAMILY)
             baseline_offset = vertical_center_offset(
                 font,
-                self.style.node_font_size,
+                self.style.nucleotide_font_size,
             )
             text_pos = pos + Vec2(0, baseline_offset)
             group.add(
@@ -201,7 +201,7 @@ class _Renderer:
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
                     font_family=_FONT_FAMILY,
-                    font_size=self.style.node_font_size,
+                    font_size=self.style.nucleotide_font_size,
                     fill="black",
                     stroke="black",
                     stroke_width=1,
@@ -215,7 +215,7 @@ class _Renderer:
                     insert=text_pos.to_tuple(),
                     text_anchor="middle",
                     font_family=_FONT_FAMILY,
-                    font_size=self.style.node_font_size,
+                    font_size=self.style.nucleotide_font_size,
                     fill="white",
                 )
             )
@@ -430,7 +430,7 @@ class _Renderer:
         self,
         drawing: svgwrite.Drawing,
         *,
-        label: str | None = "Equilibrium probability",
+        label: str | None = None,
     ) -> tuple[Any, BBox]:
         """Render a colorbar as an SVG group and its extent.
 
@@ -579,7 +579,7 @@ def render_structure(
 def render_colorbar(
     *,
     colormap: mpl.colors.Colormap | None = None,
-    label: str | None = "Equilibrium probability",
+    label: str | None = None,
 ) -> Component:
     """Render a colorbar.
 
@@ -587,9 +587,9 @@ def render_colorbar(
     ----------
     colormap : matplotlib.colors.Colormap, optional
         Colormap the bar shows. Defaults to ``mpl.colormaps["turbo"]``.
-    label : str or None, default="Equilibrium probability"
-        Label written alongside the colorbar, or None to leave it without
-        one. The colorbar occupies the same box either way.
+    label : str, optional
+        Label written alongside the colorbar. The colorbar occupies the
+        same box with or without one.
 
     Returns
     -------

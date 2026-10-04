@@ -79,9 +79,10 @@ def test_attach_basepair_probabilities_hairpin():
     probs[2, 6] = 0.7
     probs[6, 2] = 0.7
 
-    probs[3, 3] = 0.1
-    probs[4, 4] = 0.2
-    probs[5, 5] = 0.3
+    # The unpaired ones take 1 minus the sum of these.
+    probs[3, 5] = probs[5, 3] = 0.5
+    probs[1, 4] = probs[4, 1] = 0.25
+    probs[4, 6] = probs[6, 4] = 0.125
 
     attach_basepair_probabilities(
         root,
@@ -94,9 +95,9 @@ def test_attach_basepair_probabilities_hairpin():
     assert nts[1].probability == 0.8
     assert nts[2].probability == 0.7
 
-    assert nts[3].probability == 0.1
-    assert nts[4].probability == 0.2
-    assert nts[5].probability == 0.3
+    assert nts[3].probability == 0.5
+    assert nts[4].probability == 0.625
+    assert nts[5].probability == 0.5
 
     assert nts[6].probability == 0.7
     assert nts[7].probability == 0.8
@@ -253,6 +254,15 @@ def test_attach_basepair_probabilities_refuses_nan_where_it_is_read():
         attach_basepair_probabilities(root, probs)
 
 
+def test_attach_basepair_probabilities_refuses_nan_an_unpaired_one_sums():
+    root = parse("(((...)))")
+    probs = np.eye(9)
+    probs[0, 4] = np.nan
+
+    with pytest.raises(ValueError, match="nucleotide 4 is unpaired"):
+        attach_basepair_probabilities(root, probs)
+
+
 def test_attach_basepair_probabilities_passes_over_nan_where_it_is_not_read():
     """A matrix drawn as a heatmap often has its other half left as NaN."""
     root = parse("(((...)))")
@@ -262,25 +272,21 @@ def test_attach_basepair_probabilities_passes_over_nan_where_it_is_not_read():
     attach_basepair_probabilities(root, probs)
 
 
-def test_attach_basepair_probabilities_reads_only_the_element_each_nucleotide_takes():
-    """Every other element may be NaN, the diagonal of a paired one too.
-
-    The two ends of a stem are also in the loop it leaves, and the loop
-    used to read their diagonal before the stem read their pair.
-    """
+def test_attach_basepair_probabilities_reads_nothing_on_or_below_the_diagonal():
     root = parse("((((...))..((...))))")
     pairs = [(0, 19), (1, 18), (2, 8), (3, 7), (11, 17), (12, 16)]
     paired = {i for pair in pairs for i in pair}
-    probs = np.full((20, 20), np.nan)
+    probs = np.zeros((20, 20))
     for i, j in pairs:
         probs[i, j] = 0.25
-    for i in set(range(20)) - paired:
-        probs[i, i] = 0.75
+    probs[9, 10] = 0.25
+    probs[np.tril_indices(20)] = np.nan
 
     attach_basepair_probabilities(root, probs)
 
     assert [nt.probability for nt in collect_nucleotides(root)] == [
-        0.25 if i in paired else 0.75 for i in range(20)
+        0.25 if i in paired else 0.75 if i in (9, 10) else 1.0
+        for i in range(20)
     ]
 
 
@@ -289,12 +295,13 @@ def test_attach_basepair_probabilities_clips_what_lies_outside_zero_to_one():
     root = parse("(((...)))")
     probs = np.zeros((9, 9))
     probs[0, 8] = 1.5
-    probs[3, 3] = -0.2
-    probs[4, 4] = np.inf
+    probs[1, 7] = np.inf
+    probs[3, 4] = 1.2  # so 3 and 4 are unpaired with probability -0.2
+    probs[2, 5] = -0.5  # so 5 is unpaired with probability 1.5
 
     attach_basepair_probabilities(root, probs)
 
     nts = collect_nucleotides(root)
-    assert [nts[i].probability for i in (0, 8, 3, 4)] == [
-        1.0, 1.0, 0.0, 1.0
+    assert [nts[i].probability for i in (0, 8, 1, 7, 3, 4, 5)] == [
+        1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0
     ]

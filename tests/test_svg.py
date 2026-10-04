@@ -155,8 +155,8 @@ def test_the_box_is_not_widened_by_the_style():
     default = structure_box("(((...)))")
 
     for style in [
-        StructureStyle(node_radius=30.0),
-        StructureStyle(node_font_size=50.0),
+        StructureStyle(nucleotide_radius=30.0),
+        StructureStyle(nucleotide_font_size=50.0),
         StructureStyle(three_prime_arrow_length=40.0),
     ]:
         assert structure_box("(((...)))", style=style) == default
@@ -285,29 +285,20 @@ def collect_texts(svg_string):
     ]
 
 
-def test_colorbar_carries_a_default_label():
-    svg = draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
-
-    assert "Equilibrium probability" in collect_texts(svg)
-
-
-def test_colorbar_label_is_configurable():
-    svg = draw_svg(
+def test_colorbar_label_is_written_when_given():
+    unlabeled = draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
+    labeled = draw_svg(
         "(((...)))", basepair_probabilities=PROBS, colorbar_label="Unpaired probability"
     ).to_svg()
 
-    texts = collect_texts(svg)
-
-    assert "Unpaired probability" in texts
-    assert "Equilibrium probability" not in texts
+    assert collect_texts(labeled) == collect_texts(unlabeled) + ["Unpaired probability"]
 
 
-def test_colorbar_label_none_leaves_the_label_out():
-    labeled = draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
-    unlabeled = draw_svg("(((...)))", basepair_probabilities=PROBS, colorbar_label=None).to_svg()
-
-    assert "Equilibrium probability" not in collect_texts(unlabeled)
-    assert len(collect_texts(unlabeled)) == len(collect_texts(labeled)) - 1
+def test_colorbar_has_no_label_unless_one_is_given():
+    assert (
+        draw_svg("(((...)))", basepair_probabilities=PROBS, colorbar_label=None).to_svg()
+        == draw_svg("(((...)))", basepair_probabilities=PROBS).to_svg()
+    )
 
 
 def test_colorbar_keeps_its_box_without_a_label():
@@ -351,7 +342,7 @@ def test_the_sequence_reaches_the_drawing():
     """Drawing the bases is what sequences= is for, end to end.
 
     Each base is written twice, once outlined and once filled, so that the
-    letter stays readable over any node color.
+    letter stays readable over any nucleotide color.
     """
     svg = draw_svg("(((..+...)))", sequences=["AUGCA", "UGCCAU"]).to_svg()
 

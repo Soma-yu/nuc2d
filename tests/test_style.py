@@ -7,7 +7,7 @@ from nuc2d import StructureStyle, draw_svg
 from nuc2d._style import _FIELD_CHECKS
 
 
-COLOR_FIELDS = ["node_color", "backbone_color", "basepair_color"]
+COLOR_FIELDS = ["nucleotide_color", "backbone_color", "basepair_color"]
 DASHARRAY_FIELDS = ["backbone_dasharray", "basepair_dasharray"]
 
 GOOD_COLORS = [
@@ -77,24 +77,24 @@ def test_a_value_that_is_not_a_string_is_a_type_error(field):
 
 
 def test_an_assignment_is_checked_too_and_leaves_the_style_as_it_was():
-    style = StructureStyle(node_color="crimson")
+    style = StructureStyle(nucleotide_color="crimson")
 
-    with pytest.raises(ValueError, match="node_color"):
-        style.node_color = "notacolor"
+    with pytest.raises(ValueError, match="nucleotide_color"):
+        style.nucleotide_color = "notacolor"
 
-    assert style.node_color == "crimson"
+    assert style.nucleotide_color == "crimson"
 
 
 def test_other_fields_are_assigned_as_before():
     style = StructureStyle()
-    style.node_radius = 6.0
+    style.nucleotide_radius = 6.0
 
-    assert style.node_radius == 6.0
+    assert style.nucleotide_radius == 6.0
 
 
 SIZE_FIELDS = [
     "backbone_width", "three_prime_arrow_length", "basepair_width",
-    "node_radius", "node_font_size",
+    "nucleotide_radius", "nucleotide_font_size",
 ]
 
 
@@ -107,7 +107,7 @@ def test_a_size_that_is_negative_or_not_finite_is_refused(field, value):
 
 @pytest.mark.parametrize(
     "field, value",
-    [("node_color", "red"), ("basepair_dasharray", "2,1")],
+    [("nucleotide_color", "red"), ("basepair_dasharray", "2,1")],
 )
 def test_a_string_is_kept_as_a_str(field, value):
     """Rather than as the subclass of str it was given as."""
@@ -119,8 +119,10 @@ def test_a_string_is_kept_as_a_str(field, value):
 @pytest.mark.parametrize("value", [10**400, -(10**400)], ids=["positive", "negative"])
 def test_a_size_too_large_for_a_float_is_refused_as_not_finite(value):
     """float() raises OverflowError for it, which is not what is promised."""
-    with pytest.raises(ValueError, match="node_radius must be a finite number"):
-        StructureStyle(node_radius=value)
+    with pytest.raises(
+        ValueError, match="nucleotide_radius must be a finite number"
+    ):
+        StructureStyle(nucleotide_radius=value)
 
 
 @pytest.mark.parametrize("field", SIZE_FIELDS)
@@ -142,11 +144,13 @@ def test_a_misspelled_attribute_is_refused_and_the_right_one_named():
     """Assigned, it would otherwise make an attribute that nothing reads."""
     style = StructureStyle()
 
-    with pytest.raises(AttributeError, match="Did you mean: 'node_color'"):
-        style.node_colour = "crimson"
+    with pytest.raises(
+        AttributeError, match="Did you mean: 'nucleotide_color'"
+    ):
+        style.nucleotide_colour = "crimson"
 
-    assert not hasattr(style, "node_colour")
-    assert style.node_color == "black"
+    assert not hasattr(style, "nucleotide_colour")
+    assert style.nucleotide_color == "black"
 
 
 def test_every_field_is_checked_when_it_is_assigned():
@@ -156,17 +160,22 @@ def test_every_field_is_checked_when_it_is_assigned():
 
 def test_styles_are_equal_when_their_fields_are():
     assert StructureStyle() == StructureStyle()
-    assert StructureStyle(node_radius=5) == StructureStyle(node_radius=5.0)
-    assert StructureStyle() != StructureStyle(node_radius=5.0)
+    assert StructureStyle(nucleotide_radius=5) == StructureStyle(
+        nucleotide_radius=5.0
+    )
+    assert StructureStyle() != StructureStyle(nucleotide_radius=5.0)
 
 
 def test_a_color_is_compared_as_it_is_written():
-    assert StructureStyle() != StructureStyle(node_color="#000000")
+    assert StructureStyle() != StructureStyle(nucleotide_color="#000000")
 
 
 def test_a_style_can_still_be_copied_with_a_field_changed():
-    style = StructureStyle(node_color="crimson")
+    style = StructureStyle(nucleotide_color="crimson")
 
-    changed = dataclasses.replace(style, node_radius=6.0)
+    changed = dataclasses.replace(style, nucleotide_radius=6.0)
 
-    assert (changed.node_color, changed.node_radius) == ("crimson", 6.0)
+    assert (changed.nucleotide_color, changed.nucleotide_radius) == (
+        "crimson",
+        6.0,
+    )
