@@ -225,11 +225,6 @@ class Placement:
     ----------
     component : Component
         Component being placed.
-    x : float, default=0.0
-        Where the anchor point lands along the x-axis.
-    y : float, default=0.0
-        Where the anchor point lands along the y-axis. The y-axis points
-        down, as in SVG.
     anchor : str or tuple[float, float], default="upper left"
         The point of the component's box that is placed at ``(x, y)`` and
         stays fixed while it is scaled. One of ``"upper left"``,
@@ -238,6 +233,11 @@ class Placement:
         ``"lower center"`` and ``"lower right"``; or a pair of fractions of
         the box's width and height from its upper left corner, each from 0
         to 1, so that ``(0.5, 0.0)`` is the middle of the top edge.
+    x : float, default=0.0
+        Where the anchor point lands along the x-axis.
+    y : float, default=0.0
+        Where the anchor point lands along the y-axis. The y-axis points
+        down, as in SVG.
     scale : float, default=1.0
         Uniform scaling factor. Must be positive.
 
@@ -253,13 +253,13 @@ class Placement:
     Raises
     ------
     TypeError
-        If ``component`` is not a :class:`Component`; ``x``, ``y`` or
-        ``scale`` is not a number; or ``anchor`` is neither a string nor a
-        pair, or holds something other than a number.
+        If ``component`` is not a :class:`Component`; ``anchor`` is
+        neither a string nor a pair, or holds something other than a
+        number; or ``x``, ``y`` or ``scale`` is not a number.
     ValueError
-        If ``x`` or ``y`` is not finite; ``scale`` is not a positive finite
-        number; or ``anchor`` is a name not listed above, or holds a number
-        that is not from 0 to 1.
+        If ``anchor`` is a name not listed above, or holds a number that
+        is not from 0 to 1; ``x`` or ``y`` is not finite; or ``scale`` is
+        not a positive finite number.
 
     Notes
     -----
@@ -268,9 +268,9 @@ class Placement:
     """
 
     component: Component
+    anchor: tuple[float, float]
     x: float
     y: float
-    anchor: tuple[float, float]
     scale: float
 
     # Written here rather than generated, which would give the argument and
@@ -281,9 +281,9 @@ class Placement:
         self,
         component: Component,
         *,
+        anchor: Anchor = "upper left",
         x: float = 0.0,
         y: float = 0.0,
-        anchor: Anchor = "upper left",
         scale: float = 1.0,
     ) -> None:
         # Refuse a bad placement where it is written, not when it is used,
@@ -296,11 +296,11 @@ class Placement:
                 f"got {type(component).__name__}."
             )
         object.__setattr__(self, "component", component)
-        object.__setattr__(self, "x", check_finite("x", x))
-        object.__setattr__(self, "y", check_finite("y", y))
         # A name is only a way of writing a pair of fractions, and is kept
         # as that pair, so that one point is one anchor however it is given.
         object.__setattr__(self, "anchor", _fractions(anchor))
+        object.__setattr__(self, "x", check_finite("x", x))
+        object.__setattr__(self, "y", check_finite("y", y))
         object.__setattr__(
             self, "scale", check_finite_positive("scale", scale)
         )

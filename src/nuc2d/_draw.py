@@ -199,9 +199,9 @@ def draw_svg_as_component(
         placements.append(
             Placement(
                 render_text(title, font_size=_TITLE_FONT_SIZE),
+                anchor="lower center",
                 x=(under.xmin + under.xmax) / 2,
                 y=under.ymin - _TITLE_GAP,
-                anchor="lower center",
             )
         )
     return Component.from_placements(placements)
