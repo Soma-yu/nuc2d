@@ -317,11 +317,8 @@ class Placement:
         placed = self.bbox
         corners = (placed.xmin, placed.ymin, placed.xmax, placed.ymax)
         if not is_empty_bbox(placed) and not all(map(math.isfinite, corners)):
-            bbox = component.bbox
             raise ValueError(
-                f"A component {bbox.width!r} wide and {bbox.height!r} tall, "
-                f"placed at x={self.x!r} and y={self.y!r} with "
-                f"scale={self.scale!r}, would not have a finite box."
+                f"The placed box would not be finite; got {placed!r}."
             )
 
     @property
