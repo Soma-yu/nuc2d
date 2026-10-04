@@ -114,9 +114,9 @@ def test_draw_svg_takes_what_draw_svg_as_component_takes_and_a_size():
 
 
 def test_the_values_a_caller_holds_cannot_be_changed_in_place():
-    """These three describe a drawing; they are not part of one.
+    """These four describe a drawing; they are not part of one.
 
-    A box, a component and a placement are each read by whatever
+    A box, a component, a placement and a scene are each read by whatever
     consumes them and never read again, so an assignment after the fact
     reaches nothing. It raises where it is written instead of leaving the
     value and the drawing disagreeing, and so does an assignment to a
@@ -124,9 +124,10 @@ def test_the_values_a_caller_holds_cannot_be_changed_in_place():
     """
     component = nuc2d.draw_svg_as_component("(((...)))")
     placement = nuc2d.Placement(component=component)
+    scene = nuc2d.Scene(component)
 
     for value, name in [(component.bbox, "BBox"), (component, "Component"),
-                        (placement, "Placement")]:
+                        (placement, "Placement"), (scene, "Scene")]:
         for attribute in [*sorted(PUBLIC_MEMBERS[name]), "not_an_attribute"]:
             before = getattr(value, attribute, None)
 

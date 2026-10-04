@@ -112,10 +112,9 @@ def _anchor_point(
 class Component:
     """Something that can be placed: a drawing, or several put together.
 
-    Components are made by nuc2d's drawing functions, which draw a
-    structure, a colorbar or a line of text, and by
-    :meth:`from_placements`, which puts placed components together.
-    Calling the class itself raises TypeError.
+    Components are made by :func:`draw_svg_as_component`, which draws a
+    structure, and by :meth:`from_placements`, which puts placed
+    components together. Calling the class itself raises TypeError.
 
     Attributes
     ----------
@@ -127,9 +126,8 @@ class Component:
 
     Notes
     -----
-    A component cannot be changed once it is made. Two components are
-    equal only if they are the same component, however alike they are
-    drawn.
+    A component cannot be changed once it is made: assigning to an
+    attribute raises AttributeError.
 
     What the component is drawn with is private, and may change in any
     release.
@@ -189,7 +187,7 @@ class Component:
         Notes
         -----
         Components are drawn in the order given, so a later one covers an
-        earlier one where they overlap. No padding is added between them.
+        earlier one where they overlap.
         """
         if not isinstance(placements, list):
             raise TypeError(
@@ -265,10 +263,8 @@ class Placement:
 
     Notes
     -----
-    Two placements are equal when they place the same component, as
-    :class:`Component` compares them, at the same ``x``, ``y``, ``anchor``
-    and ``scale``. An anchor is compared as the pair it is kept as, so a
-    placement by ``"upper left"`` is equal to one by ``(0.0, 0.0)``.
+    A placement cannot be changed once it is made: assigning to an
+    attribute raises AttributeError.
     """
 
     component: Component

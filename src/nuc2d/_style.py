@@ -100,8 +100,7 @@ class StructureStyle:
     Attributes
     ----------
     backbone_color : str
-        Color of backbone edges. The arrow at each 3' terminus continues
-        the backbone, so it is drawn in this color too.
+        Color of backbone edges.
     backbone_width : float
         Stroke width used for backbone edges.
     backbone_dasharray : str
@@ -109,9 +108,7 @@ class StructureStyle:
         ``stroke-dasharray`` value. The default, ``"none"``, draws them
         solid.
     three_prime_arrow_length : float
-        Length of the arrow drawn at each 3' terminus. The arrowhead is
-        measured in stroke widths, so its size follows
-        ``backbone_width`` rather than this.
+        Length of the arrow drawn at each 3' terminus.
 
     basepair_color : str
         Color of base-pair edges.
@@ -161,15 +158,6 @@ class StructureStyle:
     Every size in the style, the two widths, ``three_prime_arrow_length``,
     ``node_radius`` and ``node_font_size``, is a finite number of at least
     0, in the units of the drawing.
-
-    A structure's box leaves a margin around the centers of its outermost
-    nucleotides, whatever the style. A ``node_radius``,
-    ``node_font_size`` or ``three_prime_arrow_length`` large enough to
-    draw past it is cut off at the edge of a scene.
-
-    Two styles are equal when their fields are. Colors and dash patterns
-    are compared as they are written, so ``"black"`` and ``"#000000"`` are
-    not equal.
     """
     backbone_color: str = "black"
     backbone_width: float = 2.0

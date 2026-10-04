@@ -188,36 +188,17 @@ _RADIAL_SETTINGS: dict[str, Callable[[str, object], object]] = {
 class RadialLayoutEngine:
     """Layout engine for generating a radial representation of a secondary structure.
 
-    This layout engine places nucleotides and structural elements using a
-    radial geometry, built from the spacing along a stem, the spacing
-    around a loop, and the angle by which stacked stems are deflected.
-
     Parameters
     ----------
     stem_spacing : float, default=15.0
         Distance, center to center, between adjacent nucleotides along a
-        stem, where the backbone runs straight. The same spacing holds
-        through a loop whose stems stack coaxially on one another, which
-        continues the stem, and along a structure of fewer than six
-        nucleotides with no base pair, which is drawn as one straight
-        strand.
+        stem.
     loop_spacing : float, default=20.0
         Distance, center to center, between adjacent nucleotides around a
-        loop that is not stacked, measured as the chord of the loop circle.
-        It is what sets the radius the loop is drawn on. A structure of
-        six nucleotides or more with no base pair is drawn on such a
-        circle too, its two ends side by side at the top.
-
-        It sets the width of every stem as well: the base pair closing a
-        loop joins two nucleotides that are neighbors on that loop's
-        circle, so the pair spans one chord, and the two strands of the
-        stem then run parallel at that separation.
+        loop.
     coaxial_stack_deflection : float, default=10.0
         Angle in degrees by which a helix is bent where two stems stack
-        coaxially on one another. Two stems do so across a loop with no
-        unpaired nucleotide of its own, which has the end of a strand in
-        it: where one strand ends and another begins, or where the two
-        ends of one strand meet. The bend shows where the backbone breaks.
+        coaxially on one another.
 
     Raises
     ------
@@ -237,8 +218,6 @@ class RadialLayoutEngine:
     is. A structure is laid out with the values the engine holds when it
     is drawn. Laying a structure out does not modify any of them, so one
     engine can lay out any number of structures.
-
-    Two engines are equal when their settings are.
     """
 
     stem_spacing: float = 15.0
@@ -468,7 +447,9 @@ class RadialLayoutEngine:
         )
 
 
-def layout(root_loop: LoopRegion, engine: RadialLayoutEngine) -> LayoutResult:
+def layout(
+    root_loop: LoopRegion, engine: RadialLayoutEngine | None = None
+) -> LayoutResult:
     """Lay out a secondary structure with ``engine``.
 
     How the engine lays a structure out is private to this module, so the
@@ -478,8 +459,9 @@ def layout(root_loop: LoopRegion, engine: RadialLayoutEngine) -> LayoutResult:
     ----------
     root_loop : LoopRegion
         Root loop region of the secondary structure tree.
-    engine : RadialLayoutEngine
-        Engine deciding where each nucleotide goes.
+    engine : RadialLayoutEngine, optional
+        Engine deciding where each nucleotide goes. Defaults to
+        ``RadialLayoutEngine()``.
 
     Returns
     -------
@@ -487,4 +469,6 @@ def layout(root_loop: LoopRegion, engine: RadialLayoutEngine) -> LayoutResult:
         Nodes, edges and decorations describing the geometry of the
         structure.
     """
+    if engine is None:
+        engine = RadialLayoutEngine()
     return engine._layout(root_loop)

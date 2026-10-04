@@ -115,6 +115,9 @@ _FONT_FAMILY = "Arial"
 # settings: a style says how a structure looks, and the colorbar is only
 # the key to the colors its probabilities are shown in.
 _COLORBAR_ASPECT_RATIO = 1 / 30  # the bar's width over its height
+# The height of the colorbar's box, which the structure beside it is
+# fitted to as well.
+COLORBAR_HEIGHT = 500.0
 _COLORBAR_TICK_LENGTH = 5.0
 _COLORBAR_TICK_FONT_SIZE = 12.0
 _COLORBAR_LABEL_FONT_SIZE = 15.0
@@ -126,15 +129,15 @@ class _Renderer:
     Only this module's ``render_*`` functions use it: they hand it a
     drawing of their own, and hand back what it drew together with the
     definitions it registered there. The class is what lets the steps of
-    drawing one part share a style and a colormap.
+    drawing one part share a colormap and a style.
 
     Parameters
     ----------
-    style : StructureStyle, optional
-        Appearance settings. Defaults to ``StructureStyle()``.
     colormap : matplotlib.colors.Colormap, optional
         Colormap probabilities are shown in. Defaults to
         ``mpl.colormaps["turbo"]``.
+    style : StructureStyle, optional
+        Appearance settings. Defaults to ``StructureStyle()``.
 
     Notes
     -----
@@ -145,13 +148,13 @@ class _Renderer:
     def __init__(
         self,
         *,
-        style: StructureStyle | None = None,
         colormap: mpl.colors.Colormap | None = None,
+        style: StructureStyle | None = None,
     ) -> None:
-        self.style = style if style is not None else StructureStyle()
         self.colormap = (
             colormap if colormap is not None else mpl.colormaps["turbo"]
         )
+        self.style = style if style is not None else StructureStyle()
         self._color_norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     def _draw_node(
@@ -438,7 +441,7 @@ class _Renderer:
         group = drawing.g()
 
         box_width = 150
-        box_height = 500
+        box_height = COLORBAR_HEIGHT
 
         bar_height = 450
         bar_width = bar_height * _COLORBAR_ASPECT_RATIO
@@ -545,8 +548,8 @@ class _Graphics:
 def render_structure(
     layout_result: LayoutResult,
     *,
-    style: StructureStyle | None = None,
     colormap: mpl.colors.Colormap | None = None,
+    style: StructureStyle | None = None,
 ) -> Component:
     """Render a laid-out secondary structure.
 
@@ -554,11 +557,11 @@ def render_structure(
     ----------
     layout_result : LayoutResult
         Geometry of the structure.
-    style : StructureStyle, optional
-        Appearance settings. Defaults to ``StructureStyle()``.
     colormap : matplotlib.colors.Colormap, optional
         Colormap the probabilities are shown in. Defaults to
         ``mpl.colormaps["turbo"]``.
+    style : StructureStyle, optional
+        Appearance settings. Defaults to ``StructureStyle()``.
 
     Returns
     -------
@@ -566,7 +569,7 @@ def render_structure(
         The drawn structure.
     """
     drawing = svgwrite.Drawing()
-    group, bbox = _Renderer(style=style, colormap=colormap).render_structure(
+    group, bbox = _Renderer(colormap=colormap, style=style).render_structure(
         drawing, layout_result
     )
     graphics = _Graphics(group=group, definitions=_definitions_in(drawing))
@@ -575,18 +578,18 @@ def render_structure(
 
 def render_colorbar(
     *,
-    label: str | None = "Equilibrium probability",
     colormap: mpl.colors.Colormap | None = None,
+    label: str | None = "Equilibrium probability",
 ) -> Component:
     """Render a colorbar.
 
     Parameters
     ----------
+    colormap : matplotlib.colors.Colormap, optional
+        Colormap the bar shows. Defaults to ``mpl.colormaps["turbo"]``.
     label : str or None, default="Equilibrium probability"
         Label written alongside the colorbar, or None to leave it without
         one. The colorbar occupies the same box either way.
-    colormap : matplotlib.colors.Colormap, optional
-        Colormap the bar shows. Defaults to ``mpl.colormaps["turbo"]``.
 
     Returns
     -------

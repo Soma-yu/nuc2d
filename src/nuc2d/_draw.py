@@ -8,8 +8,8 @@ a caller to place with others: ``draw_svg(...)`` is
 
 from __future__ import annotations
 
+import matplotlib as mpl
 import numpy.typing as npt
-from matplotlib.colors import Colormap
 
 from ._annotation import attach_basepair_probabilities, attach_sequences
 from ._validation import check_single_line_text, exact_str
@@ -19,7 +19,12 @@ from ._layout import RadialLayoutEngine, layout
 from ._parse import parse
 from ._scene import Scene
 from ._style import StructureStyle
-from ._svg import render_colorbar, render_structure, render_text
+from ._svg import (
+    COLORBAR_HEIGHT,
+    render_colorbar,
+    render_structure,
+    render_text,
+)
 
 
 # The structure is fitted into a square as tall as a colorbar, whatever
@@ -28,7 +33,6 @@ from ._svg import render_colorbar, render_structure, render_text
 # does not shrink them to a sliver, and structures placed at one size
 # show titles of one size.
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
-_COLORBAR_HEIGHT = 500.0  # as tall as render_colorbar draws one
 
 _TITLE_FONT_SIZE = 20.0
 _TITLE_GAP = 10.0  # between the title and what it is set over
@@ -51,17 +55,14 @@ def _check_label(name: str, value: object, *, without: str) -> str | None:
     return check_single_line_text(name, value)
 
 
-def _check_colormap(name: str, value: object) -> Colormap:
-    """Raise unless ``value`` is a matplotlib colormap.
-
-    The colormap is returned.
-    """
-    if not isinstance(value, Colormap):
+def _check_colormap(name: str, colormap: object) -> None:
+    if colormap is not None and not isinstance(
+        colormap, mpl.colors.Colormap
+    ):
         raise TypeError(
             f"{name} must be a matplotlib Colormap, such as "
-            f"mpl.colormaps['turbo']; got {type(value).__name__}."
+            f"mpl.colormaps['turbo']; got {type(colormap).__name__}."
         )
-    return value
 
 
 def _check_style(name: str, style: object) -> None:
@@ -77,8 +78,8 @@ def _check_layout_engine(name: str, layout_engine: object) -> None:
         layout_engine, RadialLayoutEngine
     ):
         raise TypeError(
-            f"{name} must be a RadialLayoutEngine; "
-            f"got {type(layout_engine).__name__}."
+            f"{name} must be a RadialLayoutEngine, such as "
+            f"RadialLayoutEngine(); got {type(layout_engine).__name__}."
         )
 
 
@@ -87,7 +88,7 @@ def draw_svg_as_component(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    colormap: Colormap | None = None,
+    colormap: mpl.colors.Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
@@ -125,8 +126,7 @@ def draw_svg_as_component(
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
-        How the structure looks. The title and the colorbar are drawn the
-        same whatever the style.
+        How the structure looks.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"
@@ -155,21 +155,6 @@ def draw_svg_as_component(
         character, a probability a nucleotide is colored by is NaN, or
         ``title`` or ``colorbar_label`` is empty or only spaces, or holds
         a line break, a tab or another control character.
-
-    Notes
-    -----
-    The structure's box leaves a margin around the centers of its
-    outermost nucleotides. It is not measured from what is drawn, so
-    nodes, letters or 3' arrows drawn large enough reach past it, and a
-    scene cuts them off at its edge. How the box is drawn around a
-    structure belongs to the drawing rather than to the API, and a minor
-    release may change it.
-
-    The structure is fitted into a square as tall as a colorbar and
-    centered in it, so that every structure drawn takes the same room. A
-    colorbar is set beside the square, and a title above everything,
-    centered over it. Each keeps one size, so that it stays legible beside
-    a structure of any shape.
     """
     if not isinstance(structure, str):
         raise TypeError(
@@ -177,8 +162,7 @@ def draw_svg_as_component(
             f"got {type(structure).__name__}."
         )
     structure = exact_str(structure)
-    if colormap is not None:
-        colormap = _check_colormap("colormap", colormap)
+    _check_colormap("colormap", colormap)
     _check_layout_engine("layout_engine", layout_engine)
     _check_style("style", style)
     title = _check_label(
@@ -196,20 +180,19 @@ def draw_svg_as_component(
     if basepair_probabilities is not None:
         attach_basepair_probabilities(root_loop, basepair_probabilities)
 
-    engine = layout_engine if layout_engine is not None else RadialLayoutEngine()
     drawn = render_structure(
-        layout(root_loop, engine), style=style, colormap=colormap
+        layout(root_loop, layout_engine), colormap=colormap, style=style
     )
 
     slot = make_bbox(
         0.0,
         0.0,
-        _COLORBAR_HEIGHT * _STRUCTURE_SLOT_ASPECT_RATIO,
-        _COLORBAR_HEIGHT,
+        COLORBAR_HEIGHT * _STRUCTURE_SLOT_ASPECT_RATIO,
+        COLORBAR_HEIGHT,
     )
     placements = [fit(drawn, slot, anchor="center")]
     if basepair_probabilities is not None:
-        colorbar = render_colorbar(label=colorbar_label, colormap=colormap)
+        colorbar = render_colorbar(colormap=colormap, label=colorbar_label)
         placements.append(Placement(colorbar, x=slot.xmax, y=slot.ymin))
     if title is not None:
         under = bbox_around(p.bbox for p in placements)
@@ -229,7 +212,7 @@ def draw_svg(
     *,
     sequences: list[str] | None = None,
     basepair_probabilities: npt.ArrayLike | None = None,
-    colormap: Colormap | None = None,
+    colormap: mpl.colors.Colormap | None = None,
     layout_engine: RadialLayoutEngine | None = None,
     style: StructureStyle | None = None,
     title: str | None = None,
@@ -270,8 +253,7 @@ def draw_svg(
         Engine computing nucleotide positions. Defaults to a
         :class:`~nuc2d.RadialLayoutEngine` with its own defaults.
     style : StructureStyle, optional
-        How the structure looks. The title and the colorbar are drawn the
-        same whatever the style.
+        How the structure looks.
     title : str, optional
         Text written above the structure and its colorbar, on one line.
     colorbar_label : str or None, default="Equilibrium probability"

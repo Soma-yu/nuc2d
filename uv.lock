@@ -1347,7 +1347,7 @@ dev = [
 requires-dist = [
     { name = "fonttools", specifier = ">=4.40.0" },
     { name = "matplotlib", specifier = ">=3.6.0" },
-    { name = "numpy", specifier = ">=1.23.2" },
+    { name = "numpy", specifier = ">=1.24.0" },
     { name = "svgwrite", specifier = ">=1.4,<2" },
 ]
 

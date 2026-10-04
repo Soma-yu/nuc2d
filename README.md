@@ -83,7 +83,7 @@ scene = draw_svg(CLOVERLEAF, sequences=SEQUENCES)
   <img src="https://raw.githubusercontent.com/Soma-yu/nuc2d/main/docs/images/sequences.png" width="55%">
 </p>
 
-A wrong number of sequences, or a sequence that is not as long as its strand,
+A wrong number of sequences, or a sequence longer or shorter than its strand,
 raises `ValueError` rather than drawing something misleading. So does a
 sequence holding a line break, a tab or another control character.
 

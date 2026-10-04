@@ -73,6 +73,15 @@ def test_a_longer_strand_with_no_base_pair_is_drawn_on_a_circle(n):
     assert len(result.decorations) == 1
 
 
+def test_an_engine_left_out_is_one_with_its_defaults():
+    with_none = layout(parse("(((...)))"))
+    with_default = layout(parse("(((...)))"), RadialLayoutEngine())
+
+    assert [n.pos.to_tuple() for n in with_none.nodes] == [
+        n.pos.to_tuple() for n in with_default.nodes
+    ]
+
+
 def test_layout_hairpin():
     root = parse("(((...)))")
 

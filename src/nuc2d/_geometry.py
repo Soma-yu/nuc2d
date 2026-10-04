@@ -138,11 +138,8 @@ class BBox:
 
     Notes
     -----
-    The box of a component with nothing in it is empty, and its width and
-    height are zero. A box around a single point is not empty, although
-    its width and height are zero too.
-
-    Two boxes are equal when their corners are.
+    A box cannot be changed once it is made: assigning to an attribute
+    raises AttributeError.
     """
 
     # The corners are held privately and read through properties, which
@@ -203,12 +200,12 @@ class BBox:
 
     @property
     def width(self) -> float:
-        """Extent of the box along the x-axis, or 0 when it is empty."""
+        """Extent of the box along the x-axis."""
         return 0.0 if is_empty_bbox(self) else self.xmax - self.xmin
 
     @property
     def height(self) -> float:
-        """Extent of the box along the y-axis, or 0 when it is empty."""
+        """Extent of the box along the y-axis."""
         return 0.0 if is_empty_bbox(self) else self.ymax - self.ymin
 
 
@@ -240,14 +237,14 @@ def is_empty_bbox(bbox: BBox) -> bool:
     return bbox.xmin > bbox.xmax or bbox.ymin > bbox.ymax
 
 
-def bbox_around(boxes: Iterable[BBox]) -> BBox:
-    """Return the smallest box enclosing every box in ``boxes``.
+def bbox_around(bboxes: Iterable[BBox]) -> BBox:
+    """Return the smallest box enclosing every box in ``bboxes``.
 
     An empty box encloses nothing and is passed over, so no boxes at all,
     or empty ones only, give an empty box.
     """
     around = _EMPTY_BBOX
-    for bbox in boxes:
+    for bbox in bboxes:
         if is_empty_bbox(bbox):
             continue
         around = make_bbox(

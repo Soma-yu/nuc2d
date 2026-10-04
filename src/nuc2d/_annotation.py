@@ -68,8 +68,8 @@ def attach_sequences(root_loop: LoopRegion, sequences: list[str]) -> None:
     ValueError
         If a sequence is empty or holds a line break, a tab or another
         control character, the number of sequences does not match the
-        number of strands, or a sequence is not as long as the strand it
-        describes.
+        number of strands, or a sequence is longer or shorter than the
+        strand it describes.
     """
     if not isinstance(sequences, list):
         raise TypeError(
@@ -133,14 +133,22 @@ def attach_basepair_probabilities(
         matches the number of nucleotides in the structure, or a
         probability attached is NaN.
     """
-    probs = np.asarray(basepair_probabilities)
+    size = sum(_strand_lengths(root_loop))
+    try:
+        probs = np.asarray(basepair_probabilities)
+    except ValueError as error:
+        # Rows of different lengths make no array at all.
+        raise ValueError(
+            f"The structure has {size} nucleotide(s), so "
+            f"basepair_probabilities must have shape ({size}, {size}); "
+            f"NumPy could not make an array of it: {error}"
+        ) from error
     # bool, signed and unsigned integers, and floating point.
     if probs.dtype.kind not in "biuf":
         raise TypeError(
             "basepair_probabilities must be a matrix of numbers, such as a "
             f"NumPy array of floats; got one of dtype {probs.dtype}."
         )
-    size = sum(_strand_lengths(root_loop))
 
     if probs.shape != (size, size):
         raise ValueError(

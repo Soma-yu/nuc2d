@@ -22,7 +22,7 @@ class Scene:
     Parameters
     ----------
     component : Component
-        What the scene shows. The scene is framed on exactly its box.
+        What the scene shows.
     width_px : float, optional
         Width of the scene in pixels. Given alone, the height follows
         from the component's proportions.
@@ -36,15 +36,18 @@ class Scene:
     Raises
     ------
     TypeError
-        If ``component`` is not a :class:`Component`, or a size given is
-        not a number.
+        If ``component`` is not a :class:`Component`, or ``width_px`` or
+        ``height_px`` is neither a number nor None.
     ValueError
-        If the component has no width or no height, or a size given is
-        not a positive finite number.
+        If the component has no width or no height, or ``width_px`` or
+        ``height_px`` is a number that is not positive and finite.
 
     Notes
     -----
     In Jupyter, a scene that ends a cell is displayed as it is.
+
+    A scene cannot be changed once it is made: assigning to an attribute
+    raises AttributeError.
     """
 
     # Only these can be held, so that an attribute assigned by mistake,

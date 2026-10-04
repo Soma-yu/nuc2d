@@ -95,6 +95,14 @@ def test_a_colormap_that_is_not_one_is_a_type_error(value):
         draw_svg_as_component(HAIRPIN, colormap=value)
 
 
+def test_rows_of_different_lengths_are_refused_as_the_wrong_shape():
+    """However NumPy itself answers them, which before 1.24 was otherwise."""
+    ragged = [[0.5] * 9] * 8 + [[0.5] * 8]
+
+    with pytest.raises(ValueError, match=r"must have shape \(9, 9\)"):
+        draw_svg(HAIRPIN, basepair_probabilities=ragged)
+
+
 def test_a_nan_probability_is_refused():
     probs = np.eye(9)
     probs[4, 4] = np.nan
