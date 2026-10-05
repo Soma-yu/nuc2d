@@ -516,12 +516,12 @@ class _Renderer:
             group.add(
                 drawing.text(
                     label,
-                    insert=(110, box_height/2),
+                    insert=(100, box_height/2),
                     text_anchor="middle",
                     font_family=_FONT_FAMILY,
                     font_size=_COLORBAR_LABEL_FONT_SIZE,
                     fill="black",
-                    transform=f"rotate(90, 110, {box_height / 2})",
+                    transform=f"rotate(90, 100, {box_height / 2})",
                 )
             )
 
