@@ -66,7 +66,7 @@ def demo_probs(dot_bracket: str) -> np.ndarray:
 PROBS = demo_probs(CLOVERLEAF)
 
 
-def row(components: list[Component], gap: float) -> Scene:
+def row(components: list[Component]) -> Scene:
     """Lay components out left to right, all as tall as the first."""
     height = components[0].bbox.height
     placements = []
@@ -76,7 +76,7 @@ def row(components: list[Component], gap: float) -> Scene:
             component, x=cursor_x, scale=height / component.bbox.height
         )
         placements.append(placement)
-        cursor_x = placement.bbox.xmax + gap
+        cursor_x = placement.bbox.xmax
 
     return Scene(Component.from_placements(placements))
 
@@ -109,8 +109,7 @@ def example() -> Scene:
                 basepair_probabilities=PROBS,
                 colorbar_label="Base-pair probability",
             ),
-        ],
-        gap=20.0,
+        ]
     )
 
 

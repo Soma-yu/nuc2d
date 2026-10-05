@@ -218,7 +218,9 @@ This is how the picture at the top of this page is drawn:
 from nuc2d import Component, Placement, Scene, draw_svg_as_component
 
 components = [
+    # The structure on its own.
     draw_svg_as_component(CLOVERLEAF),
+    # The same structure, with its sequences and base-pair probabilities.
     draw_svg_as_component(
         CLOVERLEAF,
         sequences=SEQUENCES,
@@ -227,7 +229,7 @@ components = [
     ),
 ]
 
-# Lay the components out in a row, all as tall as the first, with a gap between.
+# Lay the components out in a row, all as tall as the first.
 height = components[0].bbox.height
 placements, cursor_x = [], 0.0
 for component in components:
@@ -235,7 +237,7 @@ for component in components:
         component, x=cursor_x, scale=height / component.bbox.height
     )
     placements.append(placement)
-    cursor_x = placement.bbox.xmax + 20.0
+    cursor_x = placement.bbox.xmax
 
 Scene(Component.from_placements(placements)).save_svg("panel.svg")
 ```
