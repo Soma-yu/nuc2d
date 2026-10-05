@@ -35,7 +35,7 @@ from ._svg import (
 _STRUCTURE_SLOT_ASPECT_RATIO = 1.0
 
 _TITLE_FONT_SIZE = 20.0
-_TITLE_GAP = 10.0  # between the title and what it is set over
+_TITLE_GAP = 5.0  # between the title and what it is set over
 
 
 def _check_label(name: str, value: object, *, without: str) -> str | None:
